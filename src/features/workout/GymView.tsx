@@ -34,6 +34,7 @@ import FinishedSessionView from '../../components/FinishedSessionView';
 import NeonButton from '../../components/NeonButton';
 import GlassCard from '../../components/GlassCard';
 import styles from '../../styles/appStyles';
+import { Template, TemplateFolder, WorkoutExercise } from '../../types/workout';
 import {
   ASSETS,
   WORKOUT_TEMPLATES,
@@ -85,14 +86,14 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const [showOverview, setShowOverview] = useState(false);
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null);
-  const todaysWorkout = data.workouts?.[today] || [];
-  const visibleWorkout = todaysWorkout.filter((ex: any) => !ex.archived);
-  const customTemplates = data.customTemplates || [];
+  const todaysWorkout: WorkoutExercise[] = data.workouts?.[today] || [];
+  const visibleWorkout = todaysWorkout.filter((ex) => !ex.archived);
+  const customTemplates: Template[] = data.customTemplates || [];
   const [collapsedExercises, setCollapsedExercises] = useState<string[]>([]);
 
   // Template management state
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [folders, setFolders] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [folders, setFolders] = useState<TemplateFolder[]>([]);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string | null | undefined>(undefined);
@@ -109,7 +110,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const closeOverview = () => {
     setShowOverview(false);
-    const preservedWorkouts = todaysWorkout.filter((ex: any) => ex.archived);
+    const preservedWorkouts = todaysWorkout.filter((ex) => ex.archived);
     updateData({ ...data, workouts: { ...data.workouts, [today]: preservedWorkouts } });
   };
 
@@ -294,8 +295,8 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const applyTemplate = (template: any) => {
-    const newExercises = template.exercises.map((name: string, index: number) => ({
-      id: Date.now() + index + Math.random(),
+    const newExercises: WorkoutExercise[] = template.exercises.map((name: string, index: number) => ({
+      id: `${Date.now()}-${index}-${Math.random()}`,
       name: name,
       sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }]
     }));
@@ -364,7 +365,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const addExercise = (position: 'top' | 'bottom' = 'bottom') => {
     if (!newExerciseName.trim()) return;
-    const newExercise = {
+    const newExercise: WorkoutExercise = {
       id: Date.now(),
       name: newExerciseName,
       sets: [{ id: Date.now() + 1, weight: '', reps: '', completed: false }]

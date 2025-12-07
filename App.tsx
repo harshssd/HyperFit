@@ -109,6 +109,7 @@ import NavBar from './src/components/NavBar';
 import { GymView } from './src/features/workout';
 import { NAV_ITEMS } from './src/constants/nav';
 import LoadingScreen from './src/components/LoadingScreen';
+import { WorkoutExercise, Template, UserData } from './src/types/workout';
 import {
   isExerciseEmpty,
   renameExercise,
@@ -162,7 +163,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [data, setData] = useState(DEFAULT_DATA);
+  const [data, setData] = useState<UserData>(DEFAULT_DATA);
 
   // Auth State Listener
   useEffect(() => {

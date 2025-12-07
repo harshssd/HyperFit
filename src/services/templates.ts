@@ -1,9 +1,8 @@
 import { supabase } from './supabaseClient';
-
-type TemplateRecord = any;
+import type { Template, TemplateFolder } from '../types/workout';
 
 export const fetchTemplatesForUser = async (userId: string | undefined) => {
-  if (!userId) return { templates: [] as TemplateRecord[], tags: [] as string[] };
+  if (!userId) return { templates: [] as Template[], tags: [] as string[] };
 
   const { data: userTemplates, error } = await supabase
     .from('workout_templates')
@@ -21,7 +20,7 @@ export const fetchTemplatesForUser = async (userId: string | undefined) => {
   });
 
   return {
-    templates: userTemplates || [],
+    templates: (userTemplates as Template[]) || [],
     tags: Array.from(tagsSet).sort(),
   };
 };
@@ -35,7 +34,7 @@ export const fetchFoldersForUser = async (userId: string | undefined) => {
     .order('name', { ascending: true });
 
   if (error) throw error;
-  return data || [];
+  return (data as TemplateFolder[]) || [];
 };
 
 export const fetchFavoritesForUser = async (userId: string | undefined) => {

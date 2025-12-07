@@ -1,7 +1,8 @@
 import 'react-native-url-polyfill/auto';
-import { createClient, Session } from '@supabase/supabase-js';
+import { createClient, Session, User } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabaseConfig } from '../../supabase.config';
+import { UserData } from '../types/workout';
 
 export const supabase = createClient(
   supabaseConfig.supabaseUrl,
@@ -45,7 +46,7 @@ export const setSessionFromTokens = (access_token: string, refresh_token: string
 
 export const signOut = () => supabase.auth.signOut();
 
-export const loadUserData = async (userId: string, defaultData: any) => {
+export const loadUserData = async (userId: string, defaultData: UserData) => {
   const { data, error } = await supabase
     .from('user_data')
     .select('*')
@@ -77,7 +78,7 @@ export const loadUserData = async (userId: string, defaultData: any) => {
   return defaultData;
 };
 
-export const upsertUserData = async (userId: string, newData: any) => {
+export const upsertUserData = async (userId: string, newData: UserData) => {
   const { error } = await supabase
     .from('user_data')
     .upsert(

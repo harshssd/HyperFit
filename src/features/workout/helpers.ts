@@ -1,16 +1,6 @@
 import { Clock, Hash } from 'lucide-react-native';
 
-export type WorkoutExercise = {
-  id: number;
-  name: string;
-  sets: Array<{
-    id: number;
-    weight: string | number;
-    reps: string | number;
-    completed: boolean;
-  }>;
-  archived?: boolean;
-};
+import { WorkoutExercise } from '../../types/workout';
 
 const RANKS = [
   { level: 1, title: "INITIATE", minXp: 0, color: "#94a3b8" },
