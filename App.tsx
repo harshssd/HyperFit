@@ -94,6 +94,11 @@ import NeonButton from './src/components/NeonButton';
 import NumberControl from './src/components/NumberControl';
 import TemplatePickerModal from './src/components/TemplatePickerModal';
 import SaveTemplateModal from './src/components/SaveTemplateModal';
+import AddExerciseOverlay from './src/components/AddExerciseOverlay';
+import ChallengesViewComponent from './src/components/ChallengesView';
+import StepsViewComponent from './src/components/StepsView';
+import WorkoutHeader from './src/components/WorkoutHeader';
+import WorkoutFocusHeader from './src/components/WorkoutFocusHeader';
 
 // --- Supabase Imports ---
 import 'react-native-url-polyfill/auto';
@@ -987,45 +992,15 @@ const GymView = ({ data, updateData, user }: any) => {
       />
 
       <ScrollView style={styles.gymView} contentContainerStyle={styles.gymViewContent}>
-        {isAddingExercise && (
-          <View style={styles.addExerciseOverlay}>
-            <View style={styles.addExerciseModal}>
-              <Text style={styles.addExerciseTitle}>ADD EXERCISE</Text>
-            <View style={styles.addExerciseInputContainer}>
-              <TextInput
-                autoFocus
-                style={styles.addExerciseInput}
-                placeholder="Search..."
-                placeholderTextColor="#64748b"
-                value={newExerciseName}
-                onChangeText={handleNameChange}
-                onSubmitEditing={() => addExercise()}
-              />
-              {suggestions.length > 0 && (
-                <View style={styles.suggestionsContainer}>
-                  {suggestions.map((s, idx) => (
-                    <TouchableOpacity
-                      key={idx}
-                      onPress={() => selectSuggestion(s)}
-                      style={styles.suggestionItem}
-                    >
-                      <Text style={styles.suggestionText}>{s}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-            <View style={styles.addExerciseActions}>
-              <NeonButton onPress={() => addExercise('bottom')} style={styles.addExerciseButton}>
-                <Text>ADD</Text>
-              </NeonButton>
-              <TouchableOpacity onPress={() => setIsAddingExercise(false)} style={styles.addExerciseCancel}>
-                <X size={24} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
+        <AddExerciseOverlay
+          visible={isAddingExercise}
+          newExerciseName={newExerciseName}
+          suggestions={suggestions}
+          onChangeName={handleNameChange}
+          onSubmit={() => addExercise()}
+          onSelectSuggestion={selectSuggestion}
+          onClose={() => setIsAddingExercise(false)}
+        />
 
       <SaveTemplateModal
         visible={showSaveTemplateModal}
@@ -1223,51 +1198,18 @@ const GymView = ({ data, updateData, user }: any) => {
         </View>
       ) : (
         <View style={styles.workoutContainer}>
-          <View style={styles.workoutHeader}>
-            {isSessionActive && (
-              <TouchableOpacity
-                onPress={() => {
-                  setShowOverview(true);
-                  setIsSessionActive(false);
-                }}
-                style={styles.backToOverviewButton}
-              >
-                <ChevronLeft size={20} color="#94a3b8" />
-                <Text style={styles.backToOverviewText}>OVERVIEW</Text>
-              </TouchableOpacity>
-            )}
-            <View style={styles.workoutDots}>
-              {visibleWorkout.map((_: any, idx: number) => (
-                <View
-                  key={idx}
-                  style={[
-                    styles.workoutDot,
-                    idx === currentExIndex && styles.workoutDotActive
-                  ]}
-                />
-              ))}
-            </View>
-            <View style={styles.workoutHeaderActions}>
-              <TouchableOpacity
-                onPress={() => setViewMode(viewMode === 'list' ? 'focus' : 'list')}
-                style={styles.workoutHeaderButton}
-              >
-                {viewMode === 'list' ? (
-                  <Maximize2 size={18} color="#94a3b8" />
-                ) : (
-                  <List size={18} color="#94a3b8" />
-                )}
-              </TouchableOpacity>
-              {!isSessionActive && (
-                <TouchableOpacity
-                  onPress={() => setIsAddingExercise(true)}
-                  style={styles.workoutHeaderButton}
-                >
-                  <Plus size={18} color="#f97316" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+          <WorkoutHeader
+            isSessionActive={isSessionActive}
+            viewMode={viewMode as 'list' | 'focus'}
+            currentIndex={currentExIndex}
+            totalExercises={visibleWorkout.length}
+            onBackToOverview={() => {
+              setShowOverview(true);
+              setIsSessionActive(false);
+            }}
+            onToggleViewMode={() => setViewMode(viewMode === 'list' ? 'focus' : 'list')}
+            onAddExercise={() => setIsAddingExercise(true)}
+          />
 
           {viewMode === 'list' ? (
             <View style={styles.workoutList}>
@@ -1300,31 +1242,13 @@ const GymView = ({ data, updateData, user }: any) => {
             </View>
           ) : (
             <View style={styles.workoutFocus}>
-              <View style={styles.workoutFocusHeader}>
-                <TouchableOpacity
-                  onPress={() => setCurrentExIndex(Math.max(0, currentExIndex - 1))}
-                  disabled={currentExIndex === 0}
-                  style={[styles.workoutNavButton, currentExIndex === 0 && styles.workoutNavButtonDisabled]}
-                >
-                  <ChevronLeft size={24} color={currentExIndex === 0 ? "#475569" : "#94a3b8"} />
-                </TouchableOpacity>
-                <View style={styles.workoutFocusTitle}>
-                  <Text style={styles.workoutFocusTitleText}>{currentExercise?.name}</Text>
-                  <Text style={styles.workoutFocusSubtitle}>
-                    EXERCISE {currentExIndex + 1} OF {visibleWorkout.length}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setCurrentExIndex(Math.min(visibleWorkout.length - 1, currentExIndex + 1))}
-                  disabled={currentExIndex === visibleWorkout.length - 1}
-                  style={[
-                    styles.workoutNavButton,
-                    currentExIndex === visibleWorkout.length - 1 && styles.workoutNavButtonDisabled
-                  ]}
-                >
-                  <ChevronRight size={24} color={currentExIndex === visibleWorkout.length - 1 ? "#475569" : "#94a3b8"} />
-                </TouchableOpacity>
-              </View>
+              <WorkoutFocusHeader
+                currentExerciseName={currentExercise?.name}
+                currentIndex={currentExIndex}
+                totalExercises={visibleWorkout.length}
+                onPrev={() => setCurrentExIndex(Math.max(0, currentExIndex - 1))}
+                onNext={() => setCurrentExIndex(Math.min(visibleWorkout.length - 1, currentExIndex + 1))}
+              />
 
               <View style={styles.workoutSets}>
                 {currentExercise?.sets.map((set: any, setIndex: number) => {
@@ -1410,28 +1334,6 @@ const GymView = ({ data, updateData, user }: any) => {
       )}
     </ScrollView>
     </>
-  );
-};
-
-const ChallengesView = () => {
-  return (
-    <ScrollView style={styles.challengesView} contentContainerStyle={styles.challengesViewContent}>
-      <GlassCard style={styles.emptyCard}>
-        <Text style={styles.sectionTitle}>CHALLENGES</Text>
-        <Text style={styles.emptyCardText}>Nothing here yet. Coming soon.</Text>
-      </GlassCard>
-    </ScrollView>
-  );
-};
-
-const StepsView = () => {
-  return (
-    <ScrollView style={styles.stepsView} contentContainerStyle={styles.stepsViewContent}>
-      <GlassCard style={styles.emptyCard}>
-        <Text style={styles.sectionTitle}>STEPS</Text>
-        <Text style={styles.emptyCardText}>Nothing here yet. Coming soon.</Text>
-      </GlassCard>
-    </ScrollView>
   );
 };
 
@@ -1692,11 +1594,11 @@ export default function App() {
       case 'home':
         return <HomeView data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
       case 'steps':
-        return <StepsView />;
+        return <StepsViewComponent />;
       case 'gym':
         return <GymView data={data} updateData={saveData} user={user} />;
       case 'challenges':
-        return <ChallengesView />;
+        return <ChallengesViewComponent />;
       case 'stats':
         return <StatsView data={data} />;
       default:
