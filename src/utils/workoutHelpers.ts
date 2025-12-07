@@ -1,3 +1,14 @@
+import { Clock, Hash } from 'lucide-react-native';
+
+const RANKS = [
+  { level: 1, title: "INITIATE", minXp: 0, color: "#94a3b8" },
+  { level: 5, title: "KINETIC", minXp: 5000, color: "#fb923c" },
+  { level: 10, title: "VOLTAGE", minXp: 15000, color: "#fbbf24" },
+  { level: 20, title: "OVERDRIVE", minXp: 50000, color: "#fb7185" },
+  { level: 50, title: "TITAN", minXp: 200000, color: "#34d399" },
+  { level: 100, title: "HYPER GOD", minXp: 1000000, color: "#22d3ee" },
+];
+
 export type WorkoutExercise = {
   id: number;
   name: string;
@@ -115,14 +126,35 @@ export const calculateXP = (data: any) => {
 };
 
 export const getRank = (xp: number) => {
-  const RANKS = [
-    { level: 1, title: "INITIATE", minXp: 0, color: "#94a3b8" },
-    { level: 5, title: "KINETIC", minXp: 5000, color: "#fb923c" },
-    { level: 10, title: "VOLTAGE", minXp: 15000, color: "#fbbf24" },
-    { level: 20, title: "QUANTUM", minXp: 30000, color: "#22d3ee" },
-    { level: 30, title: "HYPER", minXp: 60000, color: "#a855f7" },
-  ];
   const safeXp = xp || 0;
   return [...RANKS].reverse().find(r => safeXp >= r.minXp) || RANKS[0];
+};
+
+export const getRankProgress = (xp: number) => {
+  const current = getRank(xp);
+  const next = RANKS.find(r => r.minXp > current.minXp) || null;
+  const range = next ? next.minXp - current.minXp : 1;
+  const progress = next ? ((xp - current.minXp) / range) * 100 : 100;
+  return { current, next, progress: Math.max(0, Math.min(100, progress)) };
+};
+
+export const getExerciseConfig = (name: string) => {
+  const lower = name.toLowerCase();
+  if (lower.includes('plank') || lower.includes('hold') || lower.includes('static') || lower.includes('wall sit')) {
+    return { type: 'timed', weightLabel: 'LBS (OPT)', repLabel: 'TIME (S)', repIcon: Clock, weightPlaceholder: '-', repPlaceholder: '30s', weightStep: 5, repStep: 10 };
+  }
+  if (
+    lower.includes('pushup') ||
+    lower.includes('pull up') ||
+    lower.includes('chin up') ||
+    lower.includes('dip') ||
+    lower.includes('burpee') ||
+    lower.includes('lunge') ||
+    (lower.includes('squat') && !lower.includes('barbell'))
+  ) {
+    if (name === 'Squats') return { type: 'weighted', weightLabel: 'LBS', repLabel: 'REPS', repIcon: Hash, weightPlaceholder: '135', repPlaceholder: '10', weightStep: 5, repStep: 1 };
+    return { type: 'bodyweight', weightLabel: 'LBS (OPT)', repLabel: 'REPS', repIcon: Hash, weightPlaceholder: 'BW', repPlaceholder: '12', weightStep: 5, repStep: 1 };
+  }
+  return { type: 'weighted', weightLabel: 'LBS', repLabel: 'REPS', repIcon: Hash, weightPlaceholder: '45', repPlaceholder: '10', weightStep: 5, repStep: 1 };
 };
 

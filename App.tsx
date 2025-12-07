@@ -31,7 +31,6 @@ import {
   Circle,
   Plus,
   Minus,
-  Flame,
   Calendar,
   ChevronRight,
   ChevronLeft,
@@ -65,19 +64,15 @@ import {
   Settings,
   Target,
   AlertTriangle,
-  Clock,
-  Hash,
   Weight,
   Share2,
   Star,
   Octagon,
   Shield,
-  Hexagon,
   List,
   Maximize2,
   Edit3,
   History,
-  LogOut,
   Loader,
   Folder,
   FolderPlus,
@@ -107,6 +102,8 @@ import WorkoutFocusActions from './src/components/WorkoutFocusActions';
 import EmptyWorkoutCard from './src/components/EmptyWorkoutCard';
 import HomeViewComponent from './src/components/HomeView';
 import StatsViewComponent from './src/components/StatsView';
+import Header from './src/components/Header';
+import ProgressRing from './src/components/ProgressRing';
 import {
   isExerciseEmpty,
   renameExercise,
@@ -117,6 +114,7 @@ import {
   calculateTotalVolume,
   calculateXP,
   getRank,
+  getExerciseConfig,
 } from './src/utils/workoutHelpers';
 
 // --- Supabase Imports ---
@@ -141,16 +139,6 @@ const ASSETS = {
   cyberHeart: "https://storage.googleapis.com/s.mkswft.com/RmlsZTpjN2Y4ODkzNy05N2VjLTQyMzUtYTg0MS0yN2U1OTU0OTAzNjg=/cyber_heart.png",
   background: "https://storage.googleapis.com/s.mkswft.com/RmlsZTpmZTA1YjU3ZS0zODQ5LTQ2ODktOTI4MS02ZjM4NTVhZmFiZWY=/hyperfit_bg.png"
 };
-
-// --- Constants ---
-const RANKS = [
-  { level: 1, title: "INITIATE", minXp: 0, color: "#94a3b8" },
-  { level: 5, title: "KINETIC", minXp: 5000, color: "#fb923c" },
-  { level: 10, title: "VOLTAGE", minXp: 15000, color: "#fbbf24" },
-  { level: 20, title: "OVERDRIVE", minXp: 50000, color: "#fb7185" },
-  { level: 50, title: "TITAN", minXp: 200000, color: "#34d399" },
-  { level: 100, title: "HYPER GOD", minXp: 1000000, color: "#22d3ee" },
-];
 
 const CHALLENGE_LIBRARY = [
   { id: 'pushup_30', title: 'PUSH PROTOCOL', description: 'Upper body strength progression.', icon: '⚡', color: 'orange', totalDays: 30, type: 'reps', mode: 'progressive', baseReps: 10, increment: 2, restFreq: 4 },
@@ -178,72 +166,6 @@ const DEFAULT_DATA = {
   customTemplates: [],
   customChallenges: [],
   pushupsCompleted: []
-};
-
-// --- Helpers ---
-const getExerciseConfig = (name: string) => {
-  const lower = name.toLowerCase();
-  if (lower.includes('plank') || lower.includes('hold') || lower.includes('static') || lower.includes('wall sit')) {
-    return { type: 'timed', weightLabel: 'LBS (OPT)', repLabel: 'TIME (S)', repIcon: Clock, weightPlaceholder: '-', repPlaceholder: '30s', weightStep: 5, repStep: 10 };
-  }
-  if (lower.includes('pushup') || lower.includes('pull up') || lower.includes('chin up') || lower.includes('dip') || lower.includes('burpee') || lower.includes('lunge') || (lower.includes('squat') && !lower.includes('barbell'))) {
-    if (name === 'Squats') return { type: 'weighted', weightLabel: 'LBS', repLabel: 'REPS', repIcon: Hash, weightPlaceholder: '135', repPlaceholder: '10', weightStep: 5, repStep: 1 };
-    return { type: 'bodyweight', weightLabel: 'LBS (OPT)', repLabel: 'REPS', repIcon: Hash, weightPlaceholder: 'BW', repPlaceholder: '12', weightStep: 5, repStep: 1 };
-  }
-  return { type: 'weighted', weightLabel: 'LBS', repLabel: 'REPS', repIcon: Hash, weightPlaceholder: '45', repPlaceholder: '10', weightStep: 5, repStep: 1 };
-};
-
-const ProgressRing = ({ radius, stroke, progress, color }: any) => {
-  const normalizedRadius = radius - stroke * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
-  
-  return (
-    <View style={{ width: radius * 2, height: radius * 2, justifyContent: 'center', alignItems: 'center' }}>
-      <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>{Math.round(progress)}%</Text>
-    </View>
-  );
-};
-
-const Header = ({ streak = 0, xp = 0, onLogout, username }: any) => {
-  const currentRank = getRank(xp);
-  const nextRank = RANKS.find(r => r.minXp > xp);
-  const range = nextRank ? nextRank.minXp - currentRank.minXp : 1;
-  const progress = nextRank ? ((xp - currentRank.minXp) / range) * 100 : 100;
-
-  return (
-    <View style={styles.header}>
-      <View style={styles.headerTop}>
-        <View style={styles.headerLeft}>
-          <View style={styles.headerLogo}>
-            <Hexagon size={24} color="#0f172a" strokeWidth={3} />
-          </View>
-          <View>
-            <Text style={styles.headerTitle}>
-              HYPER<Text style={styles.headerTitleAccent}>FIT</Text>
-            </Text>
-            <View style={styles.headerRank}>
-              <Text style={[styles.headerRankText, { color: currentRank.color }]}>
-                {username || currentRank.title}
-              </Text>
-            </View>
-          </View>
-        </View>
-        <View style={styles.headerRight}>
-          <View style={styles.streakContainer}>
-            <Flame size={16} color={streak > 0 ? "#f97316" : "#475569"} />
-            <Text style={styles.streakText}>{streak}</Text>
-          </View>
-          <TouchableOpacity onPress={onLogout} style={styles.logoutButton}>
-            <LogOut size={16} color="#94a3b8" />
-          </TouchableOpacity>
-        </View>
-      </View>
-      <View style={styles.progressBar}>
-        <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
-      </View>
-    </View>
-  );
 };
 
 const SimpleBarChart = ({ data, color = "#f97316" }: any) => {
