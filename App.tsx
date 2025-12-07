@@ -103,8 +103,9 @@ import EmptyWorkoutCard from './src/components/EmptyWorkoutCard';
 import HomeViewComponent from './src/components/HomeView';
 import StatsViewComponent from './src/components/StatsView';
 import Header from './src/components/Header';
-import ProgressRing from './src/components/ProgressRing';
 import FinishedSessionView from './src/components/FinishedSessionView';
+import ProgressRing from './src/components/ProgressRing';
+import NavBar from './src/components/NavBar';
 import {
   isExerciseEmpty,
   renameExercise,
@@ -145,149 +146,15 @@ import {
   DEFAULT_EXERCISES,
   DEFAULT_DATA,
 } from './src/constants/appConstants';
+import {
+  ABORT_SESSION_TITLE,
+  ABORT_SESSION_MESSAGE,
+} from './src/constants/text';
 import SimpleBarChart from './src/components/SimpleBarChart';
+import LoginView from './src/components/LoginView';
 
 // --- Application Views ---
-const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: any) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleEmailAuth = async () => {
-    if (!email.trim() || !password.trim()) {
-      setError('Please enter email and password');
-      return;
-    }
-    setIsLoading(true);
-    setError('');
-    try {
-      if (isSignUp) {
-        await onSignUp(email, password);
-      } else {
-        await onEmailLogin(email, password);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Authentication failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleLogin = async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      await onGoogleLogin();
-    } catch (err: any) {
-      setError(err.message || 'Google sign in failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <ImageBackground
-      source={{ uri: ASSETS.background }}
-      style={styles.loginContainer}
-      resizeMode="cover"
-    >
-      <ScrollView 
-        contentContainerStyle={styles.loginScrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.loginCard}>
-          <View style={styles.loginHeader}>
-            <View style={styles.loginLogo}>
-              <Zap size={32} color="#0f172a" />
-            </View>
-            <Text style={styles.loginTitle}>
-              HYPER<Text style={styles.loginTitleAccent}>FIT</Text>
-            </Text>
-            <Text style={styles.loginSubtitle}>Next Gen Training OS</Text>
-          </View>
-
-          <View style={styles.loginForm}>
-            {error ? (
-              <View style={styles.loginError}>
-                <AlertTriangle size={16} color="#f87171" />
-                <Text style={styles.loginErrorText}>{error}</Text>
-              </View>
-            ) : null}
-
-            <Text style={styles.loginLabel}>EMAIL</Text>
-            <TextInput
-              style={styles.loginInput}
-              placeholder="your.email@example.com"
-              placeholderTextColor="#64748b"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="emailAddress"
-            />
-
-            <Text style={[styles.loginLabel, { marginTop: 16 }]}>PASSWORD</Text>
-            <TextInput
-              style={styles.loginInput}
-              placeholder="Enter password"
-              placeholderTextColor="#64748b"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType={isSignUp ? "newPassword" : "password"}
-              onSubmitEditing={handleEmailAuth}
-            />
-
-            <NeonButton 
-              onPress={handleEmailAuth} 
-              disabled={isLoading} 
-              style={styles.loginButton}
-            >
-              {isLoading ? (
-                <Loader size={20} color="#0f172a" />
-              ) : (
-                <Text>{isSignUp ? 'SIGN UP' : 'SIGN IN'}</Text>
-              )}
-            </NeonButton>
-
-            <TouchableOpacity
-              onPress={() => setIsSignUp(!isSignUp)}
-              style={styles.loginToggle}
-            >
-              <Text style={styles.loginToggleText}>
-                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-              </Text>
-            </TouchableOpacity>
-
-            <View style={styles.loginDivider}>
-              <View style={styles.loginDividerLine} />
-              <Text style={styles.loginDividerText}>OR</Text>
-              <View style={styles.loginDividerLine} />
-            </View>
-
-            <TouchableOpacity
-              onPress={handleGoogleLogin}
-              disabled={isLoading}
-              style={[styles.googleButton, isLoading && styles.googleButtonDisabled]}
-            >
-              <View style={styles.googleButtonContent}>
-                <Text style={styles.googleIcon}>G</Text>
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.loginFooter}>V 2.1.0 // SECURE CONNECTION</Text>
-        </View>
-      </ScrollView>
-    </ImageBackground>
-  );
-};
+// LoginView moved to src/components/LoginView.tsx
 
 const GymView = ({ data, updateData, user }: any) => {
   const today = new Date().toISOString().split('T')[0];
@@ -743,7 +610,7 @@ const GymView = ({ data, updateData, user }: any) => {
   };
 
   const abortSession = () => {
-    Alert.alert('Discard Session', 'Discard current session? This cannot be undone.', [
+    Alert.alert(ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Discard',
@@ -1171,19 +1038,6 @@ export default function App() {
     }
   };
 
-  const NavItem = ({ id, icon: Icon, label }: any) => {
-    const isActive = activeTab === id;
-    return (
-      <TouchableOpacity
-        onPress={() => setActiveTab(id)}
-        style={styles.navItem}
-      >
-        <Icon size={24} color={isActive ? "#22d3ee" : "#475569"} strokeWidth={isActive ? 2.5 : 2} />
-        {isActive && <View style={styles.navItemIndicator} />}
-      </TouchableOpacity>
-    );
-  };
-
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -1220,13 +1074,17 @@ export default function App() {
         <ScrollView style={styles.mainContent} contentContainerStyle={styles.mainContentContainer}>
           {renderContent()}
         </ScrollView>
-        <View style={styles.navBar}>
-          <NavItem id="home" icon={Home} label="Home" />
-          <NavItem id="challenges" icon={Swords} label="Challenges" />
-          <NavItem id="gym" icon={Dumbbell} label="Gym" />
-          <NavItem id="stats" icon={BarChart2} label="Stats" />
-          <NavItem id="steps" icon={Footprints} label="Steps" />
-        </View>
+        <NavBar
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          items={[
+            { id: 'home', label: 'Home', icon: Home },
+            { id: 'challenges', label: 'Challenges', icon: Swords },
+            { id: 'gym', label: 'Gym', icon: Dumbbell },
+            { id: 'stats', label: 'Stats', icon: BarChart2 },
+            { id: 'steps', label: 'Steps', icon: Footprints },
+          ]}
+        />
       </SafeAreaView>
       <StatusBar style="light" />
     </ImageBackground>
