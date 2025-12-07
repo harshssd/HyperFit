@@ -115,6 +115,10 @@ import {
   calculateXP,
   getRank,
   getExerciseConfig,
+  finishWorkoutState,
+  undoFinishState,
+  startNewSessionState,
+  abortSessionState,
 } from './src/utils/workoutHelpers';
 
 // --- Supabase Imports ---
@@ -775,29 +779,19 @@ const GymView = ({ data, updateData, user }: any) => {
   };
 
   const finishWorkout = () => {
-    const cleanedWorkout = todaysWorkout.filter((ex: any) => ex.archived || !isExerciseEmpty(ex));
-    updateData({
-      ...data,
-      workouts: { ...data.workouts, [today]: cleanedWorkout },
-      workoutStatus: { ...data.workoutStatus, [today]: { finished: true, finishedAt: new Date().toISOString() } }
-    });
+    updateData(finishWorkoutState(data, today, todaysWorkout));
     setIsSessionActive(false);
     setShowOverview(false);
   };
 
   const undoFinish = () => {
-    updateData({ ...data, workoutStatus: { ...data.workoutStatus, [today]: { finished: false } } });
+    updateData(undoFinishState(data, today));
     setShowOverview(true);
     setIsSessionActive(false);
   };
 
   const startNewSession = () => {
-    const cleanedAndArchived = todaysWorkout.filter((ex: any) => ex.archived || !isExerciseEmpty(ex)).map((ex: any) => ({ ...ex, archived: true }));
-    updateData({
-      ...data,
-      workouts: { ...data.workouts, [today]: cleanedAndArchived },
-      workoutStatus: { ...data.workoutStatus, [today]: { finished: false } }
-    });
+    updateData(startNewSessionState(data, today, todaysWorkout));
     setIsSessionActive(false);
     setShowOverview(false);
     setTimeout(() => setShowTemplatePicker(true), 100);
@@ -810,8 +804,7 @@ const GymView = ({ data, updateData, user }: any) => {
         text: 'Discard',
         style: 'destructive',
         onPress: () => {
-          const preservedWorkouts = todaysWorkout.filter((ex: any) => ex.archived);
-          updateData({ ...data, workouts: { ...data.workouts, [today]: preservedWorkouts } });
+          updateData(abortSessionState(data, today));
           setIsAddingExercise(false);
           setShowTemplatePicker(false);
           setNewExerciseName('');
