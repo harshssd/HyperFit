@@ -835,9 +835,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   saveTemplateTagsInput: {
+    minHeight: 40,
+  },
+  saveTemplateTagsInputContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 40,
   },
   saveTemplateTag: {
     flexDirection: 'row',

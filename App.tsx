@@ -107,6 +107,7 @@ import FinishedSessionView from './src/components/FinishedSessionView';
 import ProgressRing from './src/components/ProgressRing';
 import NavBar from './src/components/NavBar';
 import { GymView } from './src/features/workout';
+import { NAV_ITEMS } from './src/constants/nav';
 import {
   isExerciseEmpty,
   renameExercise,
@@ -340,13 +341,7 @@ export default function App() {
         <NavBar
           activeTab={activeTab}
           onChange={setActiveTab}
-          items={[
-            { id: 'home', label: 'Home', icon: Home },
-            { id: 'challenges', label: 'Challenges', icon: Swords },
-            { id: 'gym', label: 'Gym', icon: Dumbbell },
-            { id: 'stats', label: 'Stats', icon: BarChart2 },
-            { id: 'steps', label: 'Steps', icon: Footprints },
-          ]}
+          items={NAV_ITEMS}
         />
       </SafeAreaView>
       <StatusBar style="light" />
