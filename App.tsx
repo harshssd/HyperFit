@@ -103,6 +103,21 @@ import CreateFolderModal from './src/components/CreateFolderModal';
 import WorkoutOverview from './src/components/WorkoutOverview';
 import WorkoutListView from './src/components/WorkoutListView';
 import WorkoutFocusSets from './src/components/WorkoutFocusSets';
+import WorkoutFocusActions from './src/components/WorkoutFocusActions';
+import EmptyWorkoutCard from './src/components/EmptyWorkoutCard';
+import HomeViewComponent from './src/components/HomeView';
+import StatsViewComponent from './src/components/StatsView';
+import {
+  isExerciseEmpty,
+  renameExercise,
+  updateSetValue,
+  addSetToExercise,
+  deleteExerciseFromWorkout,
+  moveExerciseInWorkout,
+  calculateTotalVolume,
+  calculateXP,
+  getRank,
+} from './src/utils/workoutHelpers';
 
 // --- Supabase Imports ---
 import 'react-native-url-polyfill/auto';
@@ -176,32 +191,6 @@ const getExerciseConfig = (name: string) => {
     return { type: 'bodyweight', weightLabel: 'LBS (OPT)', repLabel: 'REPS', repIcon: Hash, weightPlaceholder: 'BW', repPlaceholder: '12', weightStep: 5, repStep: 1 };
   }
   return { type: 'weighted', weightLabel: 'LBS', repLabel: 'REPS', repIcon: Hash, weightPlaceholder: '45', repPlaceholder: '10', weightStep: 5, repStep: 1 };
-};
-
-const isExerciseEmpty = (exercise: any) => {
-  if (!exercise || !exercise.sets) return true;
-  return !exercise.sets.some((s: any) => s.completed || (s.weight && String(s.weight).trim() !== '') || (s.reps && String(s.reps).trim() !== ''));
-};
-
-const calculateXP = (data: any) => {
-  if (!data) return 0;
-  let xp = 0;
-  const allWorkouts = Object.values(data.workouts || {}).flat();
-  xp += (data.gymLogs?.length || 0) * 100;
-  allWorkouts.forEach((ex: any) => {
-    if (ex.sets) {
-      ex.sets.forEach((s: any) => {
-        if (s.completed && s.weight && s.reps) xp += (parseInt(s.weight) * parseInt(s.reps)) * 0.05;
-        if (s.completed && (!s.weight || s.weight === '')) xp += (parseInt(s.reps) || 0) * 2;
-      });
-    }
-  });
-  return Math.floor(xp);
-};
-
-const getRank = (xp: number) => {
-  const safeXp = xp || 0;
-  return [...RANKS].reverse().find(r => safeXp >= r.minXp) || RANKS[0];
 };
 
 const ProgressRing = ({ radius, stroke, progress, color }: any) => {
@@ -472,10 +461,7 @@ const GymView = ({ data, updateData, user }: any) => {
   };
 
   const handleRenameExercise = (id: number, name: string) => {
-    const realIndex = todaysWorkout.findIndex((e: any) => e.id === id);
-    if (realIndex === -1) return;
-    const updated = [...todaysWorkout];
-    updated[realIndex].name = name;
+    const updated = renameExercise(todaysWorkout, id, name);
     updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
   };
 
@@ -841,50 +827,28 @@ const GymView = ({ data, updateData, user }: any) => {
   };
 
   const editExerciseName = (exId: number, newName: string) => {
-    const realIndex = todaysWorkout.findIndex((ex: any) => ex.id === exId);
-    if (realIndex === -1) return;
-    const updated = [...todaysWorkout];
-    updated[realIndex].name = newName;
+    const updated = renameExercise(todaysWorkout, exId, newName);
     updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
     setEditingExerciseId(null);
   };
 
   const updateSet = (exId: number, setIndex: number, field: string, value: any) => {
-    const realIndex = todaysWorkout.findIndex((ex: any) => ex.id === exId);
-    if (realIndex === -1) return;
-    const updated = [...todaysWorkout];
-    updated[realIndex].sets[setIndex][field] = value;
+    const updated = updateSetValue(todaysWorkout, exId, setIndex, field, value);
     updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
   };
 
   const addSet = (exId: number) => {
-    const realIndex = todaysWorkout.findIndex((ex: any) => ex.id === exId);
-    if (realIndex === -1) return;
-    const updated = [...todaysWorkout];
-    const prev = updated[realIndex].sets[updated[realIndex].sets.length - 1];
-    updated[realIndex].sets.push({
-      id: Date.now(),
-      weight: prev ? prev.weight : '',
-      reps: '',
-      completed: false
-    });
+    const updated = addSetToExercise(todaysWorkout, exId);
     updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
   };
 
   const deleteExercise = (exId: number) => {
-    const updated = todaysWorkout.filter((ex: any) => ex.id !== exId);
+    const updated = deleteExerciseFromWorkout(todaysWorkout, exId);
     updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
   };
 
   const moveExercise = (exId: number, direction: 'up' | 'down') => {
-    const realIndex = todaysWorkout.findIndex((ex: any) => ex.id === exId);
-    if (realIndex === -1) return;
-    const updated = [...todaysWorkout];
-    if (direction === 'up' && realIndex > 0) {
-      [updated[realIndex - 1], updated[realIndex]] = [updated[realIndex], updated[realIndex - 1]];
-    } else if (direction === 'down' && realIndex < updated.length - 1) {
-      [updated[realIndex + 1], updated[realIndex]] = [updated[realIndex], updated[realIndex + 1]];
-    }
+    const updated = moveExerciseInWorkout(todaysWorkout, exId, direction);
     updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
   };
 
@@ -935,13 +899,7 @@ const GymView = ({ data, updateData, user }: any) => {
     ]);
   };
 
-  const calculateTotalVolume = () => {
-    return visibleWorkout.reduce((acc: number, ex: any) => {
-      return acc + ex.sets.reduce((sAcc: number, s: any) => {
-        return sAcc + (s.completed && s.weight && s.reps ? parseInt(s.weight) * parseInt(s.reps) : 0);
-      }, 0);
-    }, 0);
-  };
+  const calculateTotalVolumeLocal = () => calculateTotalVolume(visibleWorkout as any);
 
   const currentExercise = visibleWorkout[currentExIndex];
 
@@ -961,7 +919,7 @@ const GymView = ({ data, updateData, user }: any) => {
             <Text style={styles.finishedStatLabel}>Exercises</Text>
           </GlassCard>
           <GlassCard style={styles.finishedStatCard}>
-            <Text style={styles.finishedStatValue}>{calculateTotalVolume().toLocaleString()}</Text>
+            <Text style={styles.finishedStatValue}>{calculateTotalVolumeLocal().toLocaleString()}</Text>
             <Text style={styles.finishedStatLabel}>Vol. Load (LB)</Text>
           </GlassCard>
         </View>
@@ -1023,10 +981,10 @@ const GymView = ({ data, updateData, user }: any) => {
       <SaveTemplateModal
         visible={showSaveTemplateModal}
         onClose={() => {
-          setShowSaveTemplateModal(false);
-          setTemplateName('');
-          setSaveTemplateFolder(null);
-          setSaveTemplateTags([]);
+                setShowSaveTemplateModal(false);
+                setTemplateName('');
+                setSaveTemplateFolder(null);
+                setSaveTemplateTags([]);
         }}
         onSave={saveCurrentAsTemplate}
         templateName={templateName}
@@ -1048,13 +1006,13 @@ const GymView = ({ data, updateData, user }: any) => {
           const name = newFolderName.trim();
           if (name) {
             createFolder(name);
-            setShowCreateFolderModal(false);
-            setNewFolderName('');
-          }
-        }}
+                  setShowCreateFolderModal(false);
+                  setNewFolderName('');
+                }
+              }}
         onClose={() => {
-          setShowCreateFolderModal(false);
-          setNewFolderName('');
+                    setShowCreateFolderModal(false);
+                    setNewFolderName('');
         }}
       />
 
@@ -1073,29 +1031,13 @@ const GymView = ({ data, updateData, user }: any) => {
           onEndEdit={() => setEditingExerciseId(null)}
         />
       ) : visibleWorkout.length === 0 ? (
-        <View style={styles.emptyWorkout}>
-          <View style={styles.emptyWorkoutIcon}>
-            <Dumbbell size={48} color="#475569" />
-          </View>
-          <Text style={styles.emptyWorkoutTitle}>SYSTEM IDLE</Text>
-          <Text style={styles.emptyWorkoutSubtitle}>INITIALIZE TRAINING PROTOCOL</Text>
-          <View style={styles.emptyWorkoutActions}>
-            <NeonButton onPress={() => setShowTemplatePicker(true)} style={styles.emptyWorkoutButton}>
-              <Layout size={24} color="#0f172a" />
-              <Text style={{ marginLeft: 8 }}>LOAD TEMPLATE</Text>
-            </NeonButton>
-            <TouchableOpacity
-              onPress={() => {
-                setIsAddingExercise(true);
-                setShowOverview(true);
-              }}
-              style={styles.emptyWorkoutCustom}
-            >
-              <PlusCircle size={20} color="#64748b" />
-              <Text style={styles.emptyWorkoutCustomText}>CUSTOM INPUT</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <EmptyWorkoutCard
+          onLoadTemplate={() => setShowTemplatePicker(true)}
+          onCustomInput={() => {
+            setIsAddingExercise(true);
+            setShowOverview(true);
+          }}
+        />
       ) : (
         <View style={styles.workoutContainer}>
           <WorkoutHeader
@@ -1104,9 +1046,9 @@ const GymView = ({ data, updateData, user }: any) => {
             currentIndex={currentExIndex}
             totalExercises={visibleWorkout.length}
             onBackToOverview={() => {
-              setShowOverview(true);
-              setIsSessionActive(false);
-            }}
+                  setShowOverview(true);
+                  setIsSessionActive(false);
+                }}
             onToggleViewMode={() => setViewMode(viewMode === 'list' ? 'focus' : 'list')}
             onAddExercise={() => setIsAddingExercise(true)}
           />
@@ -1115,9 +1057,9 @@ const GymView = ({ data, updateData, user }: any) => {
             <WorkoutListView
               visibleWorkout={visibleWorkout}
               onSelectExercise={(i) => {
-                setCurrentExIndex(i);
-                setViewMode('focus');
-              }}
+                    setCurrentExIndex(i);
+                    setViewMode('focus');
+                  }}
               onFinish={finishWorkout}
               onAbort={abortSession}
             />
@@ -1137,74 +1079,27 @@ const GymView = ({ data, updateData, user }: any) => {
                 updateSet={updateSet}
               />
 
-              <TouchableOpacity
+                        <TouchableOpacity
                 onPress={() => currentExercise && addSet(currentExercise.id)}
                 style={styles.addSetButton}
                 disabled={!currentExercise}
               >
-                <Plus size={16} color="#64748b" />
-                <Text style={styles.addSetButtonText}>ADD SET</Text>
-              </TouchableOpacity>
-
-              <View style={styles.workoutFocusActions}>
-                {currentExIndex < visibleWorkout.length - 1 ? (
-                  <NeonButton onPress={() => setCurrentExIndex(currentExIndex + 1)} style={styles.nextButton}>
-                    <Text>NEXT EXERCISE</Text>
-                    <ArrowRight size={18} color="#0f172a" />
-                  </NeonButton>
-                ) : (
-                  <NeonButton onPress={finishWorkout} style={styles.completeButton}>
-                    <Text>COMPLETE SESSION</Text>
-                  </NeonButton>
-                )}
-                <TouchableOpacity onPress={abortSession} style={styles.abortButton}>
-                  <Text style={styles.abortButtonText}>Abort Session</Text>
+                  <Plus size={16} color="#64748b" />
+                  <Text style={styles.addSetButtonText}>ADD SET</Text>
                 </TouchableOpacity>
-              </View>
+
+              <WorkoutFocusActions
+                hasNext={currentExIndex < visibleWorkout.length - 1}
+                onNext={() => setCurrentExIndex(currentExIndex + 1)}
+                onFinish={finishWorkout}
+                onAbort={abortSession}
+              />
             </View>
           )}
         </View>
       )}
     </ScrollView>
     </>
-  );
-};
-
-const HomeView = ({ data, onChangeView, streak, xp }: any) => {
-  const currentRank = getRank(xp);
-  return (
-    <ScrollView style={styles.homeView} contentContainerStyle={styles.homeViewContent}>
-      <GlassCard style={styles.homeCard}>
-        <Text style={styles.homeCardTitle}>WELCOME BACK</Text>
-        <Text style={styles.homeCardSubtitle}>Ready to train?</Text>
-      </GlassCard>
-      <TouchableOpacity onPress={() => onChangeView('gym')} style={styles.homeQuickAction}>
-        <Dumbbell size={24} color="#f97316" />
-        <Text style={styles.homeQuickActionText}>START WORKOUT</Text>
-      </TouchableOpacity>
-    </ScrollView>
-  );
-};
-
-const StatsView = ({ data }: any) => {
-  const xp = calculateXP(data);
-  const currentRank = getRank(xp);
-  
-  return (
-    <ScrollView style={styles.statsView} contentContainerStyle={styles.statsViewContent}>
-      <GlassCard style={styles.statsCard}>
-        <Text style={styles.statsCardTitle}>TOTAL XP</Text>
-        <Text style={styles.statsCardValue}>{xp.toLocaleString()}</Text>
-      </GlassCard>
-      <GlassCard style={styles.statsCard}>
-        <Text style={styles.statsCardTitle}>RANK</Text>
-        <Text style={[styles.statsCardValue, { color: currentRank.color }]}>{currentRank.title}</Text>
-      </GlassCard>
-      <GlassCard style={styles.statsCard}>
-        <Text style={styles.statsCardTitle}>GYM SESSIONS</Text>
-        <Text style={styles.statsCardValue}>{data.gymLogs?.length || 0}</Text>
-      </GlassCard>
-    </ScrollView>
   );
 };
 
@@ -1425,7 +1320,7 @@ export default function App() {
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
-        return <HomeView data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
+        return <HomeViewComponent data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
       case 'steps':
         return <StepsViewComponent />;
       case 'gym':
@@ -1433,9 +1328,9 @@ export default function App() {
       case 'challenges':
         return <ChallengesViewComponent />;
       case 'stats':
-        return <StatsView data={data} />;
+        return <StatsViewComponent data={data} />;
       default:
-        return <HomeView data={data} onChangeView={setActiveTab} />;
+        return <HomeViewComponent data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
     }
   };
 
