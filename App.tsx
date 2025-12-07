@@ -125,20 +125,18 @@ import {
 } from './src/features/workout/helpers';
 
 // --- Supabase Imports ---
-import 'react-native-url-polyfill/auto';
-import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabaseConfig } from './supabase.config';
-
-// Initialize Supabase
-const supabase = createClient(supabaseConfig.supabaseUrl, supabaseConfig.supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+import {
+  getInitialSession,
+  onAuthStateChange,
+  loadUserData,
+  subscribeToUserData,
+  upsertUserData,
+  signInWithEmail,
+  signUpWithEmail,
+  signInWithGoogle,
+  signOut,
+  setSessionFromTokens,
+} from './src/services/supabaseClient';
 
 import {
   ASSETS,
@@ -167,22 +165,20 @@ export default function App() {
   // Auth State Listener
   useEffect(() => {
     // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    getInitialSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const unsubscribe = onAuthStateChange((session) => {
       setUser(session?.user ?? null);
       if (!session) {
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => unsubscribe();
   }, []);
 
   // Data Sync Listener
@@ -192,37 +188,8 @@ export default function App() {
     setLoading(true);
     const fetchUserData = async () => {
       try {
-        const { data, error } = await supabase
-          .from('user_data')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          // PGRST116 is "not found" error, which is expected for new users
-          console.error("Data fetch error:", error);
-        }
-
-        if (data) {
-          setData({ ...DEFAULT_DATA, ...data.data });
-        } else {
-          // Create initial user data using upsert to avoid conflicts
-          const { error: insertError } = await supabase
-            .from('user_data')
-            .upsert(
-              {
-                user_id: user.id,
-                data: DEFAULT_DATA,
-              },
-              {
-                onConflict: 'user_id',
-              }
-            );
-          if (insertError) {
-            console.error("Initial data creation error:", insertError);
-          }
-          setData(DEFAULT_DATA);
-        }
+        const loaded = await loadUserData(user.id, DEFAULT_DATA);
+        setData({ ...DEFAULT_DATA, ...loaded });
       } catch (e) {
         console.error("Data sync error:", e);
       } finally {
@@ -233,36 +200,16 @@ export default function App() {
     fetchUserData();
 
     // Set up real-time subscription
-    const subscription = supabase
-      .channel(`user_data:${user.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'user_data',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const newRecord: any = (payload as any).new;
-          if (newRecord && newRecord.data) {
-            setData({ ...DEFAULT_DATA, ...newRecord.data });
-          }
-        }
-      )
-      .subscribe();
+    const unsubscribe = subscribeToUserData(user.id, (newData) => {
+      setData({ ...DEFAULT_DATA, ...newData });
+    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => unsubscribe();
   }, [user]);
 
   const handleEmailLogin = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await signInWithEmail(email, password);
       if (error) throw error;
       return data;
     } catch (error: any) {
@@ -272,10 +219,7 @@ export default function App() {
 
   const handleSignUp = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      });
+      const { data, error } = await signUpWithEmail(email, password);
       if (error) throw error;
       return data;
     } catch (error: any) {
@@ -291,13 +235,7 @@ export default function App() {
         path: 'auth/callback',
       });
 
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          skipBrowserRedirect: false,
-        },
-      });
+      const { data, error } = await signInWithGoogle(redirectUrl);
 
       if (error) throw error;
 
@@ -314,10 +252,10 @@ export default function App() {
           const refreshToken = url.searchParams.get('refresh_token');
 
           if (accessToken && refreshToken) {
-            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
+            const { data: sessionData, error: sessionError } = await setSessionFromTokens(
+              accessToken,
+              refreshToken
+            );
 
             if (sessionError) throw sessionError;
             return sessionData;
@@ -332,7 +270,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     setData(DEFAULT_DATA);
   };
 
@@ -340,34 +278,9 @@ export default function App() {
     if (!user) return;
     try {
       setData(newData);
-      const { error } = await supabase
-        .from('user_data')
-        .upsert(
-          {
-            user_id: user.id,
-            data: newData,
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'user_id',
-          }
-        );
-      if (error) throw error;
+      await upsertUserData(user.id, newData);
     } catch (e) {
       console.error("Save failed", e);
-      // If upsert fails, try update instead
-      try {
-        const { error: updateError } = await supabase
-          .from('user_data')
-          .update({
-            data: newData,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('user_id', user.id);
-        if (updateError) throw updateError;
-      } catch (updateErr) {
-        console.error("Update also failed", updateErr);
-      }
     }
   };
 

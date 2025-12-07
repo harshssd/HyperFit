@@ -1,14 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-} from 'react-native';
-import { createClient } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
 import {
   CheckCircle,
   ChevronLeft,
@@ -62,18 +53,16 @@ import {
   abortSessionState,
   getExerciseConfig,
 } from './helpers';
-import { supabaseConfig } from '../../../supabase.config';
 import { ABORT_SESSION_MESSAGE, ABORT_SESSION_TITLE } from '../../constants/text';
-
-// Local supabase client (mirrors App setup)
-const supabase = createClient(supabaseConfig.supabaseUrl, supabaseConfig.supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+import {
+  createTemplateFolder,
+  deleteTemplateById,
+  fetchFavoritesForUser,
+  fetchFoldersForUser,
+  fetchTemplatesForUser,
+  saveTemplate,
+  toggleFavoriteTemplate,
+} from '../../services/templates';
 
 type GymViewProps = {
   data: any;
@@ -167,25 +156,10 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   }, [user, showTemplatePicker]);
 
   const fetchTemplates = async () => {
-    if (!user) return;
     setLoadingTemplates(true);
     try {
-      const { data: userTemplates, error: userError } = await supabase
-        .from('workout_templates')
-        .select('*')
-        .or(`user_id.eq.${user.id},is_standard.eq.true,is_public.eq.true`)
-        .order('created_at', { ascending: false });
-
-      if (userError) throw userError;
-
-      const tagsSet = new Set<string>();
-      userTemplates?.forEach((t: any) => {
-        if (t.tags && Array.isArray(t.tags)) {
-          t.tags.forEach((tag: string) => tagsSet.add(tag));
-        }
-      });
-      setAllTags(Array.from(tagsSet).sort());
-
+      const { templates: userTemplates, tags } = await fetchTemplatesForUser(user?.id);
+      setAllTags(tags);
       setTemplates(userTemplates || []);
     } catch (error) {
       console.error('Error fetching templates:', error);
@@ -196,15 +170,8 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const fetchFolders = async () => {
-    if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('workout_template_folders')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name', { ascending: true });
-
-      if (error) throw error;
+      const data = await fetchFoldersForUser(user?.id);
       setFolders(data || []);
     } catch (error) {
       console.error('Error fetching folders:', error);
@@ -212,15 +179,8 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const fetchFavorites = async () => {
-    if (!user) return;
     try {
-      const { data, error } = await supabase
-        .from('user_template_favorites')
-        .select('template_id')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      const favoriteIds = new Set(data?.map((f: any) => f.template_id) || []);
+      const favoriteIds = await fetchFavoritesForUser(user?.id);
       setFavorites(favoriteIds);
     } catch (error) {
       console.error('Error fetching favorites:', error);
@@ -228,27 +188,10 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const saveTemplateToSupabase = async (name: string, exercises: string[], folderId?: string | null, tags?: string[]) => {
-    if (!user) return;
     try {
-      const username = user.email?.split('@')[0] || user.user_metadata?.full_name || 'User';
-      const { data, error } = await supabase
-        .from('workout_templates')
-        .insert({
-          user_id: user.id,
-          name: name,
-          description: `${exercises.length} Exercises`,
-          icon: '💾',
-          exercises: exercises,
-          created_by_username: username,
-          folder_id: folderId || null,
-          tags: tags || [],
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const username = user?.email?.split('@')[0] || user?.user_metadata?.full_name || 'User';
+      await saveTemplate(user?.id, name, exercises, folderId, tags, username);
       await fetchTemplates();
-      return data;
     } catch (error) {
       console.error('Error saving template:', error);
       const newTemplate = {
@@ -264,41 +207,27 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const toggleFavorite = async (templateId: string) => {
-    if (!user) return;
     try {
       const isFavorite = favorites.has(templateId);
-      if (isFavorite) {
-        const { error } = await supabase
-          .from('user_template_favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('template_id', templateId);
-        if (error) throw error;
-        setFavorites(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(templateId);
-          return newSet;
-        });
-      } else {
-        const { error } = await supabase
-          .from('user_template_favorites')
-          .insert({
-            user_id: user.id,
-            template_id: templateId,
-          });
-        if (error) throw error;
-        setFavorites(prev => new Set([...prev, templateId]));
-      }
+      const nowFavorite = await toggleFavoriteTemplate(user?.id, templateId, isFavorite);
+      setFavorites(prev => {
+        const next = new Set(prev);
+        if (nowFavorite) {
+          next.add(templateId);
+        } else {
+          next.delete(templateId);
+        }
+        return next;
+      });
     } catch (error) {
       console.error('Error toggling favorite:', error);
     }
   };
 
   const deleteTemplate = async (templateId: string) => {
+    if (!user?.id) return;
     try {
-      if (user) {
-        await supabase.from('workout_templates').delete().eq('id', templateId).eq('user_id', user.id);
-      }
+      await deleteTemplateById(user?.id, templateId);
     } catch (error) {
       console.error('Error deleting template:', error);
     } finally {
@@ -328,20 +257,9 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const createFolder = async (name: string, color: string = '#f97316', icon: string = '📁') => {
-    if (!user) return;
+    if (!user?.id) return;
     try {
-      const { data, error } = await supabase
-        .from('workout_template_folders')
-        .insert({
-          user_id: user.id,
-          name: name,
-          color: color,
-          icon: icon,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const data = await createTemplateFolder(user?.id, name, color, icon);
       await fetchFolders();
       return data;
     } catch (error) {
