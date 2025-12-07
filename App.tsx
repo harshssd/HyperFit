@@ -93,6 +93,7 @@ import GlassCard from './src/components/GlassCard';
 import NeonButton from './src/components/NeonButton';
 import NumberControl from './src/components/NumberControl';
 import TemplatePickerModal from './src/components/TemplatePickerModal';
+import SaveTemplateModal from './src/components/SaveTemplateModal';
 
 // --- Supabase Imports ---
 import 'react-native-url-polyfill/auto';
@@ -1026,105 +1027,25 @@ const GymView = ({ data, updateData, user }: any) => {
         </View>
       )}
 
-      {showSaveTemplateModal && (
-        <View style={styles.addExerciseOverlay}>
-          <View style={styles.addExerciseModal}>
-            <View style={styles.saveTemplateHeader}>
-              <Text style={styles.addExerciseTitle}>SAVE TEMPLATE</Text>
-              <TouchableOpacity onPress={() => {
-                setShowSaveTemplateModal(false);
-                setTemplateName('');
-                setSaveTemplateFolder(null);
-                setSaveTemplateTags([]);
-              }} style={styles.addExerciseCancel}>
-                <X size={24} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.saveTemplateSubtitle}>{visibleWorkout.length} Exercises</Text>
-            
-            <Text style={styles.saveTemplateLabel}>TEMPLATE NAME</Text>
-            <TextInput
-              style={styles.addExerciseInput}
-              placeholder="Enter template name..."
-              placeholderTextColor="#64748b"
-              value={templateName}
-              onChangeText={setTemplateName}
-              autoFocus
-            />
-
-            <Text style={[styles.saveTemplateLabel, { marginTop: 16 }]}>FOLDER (OPTIONAL)</Text>
-            <ScrollView horizontal style={styles.saveTemplateFolderSelector} showsHorizontalScrollIndicator={false}>
-              <TouchableOpacity
-                onPress={() => setSaveTemplateFolder(null)}
-                style={[styles.templateFolderChip, !saveTemplateFolder && styles.templateFolderChipActive]}
-              >
-                <Text style={[styles.templateFolderChipText, !saveTemplateFolder && styles.templateFolderChipTextActive]}>
-                  NO FOLDER
-                </Text>
-              </TouchableOpacity>
-              {folders.map((folder: any) => (
-                <TouchableOpacity
-                  key={folder.id}
-                  onPress={() => setSaveTemplateFolder(folder.id)}
-                  style={[styles.templateFolderChip, saveTemplateFolder === folder.id && styles.templateFolderChipActive]}
-                >
-                  <Text style={styles.templateFolderIcon}>{folder.icon || '📁'}</Text>
-                  <Text style={[styles.templateFolderChipText, saveTemplateFolder === folder.id && styles.templateFolderChipTextActive]}>
-                    {folder.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <Text style={[styles.saveTemplateLabel, { marginTop: 16 }]}>TAGS (OPTIONAL)</Text>
-            <View style={styles.saveTemplateTagsContainer}>
-              <ScrollView
-                horizontal
-                style={styles.saveTemplateTagsInput}
-                contentContainerStyle={styles.saveTemplateTagsInputContent}
-                showsHorizontalScrollIndicator={false}
-              >
-                {saveTemplateTags.map((tag, idx) => (
-                  <View key={idx} style={styles.saveTemplateTag}>
-                    <Text style={styles.saveTemplateTagText}>{tag}</Text>
-                    <TouchableOpacity onPress={() => setSaveTemplateTags(saveTemplateTags.filter((_, i) => i !== idx))}>
-                      <X size={12} color="#64748b" />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                <TextInput
-                  ref={saveTemplateTagInputRef}
-                  style={styles.saveTemplateTagInput}
-                  placeholder="Add tag..."
-                  placeholderTextColor="#64748b"
-                  onSubmitEditing={(e) => {
-                    const tag = e.nativeEvent.text.trim();
-                    if (tag && !saveTemplateTags.includes(tag)) {
-                      setSaveTemplateTags([...saveTemplateTags, tag]);
-                    }
-                    saveTemplateTagInputRef.current?.clear();
-                  }}
-                />
-              </ScrollView>
-            </View>
-
-            <View style={styles.addExerciseActions}>
-              <NeonButton onPress={saveCurrentAsTemplate} style={styles.addExerciseButton} disabled={!templateName.trim()}>
-                <Save size={18} color="#0f172a" />
-                <Text style={{ marginLeft: 8 }}>SAVE</Text>
-              </NeonButton>
-              <TouchableOpacity onPress={() => {
-                setShowSaveTemplateModal(false);
-                setTemplateName('');
-                setSaveTemplateFolder(null);
-                setSaveTemplateTags([]);
-              }} style={styles.addExerciseCancel}>
-                <X size={24} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
+      <SaveTemplateModal
+        visible={showSaveTemplateModal}
+        onClose={() => {
+          setShowSaveTemplateModal(false);
+          setTemplateName('');
+          setSaveTemplateFolder(null);
+          setSaveTemplateTags([]);
+        }}
+        onSave={saveCurrentAsTemplate}
+        templateName={templateName}
+        onChangeTemplateName={setTemplateName}
+        saveTemplateFolder={saveTemplateFolder}
+        onSelectFolder={(folderId) => setSaveTemplateFolder(folderId)}
+        folders={folders}
+        saveTemplateTags={saveTemplateTags}
+        onChangeTags={setSaveTemplateTags}
+        saveTemplateTagInputRef={saveTemplateTagInputRef}
+        exerciseCount={visibleWorkout.length}
+      />
 
       {showCreateFolderModal && (
         <View style={styles.addExerciseOverlay}>
