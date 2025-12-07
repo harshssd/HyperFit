@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Hexagon, Flame, LogOut } from 'lucide-react-native';
 import styles from '../styles/appStyles';
 import ProgressRing from './ProgressRing';
-import { getRankProgress } from '../utils/workoutHelpers';
+import { getRankProgress } from '../features/workout/helpers';
 
 type HeaderProps = {
   streak?: number;

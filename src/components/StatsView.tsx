@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, Text } from 'react-native';
 import GlassCard from './GlassCard';
 import styles from '../styles/appStyles';
-import { getRank, calculateXP } from '../utils/workoutHelpers';
+import { getRank, calculateXP } from '../features/workout/helpers';
 
 type StatsViewProps = {
   data: any;

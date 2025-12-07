@@ -121,7 +121,7 @@ import {
   undoFinishState,
   startNewSessionState,
   abortSessionState,
-} from './src/utils/workoutHelpers';
+} from './src/features/workout/helpers';
 
 // --- Supabase Imports ---
 import 'react-native-url-polyfill/auto';
