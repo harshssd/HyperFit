@@ -92,6 +92,7 @@ import {
 import GlassCard from './src/components/GlassCard';
 import NeonButton from './src/components/NeonButton';
 import NumberControl from './src/components/NumberControl';
+import TemplatePickerModal from './src/components/TemplatePickerModal';
 
 // --- Supabase Imports ---
 import 'react-native-url-polyfill/auto';
@@ -453,6 +454,31 @@ const GymView = ({ data, updateData, user }: any) => {
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+
+  const handleToggleFolderFilter = () => {
+    if (selectedFolder === undefined) {
+      setSelectedFolder(null);
+    } else {
+      setSelectedFolder(undefined);
+    }
+  };
+
+  const handleToggleTag = (tag: string) => {
+    if (selectedTags.includes(tag)) {
+      setSelectedTags(selectedTags.filter(t => t !== tag));
+    } else {
+      setSelectedTags([...selectedTags, tag]);
+    }
+  };
+
+  const handleClearTags = () => setSelectedTags([]);
+
+  const handleEditTemplate = (template: any) => {
+    setTemplateName(template.name);
+    setSaveTemplateFolder(template.folder_id || null);
+    setSaveTemplateTags(template.tags || []);
+    setShowSaveTemplateModal(true);
+  };
 
   useEffect(() => {
     if (visibleWorkout.length > 0 && currentExIndex >= visibleWorkout.length) {
@@ -931,279 +957,33 @@ const GymView = ({ data, updateData, user }: any) => {
 
   return (
     <>
-      {showTemplatePicker && (
-        <Modal
-          transparent
-          animationType="fade"
-          visible={showTemplatePicker}
-          onRequestClose={() => setShowTemplatePicker(false)}
-          statusBarTranslucent
-          presentationStyle="fullScreen"
-        >
-          <SafeAreaView style={styles.templateModalSafeArea}>
-            <View style={styles.templatePickerOverlay}>
-              <View style={styles.templatePicker}>
-                <View style={styles.templatePickerHeader}>
-                  <View>
-                    <Text style={styles.templatePickerTitle}>WORKOUT TEMPLATES</Text>
-                    <Text style={styles.templatePickerSubtitle}>
-                      {filteredTemplates.length} {filteredTemplates.length === 1 ? 'TEMPLATE' : 'TEMPLATES'}
-                    </Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setShowTemplatePicker(false)} style={styles.templatePickerClose}>
-                    <X size={24} color="#94a3b8" />
-                  </TouchableOpacity>
-                </View>
-
-                {/* Search Bar */}
-                <View style={styles.templateSearchContainer}>
-                  <Search size={20} color="#64748b" />
-                  <TextInput
-                    style={styles.templateSearchInput}
-                    placeholder="Search templates..."
-                    placeholderTextColor="#64748b"
-                    value={templateSearchQuery}
-                    onChangeText={setTemplateSearchQuery}
-                  />
-                  {templateSearchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => setTemplateSearchQuery('')}>
-                      <X size={16} color="#64748b" />
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Filter Bar */}
-                <View style={styles.templateFilterBar}>
-                  <TouchableOpacity
-                    onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                    style={[styles.templateFilterButton, showFavoritesOnly && styles.templateFilterButtonActive]}
-                  >
-                    <Heart size={16} color={showFavoritesOnly ? "#f97316" : "#64748b"} fill={showFavoritesOnly ? "#f97316" : "none"} />
-                    <Text style={[styles.templateFilterText, showFavoritesOnly && styles.templateFilterTextActive]}>
-                      FAVORITES
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (selectedFolder === undefined) {
-                        setSelectedFolder(null);
-                      } else if (selectedFolder === null) {
-                        setSelectedFolder(undefined);
-                      } else {
-                        setSelectedFolder(undefined);
-                      }
-                    }}
-                    style={[styles.templateFilterButton, selectedFolder !== undefined && styles.templateFilterButtonActive]}
-                  >
-                    <Folder size={16} color={selectedFolder !== undefined ? "#f97316" : "#64748b"} />
-                    <Text style={[styles.templateFilterText, selectedFolder !== undefined && styles.templateFilterTextActive]}>
-                      FOLDERS
-                    </Text>
-                  </TouchableOpacity>
-
-                  {selectedTags.length > 0 && (
-                    <TouchableOpacity
-                      onPress={() => setSelectedTags([])}
-                      style={styles.templateFilterButton}
-                    >
-                      <Tag size={16} color="#f97316" />
-                      <Text style={styles.templateFilterTextActive}>{selectedTags.length} TAG{selectedTags.length > 1 ? 'S' : ''}</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Folder Selector */}
-                {selectedFolder !== undefined && (
-                  <ScrollView horizontal style={styles.templateFolderSelector} showsHorizontalScrollIndicator={false}>
-                    <TouchableOpacity
-                      onPress={() => setSelectedFolder(null)}
-                      style={[styles.templateFolderChip, selectedFolder === null && styles.templateFolderChipActive]}
-                    >
-                      <Text style={[styles.templateFolderChipText, selectedFolder === null && styles.templateFolderChipTextActive]}>
-                        NO FOLDER
-                      </Text>
-                    </TouchableOpacity>
-                    {folders.map((folder: any) => (
-                      <TouchableOpacity
-                        key={folder.id}
-                        onPress={() => setSelectedFolder(folder.id)}
-                        style={[styles.templateFolderChip, selectedFolder === folder.id && styles.templateFolderChipActive]}
-                      >
-                        <Text style={styles.templateFolderIcon}>{folder.icon || '📁'}</Text>
-                        <Text style={[styles.templateFolderChipText, selectedFolder === folder.id && styles.templateFolderChipTextActive]}>
-                          {folder.name}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                    <TouchableOpacity
-                      onPress={() => setShowCreateFolderModal(true)}
-                      style={[styles.templateFolderChip, styles.templateFolderChipNew]}
-                    >
-                      <FolderPlus size={16} color="#f97316" />
-                      <Text style={[styles.templateFolderChipText, { color: '#f97316' }]}>NEW</Text>
-                    </TouchableOpacity>
-                  </ScrollView>
-                )}
-
-                {/* Tags Selector */}
-                {allTags.length > 0 && (
-                  <ScrollView horizontal style={styles.templateTagsSelector} showsHorizontalScrollIndicator={false}>
-                    {allTags.map((tag: string) => {
-                      const isSelected = selectedTags.includes(tag);
-                      return (
-                        <TouchableOpacity
-                          key={tag}
-                          onPress={() => {
-                            if (isSelected) {
-                              setSelectedTags(selectedTags.filter(t => t !== tag));
-                            } else {
-                              setSelectedTags([...selectedTags, tag]);
-                            }
-                          }}
-                          style={[styles.templateTagChip, isSelected && styles.templateTagChipActive]}
-                        >
-                          <Tag size={12} color={isSelected ? "#0f172a" : "#64748b"} />
-                          <Text style={[styles.templateTagChipText, isSelected && styles.templateTagChipTextActive]}>
-                            {tag}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
-                )}
-
-                {/* Template List */}
-                <ScrollView
-                  style={styles.templatePickerList}
-                  contentContainerStyle={styles.templatePickerListContent}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {loadingTemplates ? (
-                    <View style={styles.templateLoadingContainer}>
-                      <ActivityIndicator size="large" color="#f97316" />
-                      <Text style={styles.templateLoadingText}>LOADING TEMPLATES...</Text>
-                    </View>
-                  ) : filteredTemplates.length === 0 ? (
-                    <View style={styles.templateEmptyContainer}>
-                      <Text style={styles.templateEmptyText}>NO TEMPLATES FOUND</Text>
-                      <Text style={styles.templateEmptySubtext}>Try adjusting your filters</Text>
-                    </View>
-                  ) : (
-                    filteredTemplates.map((template: any) => {
-                      const isFavorite = favorites.has(template.id);
-                      const folder = folders.find((f: any) => f.id === template.folder_id);
-                      const isUserTemplate = template.user_id === user?.id;
-                      const isStandard = template.is_standard;
-
-                      return (
-                        <GlassCard key={template.id} style={styles.templateCard}>
-                          <TouchableOpacity
-                            onPress={() => applyTemplate(template)}
-                            style={styles.templateCardContent}
-                          >
-                            <Text style={styles.templateIcon}>{template.icon || '💪'}</Text>
-                            <View style={styles.templateInfo}>
-                              <View style={styles.templateHeaderRow}>
-                                <Text style={styles.templateName}>{template.name}</Text>
-                                <TouchableOpacity
-                                  onPress={(e) => {
-                                    e.stopPropagation();
-                                    toggleFavorite(template.id);
-                                  }}
-                                  style={styles.templateFavoriteButton}
-                                >
-                                  <Heart
-                                    size={18}
-                                    color={isFavorite ? "#f97316" : "#64748b"}
-                                    fill={isFavorite ? "#f97316" : "none"}
-                                  />
-                                </TouchableOpacity>
-                              </View>
-                              <Text style={styles.templateDescription}>
-                                {template.description || `${template.exercises?.length || 0} Exercises`}
-                              </Text>
-                              <View style={styles.templateMetaRow}>
-                                {isStandard && (
-                                  <View style={styles.templateBadge}>
-                                    <Text style={styles.templateBadgeText}>STANDARD</Text>
-                                  </View>
-                                )}
-                                {!isStandard && template.created_by_username && (
-                                  <View style={styles.templateBadge}>
-                                    <User size={10} color="#64748b" />
-                                    <Text style={styles.templateBadgeText}>{template.created_by_username}</Text>
-                                  </View>
-                                )}
-                                {folder && (
-                                  <View style={[styles.templateBadge, { backgroundColor: folder.color + '20' }]}>
-                                    <Text style={styles.templateFolderIcon}>{folder.icon || '📁'}</Text>
-                                    <Text style={[styles.templateBadgeText, { color: folder.color }]}>{folder.name}</Text>
-                                  </View>
-                                )}
-                                {template.tags && template.tags.length > 0 && (
-                                  <View style={styles.templateTagsRow}>
-                                    {template.tags.slice(0, 2).map((tag: string, idx: number) => (
-                                      <View key={idx} style={styles.templateTagBadge}>
-                                        <Tag size={8} color="#64748b" />
-                                        <Text style={styles.templateTagBadgeText}>{tag}</Text>
-                                      </View>
-                                    ))}
-                                    {template.tags.length > 2 && (
-                                      <Text style={styles.templateTagMore}>+{template.tags.length - 2}</Text>
-                                    )}
-                                  </View>
-                                )}
-                              </View>
-                            </View>
-                          </TouchableOpacity>
-                          <View style={styles.templateActions}>
-                            {isUserTemplate && (
-                              <>
-                                <TouchableOpacity
-                                  onPress={() => {
-                                    setTemplateName(template.name);
-                                    setSaveTemplateFolder(template.folder_id || null);
-                                    setSaveTemplateTags(template.tags || []);
-                                    setShowSaveTemplateModal(true);
-                                  }}
-                                  style={styles.templateActionButton}
-                                >
-                                  <Edit3 size={16} color="#22d3ee" />
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                  onPress={() => confirmDeleteTemplate(template.id)}
-                                  style={styles.templateActionButton}
-                                >
-                                  <Trash2 size={16} color="#ef4444" />
-                                </TouchableOpacity>
-                              </>
-                            )}
-                            {!isStandard && (
-                              <TouchableOpacity
-                                onPress={() => duplicateTemplate(template)}
-                                style={styles.templateActionButton}
-                              >
-                                <Copy size={16} color="#f97316" />
-                              </TouchableOpacity>
-                            )}
-                            <TouchableOpacity
-                              onPress={() => shareTemplate(template)}
-                              style={styles.templateActionButton}
-                            >
-                              <Share2 size={16} color="#22d3ee" />
-                            </TouchableOpacity>
-                          </View>
-                        </GlassCard>
-                      );
-                    })
-                  )}
-                </ScrollView>
-              </View>
-            </View>
-          </SafeAreaView>
-        </Modal>
-      )}
+      <TemplatePickerModal
+        visible={showTemplatePicker}
+        onClose={() => setShowTemplatePicker(false)}
+        templateSearchQuery={templateSearchQuery}
+        onChangeSearch={setTemplateSearchQuery}
+        showFavoritesOnly={showFavoritesOnly}
+        onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
+        selectedFolder={selectedFolder}
+        onToggleFolderFilter={handleToggleFolderFilter}
+        onSelectFolder={(folderId) => setSelectedFolder(folderId)}
+        selectedTags={selectedTags}
+        onToggleTag={handleToggleTag}
+        onClearTags={handleClearTags}
+        folders={folders}
+        onNewFolder={() => setShowCreateFolderModal(true)}
+        allTags={allTags}
+        loading={loadingTemplates}
+        templates={filteredTemplates}
+        favorites={favorites}
+        userId={user?.id}
+        onApplyTemplate={applyTemplate}
+        onToggleFavorite={toggleFavorite}
+        onEditTemplate={handleEditTemplate}
+        onDeleteTemplate={confirmDeleteTemplate}
+        onDuplicateTemplate={duplicateTemplate}
+        onShareTemplate={shareTemplate}
+      />
 
       <ScrollView style={styles.gymView} contentContainerStyle={styles.gymViewContent}>
         {isAddingExercise && (

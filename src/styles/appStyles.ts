@@ -538,14 +538,22 @@ const styles = StyleSheet.create({
   },
 
   // Template Picker
+  templateModalSafeArea: {
+    flex: 1,
+  },
   templatePickerOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
     zIndex: 50,
-    padding: 24,
+    padding: 0,
   },
   templatePicker: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0f172a',
+    padding: 24,
   },
   templatePickerHeader: {
     flexDirection: 'row',
@@ -571,6 +579,10 @@ const styles = StyleSheet.create({
   },
   templatePickerList: {
     flex: 1,
+    marginTop: 8,
+  },
+  templatePickerListContent: {
+    paddingBottom: 24,
   },
   templateCard: {
     flexDirection: 'row',
