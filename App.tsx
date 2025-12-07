@@ -108,6 +108,7 @@ import ProgressRing from './src/components/ProgressRing';
 import NavBar from './src/components/NavBar';
 import { GymView } from './src/features/workout';
 import { NAV_ITEMS } from './src/constants/nav';
+import LoadingScreen from './src/components/LoadingScreen';
 import {
   isExerciseEmpty,
   renameExercise,
@@ -304,10 +305,7 @@ export default function App() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#22d3ee" />
-        <Text style={styles.loadingText}>INITIALIZING SYSTEM...</Text>
-      </View>
+      <LoadingScreen message="INITIALIZING SYSTEM..." />
     );
   }
 

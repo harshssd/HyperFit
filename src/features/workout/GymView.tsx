@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import {
   CheckCircle,
   ChevronLeft,
@@ -63,6 +63,7 @@ import {
   saveTemplate,
   toggleFavoriteTemplate,
 } from '../../services/templates';
+import { confirmAction, showError, showSuccess } from '../../utils/alerts';
 
 type GymViewProps = {
   data: any;
@@ -236,10 +237,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const confirmDeleteTemplate = (templateId: string) => {
-    Alert.alert('Delete Template', 'Remove this template permanently?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteTemplate(templateId) },
-    ]);
+    confirmAction('Delete Template', 'Remove this template permanently?', () => deleteTemplate(templateId), 'Delete');
   };
 
   const duplicateTemplate = (template: any) => {
@@ -253,7 +251,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const shareTemplate = (template: any) => {
-    Alert.alert('Share Template', `${template.name}\n${template.description || ''}`);
+    showSuccess(`${template.name}\n${template.description || ''}`, 'Share Template');
   };
 
   const createFolder = async (name: string, color: string = '#f97316', icon: string = '📁') => {
@@ -264,7 +262,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       return data;
     } catch (error) {
       console.error('Error creating folder:', error);
-      Alert.alert('Error', 'Failed to create folder');
+      showError('Failed to create folder');
     }
   };
 
@@ -311,23 +309,23 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const saveCurrentAsTemplate = async () => {
     if (!templateName.trim()) {
-      Alert.alert('Error', 'Please enter a template name');
+      showError('Please enter a template name');
       return;
     }
     if (visibleWorkout.length === 0) {
-      Alert.alert('Error', 'Cannot save empty workout');
+      showError('Cannot save empty workout');
       return;
     }
     try {
       const exercises = visibleWorkout.map((ex: any) => ex.name);
       await saveTemplateToSupabase(templateName, exercises, saveTemplateFolder, saveTemplateTags);
-      Alert.alert('Success', 'Template saved successfully');
+      showSuccess('Template saved successfully');
       setTemplateName('');
       setSaveTemplateFolder(null);
       setSaveTemplateTags([]);
       setShowSaveTemplateModal(false);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to save template');
+      showError(error.message || 'Failed to save template');
     }
   };
 
@@ -434,20 +432,13 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const abortSession = () => {
-    Alert.alert(ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Discard',
-        style: 'destructive',
-        onPress: () => {
-          updateData(abortSessionState(data, today));
-          setIsAddingExercise(false);
-          setShowTemplatePicker(false);
-          setNewExerciseName('');
-          setSuggestions([]);
-        }
-      }
-    ]);
+    confirmAction(ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE, () => {
+      updateData(abortSessionState(data, today));
+      setIsAddingExercise(false);
+      setShowTemplatePicker(false);
+      setNewExerciseName('');
+      setSuggestions([]);
+    }, 'Discard');
   };
 
   const calculateTotalVolumeLocal = () => calculateTotalVolume(visibleWorkout as any);
