@@ -104,6 +104,7 @@ import HomeViewComponent from './src/components/HomeView';
 import StatsViewComponent from './src/components/StatsView';
 import Header from './src/components/Header';
 import ProgressRing from './src/components/ProgressRing';
+import FinishedSessionView from './src/components/FinishedSessionView';
 import {
   isExerciseEmpty,
   renameExercise,
@@ -137,70 +138,14 @@ const supabase = createClient(supabaseConfig.supabaseUrl, supabaseConfig.supabas
   },
 });
 
-// --- Assets ---
-const ASSETS = {
-  neonDumbbell: "https://storage.googleapis.com/s.mkswft.com/RmlsZTo0ZmE5ODk2ZS02N2VjLTQyMzUtYTg0MS0yN2U1OTU0OTAzNjg=/neon_dumbbell.png",
-  cyberHeart: "https://storage.googleapis.com/s.mkswft.com/RmlsZTpjN2Y4ODkzNy05N2VjLTQyMzUtYTg0MS0yN2U1OTU0OTAzNjg=/cyber_heart.png",
-  background: "https://storage.googleapis.com/s.mkswft.com/RmlsZTpmZTA1YjU3ZS0zODQ5LTQ2ODktOTI4MS02ZjM4NTVhZmFiZWY=/hyperfit_bg.png"
-};
-
-const CHALLENGE_LIBRARY = [
-  { id: 'pushup_30', title: 'PUSH PROTOCOL', description: 'Upper body strength progression.', icon: '⚡', color: 'orange', totalDays: 30, type: 'reps', mode: 'progressive', baseReps: 10, increment: 2, restFreq: 4 },
-  { id: 'squat_30', title: 'IRON LEGS', description: 'High volume lower body hypertrophy.', icon: '🦵', color: 'emerald', totalDays: 30, type: 'reps', mode: 'progressive', baseReps: 20, increment: 5, restFreq: 5 },
-  { id: 'plank_14', title: 'CORE STABILITY', description: 'System stability update.', icon: '🛡️', color: 'indigo', totalDays: 14, type: 'time', mode: 'progressive', baseReps: 30, increment: 10, restFreq: 3 }
-];
-
-const WORKOUT_TEMPLATES = [
-  { id: 'push_day', name: 'Push Day', icon: '🔥', description: 'Chest, Shoulders & Triceps.', exercises: ['Bench Press', 'Overhead Press', 'Incline Dumbbell Press', 'Lateral Raises', 'Tricep Dips'] },
-  { id: 'pull_day', name: 'Pull Day', icon: '🦍', description: 'Back & Biceps.', exercises: ['Deadlift', 'Pull Ups', 'Barbell Rows', 'Face Pulls', 'Bicep Curls'] },
-  { id: 'leg_day', name: 'Leg Day', icon: '🦕', description: 'Quads, Hamstrings & Glutes.', exercises: ['Squats', 'Leg Press', 'Romanian Deadlift', 'Leg Extensions', 'Calf Raises'] },
-  { id: 'abs_core', name: 'Core', icon: '🧱', description: 'Stability and strength.', exercises: ['Plank', 'Russian Twists', 'Leg Raises', 'Cable Crunches'] }
-];
-
-const DEFAULT_EXERCISES = [
-  'Squats', 'Bench Press', 'Deadlift', 'Overhead Press', 'Pull Ups', 'Dumbbell Rows', 'Lunges', 'Plank', 'Bicep Curls', 'Tricep Dips', 'Leg Press', 'Lat Pulldowns', 'Pushups', 'Shoulder Press', 'Glute Bridges', 'Russian Twists', 'Mountain Climbers', 'Burpees', 'Leg Extensions', 'Hamstring Curls'
-];
-
-const DEFAULT_DATA = {
-  stepsToday: 2500,
-  gymLogs: [],
-  workouts: {},
-  workoutStatus: {},
-  activeChallenges: [],
-  customTemplates: [],
-  customChallenges: [],
-  pushupsCompleted: []
-};
-
-const SimpleBarChart = ({ data, color = "#f97316" }: any) => {
-  if (!data || data.length === 0) {
-    return (
-      <View style={styles.chartEmpty}>
-        <Text style={styles.chartEmptyText}>NO DATA DETECTED</Text>
-      </View>
-    );
-  }
-
-  const maxVal = Math.max(...data.map((d: any) => d.value));
-  
-  return (
-    <View style={styles.chartContainer}>
-      {data.map((item: any, i: number) => (
-        <View key={i} style={styles.chartBarWrapper}>
-          <View style={styles.chartBarContainer}>
-            <View
-              style={[
-                styles.chartBar,
-                { backgroundColor: color, height: `${maxVal > 0 ? (item.value / maxVal) * 100 : 0}%` },
-              ]}
-            />
-          </View>
-          <Text style={styles.chartLabel}>{item.label.slice(0, 3)}</Text>
-        </View>
-      ))}
-    </View>
-  );
-};
+import {
+  ASSETS,
+  CHALLENGE_LIBRARY,
+  WORKOUT_TEMPLATES,
+  DEFAULT_EXERCISES,
+  DEFAULT_DATA,
+} from './src/constants/appConstants';
+import SimpleBarChart from './src/components/SimpleBarChart';
 
 // --- Application Views ---
 const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: any) => {
@@ -820,35 +765,12 @@ const GymView = ({ data, updateData, user }: any) => {
 
   if (isFinished) {
     return (
-      <ScrollView contentContainerStyle={styles.finishedContainer}>
-        <View style={styles.finishedIcon}>
-          <Medal size={48} color="#22d3ee" />
-        </View>
-        <View style={styles.finishedText}>
-          <Text style={styles.finishedTitle}>SESSION COMPLETE</Text>
-          <Text style={styles.finishedSubtitle}>DATA UPLOADED SUCCESSFULLY</Text>
-        </View>
-        <View style={styles.finishedStats}>
-          <GlassCard style={styles.finishedStatCard}>
-            <Text style={styles.finishedStatValue}>{visibleWorkout.length}</Text>
-            <Text style={styles.finishedStatLabel}>Exercises</Text>
-          </GlassCard>
-          <GlassCard style={styles.finishedStatCard}>
-            <Text style={styles.finishedStatValue}>{calculateTotalVolumeLocal().toLocaleString()}</Text>
-            <Text style={styles.finishedStatLabel}>Vol. Load (LB)</Text>
-          </GlassCard>
-        </View>
-        <View style={styles.finishedActions}>
-          <NeonButton onPress={startNewSession} style={styles.finishedButton}>
-            <PlusCircle size={18} color="#0f172a" />
-            <Text style={{ marginLeft: 8 }}>INITIATE NEW SESSION</Text>
-          </NeonButton>
-          <TouchableOpacity onPress={undoFinish} style={styles.finishedUndo}>
-            <RotateCcw size={12} color="#64748b" />
-            <Text style={styles.finishedUndoText}>MODIFY LOG DATA</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      <FinishedSessionView
+        visibleWorkout={visibleWorkout}
+        calculateTotalVolume={calculateTotalVolumeLocal}
+        onStartNewSession={startNewSession}
+        onUndo={undoFinish}
+      />
     );
   }
 
