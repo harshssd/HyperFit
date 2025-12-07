@@ -91,6 +91,7 @@ import {
 } from 'lucide-react-native';
 import GlassCard from './src/components/GlassCard';
 import NeonButton from './src/components/NeonButton';
+import NumberControl from './src/components/NumberControl';
 
 // --- Supabase Imports ---
 import 'react-native-url-polyfill/auto';
@@ -190,37 +191,6 @@ const calculateXP = (data: any) => {
 const getRank = (xp: number) => {
   const safeXp = xp || 0;
   return [...RANKS].reverse().find(r => safeXp >= r.minXp) || RANKS[0];
-};
-
-const NumberControl = ({ value, onChange, step = 1, label, placeholder }: any) => {
-  const safeValue = value === '' ? 0 : parseInt(value);
-  return (
-    <View style={styles.numberControl}>
-      <Text style={styles.numberControlLabel}>{label}</Text>
-      <View style={styles.numberControlContainer}>
-        <TouchableOpacity
-          onPress={() => onChange(Math.max(0, safeValue - step) === 0 ? '' : Math.max(0, safeValue - step))}
-          style={styles.numberControlButton}
-        >
-          <Minus size={16} color="#94a3b8" />
-        </TouchableOpacity>
-        <TextInput
-          style={styles.numberControlInput}
-          value={String(value)}
-          placeholder={placeholder}
-          placeholderTextColor="#64748b"
-          keyboardType="numeric"
-          onChangeText={(text) => onChange(text)}
-        />
-        <TouchableOpacity
-          onPress={() => onChange(safeValue + step)}
-          style={styles.numberControlButton}
-        >
-          <Plus size={16} color="#94a3b8" />
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
 };
 
 const ProgressRing = ({ radius, stroke, progress, color }: any) => {
