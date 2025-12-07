@@ -89,6 +89,8 @@ import {
   Grid,
   Bookmark,
 } from 'lucide-react-native';
+import GlassCard from './src/components/GlassCard';
+import NeonButton from './src/components/NeonButton';
 
 // --- Supabase Imports ---
 import 'react-native-url-polyfill/auto';
@@ -188,51 +190,6 @@ const calculateXP = (data: any) => {
 const getRank = (xp: number) => {
   const safeXp = xp || 0;
   return [...RANKS].reverse().find(r => safeXp >= r.minXp) || RANKS[0];
-};
-
-// --- UI Components ---
-const GlassCard = ({ children, style, onPress, noPadding = false }: any) => (
-  <TouchableOpacity
-    onPress={onPress}
-    activeOpacity={0.9}
-    style={[
-      styles.glassCard,
-      noPadding && styles.glassCardNoPadding,
-      onPress && styles.glassCardPressable,
-      style,
-    ]}
-  >
-    {children}
-  </TouchableOpacity>
-);
-
-const NeonButton = ({ children, onPress, variant = 'primary', style, disabled }: any) => {
-  const baseStyle = [styles.neonButton, styles.neonButtonBase];
-  const variants: any = {
-    primary: styles.neonButtonPrimary,
-    secondary: styles.neonButtonSecondary,
-    danger: styles.neonButtonDanger,
-    ghost: styles.neonButtonGhost,
-  };
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled}
-      style={[baseStyle, variants[variant], disabled && styles.neonButtonDisabled, style]}
-      activeOpacity={0.8}
-    >
-      <View style={styles.neonButtonContent}>
-        {typeof children === 'string' ? (
-          <Text style={[styles.neonButtonText, variant === 'primary' && styles.neonButtonTextPrimary]}>
-            {children}
-          </Text>
-        ) : (
-          children
-        )}
-      </View>
-    </TouchableOpacity>
-  );
 };
 
 const NumberControl = ({ value, onChange, step = 1, label, placeholder }: any) => {
