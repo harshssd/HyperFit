@@ -1,10 +1,8 @@
--- HyperFit Supabase Migration
--- Run this script in the Supabase SQL Editor to create every table the app expects.
+-- Supabase Migration: Template Management Schema
+-- Run this if you only need to provision the workout template tables.
 
--- Ensure UUID helpers are available for default IDs
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
--- Helper trigger to keep updated_at fields accurate
 CREATE OR REPLACE FUNCTION handle_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -12,53 +10,6 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-
--- ============================================================================
--- User Data Store
--- ============================================================================
-CREATE TABLE IF NOT EXISTS user_data (
-  user_id UUID PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
-  data JSONB NOT NULL DEFAULT '{}'::jsonb,
-  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT TIMEZONE('utc'::text, NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT TIMEZONE('utc'::text, NOW())
-);
-
-ALTER TABLE user_data ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Users can view own data" ON user_data;
-CREATE POLICY "Users can view own data"
-  ON user_data
-  FOR SELECT
-  USING (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Users can insert own data" ON user_data;
-CREATE POLICY "Users can insert own data"
-  ON user_data
-  FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Users can update own data" ON user_data;
-CREATE POLICY "Users can update own data"
-  ON user_data
-  FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
-
-DROP POLICY IF EXISTS "Users can delete own data" ON user_data;
-CREATE POLICY "Users can delete own data"
-  ON user_data
-  FOR DELETE
-  USING (auth.uid() = user_id);
-
-DROP TRIGGER IF EXISTS update_user_data_updated_at ON user_data;
-CREATE TRIGGER update_user_data_updated_at
-  BEFORE UPDATE ON user_data
-  FOR EACH ROW
-  EXECUTE FUNCTION handle_updated_at();
-
--- ============================================================================
--- Template Management Schema
--- ============================================================================
 
 -- Folder hierarchy for organizing templates
 CREATE TABLE IF NOT EXISTS workout_template_folders (

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
+  Modal,
   TouchableOpacity,
   TextInput,
   ImageBackground,
@@ -78,6 +79,15 @@ import {
   History,
   LogOut,
   Loader,
+  Folder,
+  FolderPlus,
+  Tag,
+  Filter,
+  Copy,
+  Heart,
+  MoreVertical,
+  Grid,
+  Bookmark,
 } from 'lucide-react-native';
 
 // --- Supabase Imports ---
@@ -481,7 +491,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: any) => {
   );
 };
 
-const GymView = ({ data, updateData }: any) => {
+const GymView = ({ data, updateData, user }: any) => {
   const today = new Date().toISOString().split('T')[0];
   const isCheckedIn = data.gymLogs.includes(today);
   const isFinished = data.workoutStatus?.[today]?.finished || false;
@@ -499,12 +509,225 @@ const GymView = ({ data, updateData }: any) => {
   const visibleWorkout = todaysWorkout.filter((ex: any) => !ex.archived);
   const customTemplates = data.customTemplates || [];
   const [collapsedExercises, setCollapsedExercises] = useState<string[]>([]);
+  
+  // Template management state
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState<string | null | undefined>(undefined);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [saveTemplateFolder, setSaveTemplateFolder] = useState<string | null>(null);
+  const [saveTemplateTags, setSaveTemplateTags] = useState<string[]>([]);
+  const saveTemplateTagInputRef = useRef<TextInput | null>(null);
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
 
   useEffect(() => {
     if (visibleWorkout.length > 0 && currentExIndex >= visibleWorkout.length) {
       setCurrentExIndex(Math.max(0, visibleWorkout.length - 1));
     }
   }, [visibleWorkout.length]);
+
+  // Fetch templates from Supabase
+  useEffect(() => {
+    if (!user || !showTemplatePicker) return;
+    fetchTemplates();
+    fetchFolders();
+    fetchFavorites();
+  }, [user, showTemplatePicker]);
+
+  const fetchTemplates = async () => {
+    if (!user) return;
+    setLoadingTemplates(true);
+    try {
+      // Fetch user's templates and public/standard templates
+      const { data: userTemplates, error: userError } = await supabase
+        .from('workout_templates')
+        .select('*')
+        .or(`user_id.eq.${user.id},is_standard.eq.true,is_public.eq.true`)
+        .order('created_at', { ascending: false });
+
+      if (userError) throw userError;
+
+      // Extract unique tags from all templates
+      const tagsSet = new Set<string>();
+      userTemplates?.forEach((t: any) => {
+        if (t.tags && Array.isArray(t.tags)) {
+          t.tags.forEach((tag: string) => tagsSet.add(tag));
+        }
+      });
+      setAllTags(Array.from(tagsSet).sort());
+
+      setTemplates(userTemplates || []);
+    } catch (error) {
+      console.error('Error fetching templates:', error);
+      // Fallback to local templates
+      setTemplates([...WORKOUT_TEMPLATES, ...customTemplates]);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const fetchFolders = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('workout_template_folders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      setFolders(data || []);
+    } catch (error) {
+      console.error('Error fetching folders:', error);
+    }
+  };
+
+  const fetchFavorites = async () => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('user_template_favorites')
+        .select('template_id')
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+      const favoriteIds = new Set(data?.map((f: any) => f.template_id) || []);
+      setFavorites(favoriteIds);
+    } catch (error) {
+      console.error('Error fetching favorites:', error);
+    }
+  };
+
+  const saveTemplateToSupabase = async (name: string, exercises: string[], folderId?: string | null, tags?: string[]) => {
+    if (!user) return;
+    try {
+      const username = user.email?.split('@')[0] || user.user_metadata?.full_name || 'User';
+      const { data, error } = await supabase
+        .from('workout_templates')
+        .insert({
+          user_id: user.id,
+          name: name,
+          description: `${exercises.length} Exercises`,
+          icon: '💾',
+          exercises: exercises,
+          created_by_username: username,
+          folder_id: folderId || null,
+          tags: tags || [],
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      await fetchTemplates();
+      return data;
+    } catch (error) {
+      console.error('Error saving template:', error);
+      // Fallback to local storage
+      const newTemplate = {
+        id: Date.now(),
+        name: name,
+        icon: '💾',
+        description: `${exercises.length} Exercises`,
+        exercises: exercises
+      };
+      updateData({ ...data, customTemplates: [newTemplate, ...customTemplates] });
+      throw error;
+    }
+  };
+
+  const toggleFavorite = async (templateId: string) => {
+    if (!user) return;
+    try {
+      const isFavorite = favorites.has(templateId);
+      if (isFavorite) {
+        const { error } = await supabase
+          .from('user_template_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('template_id', templateId);
+        if (error) throw error;
+        setFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(templateId);
+          return newSet;
+        });
+      } else {
+        const { error } = await supabase
+          .from('user_template_favorites')
+          .insert({
+            user_id: user.id,
+            template_id: templateId,
+          });
+        if (error) throw error;
+        setFavorites(prev => new Set([...prev, templateId]));
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  const deleteTemplate = async (templateId: string) => {
+    try {
+      if (user) {
+        await supabase.from('workout_templates').delete().eq('id', templateId).eq('user_id', user.id);
+      }
+    } catch (error) {
+      console.error('Error deleting template:', error);
+    } finally {
+      setTemplates(prev => prev.filter(t => t.id !== templateId));
+    }
+  };
+
+  const confirmDeleteTemplate = (templateId: string) => {
+    Alert.alert('Delete Template', 'Remove this template permanently?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => deleteTemplate(templateId) },
+    ]);
+  };
+
+  const duplicateTemplate = (template: any) => {
+    const duplicated = {
+      ...template,
+      id: `local-${Date.now()}`,
+      name: `${template.name} (Copy)`,
+      user_id: user?.id,
+    };
+    setTemplates(prev => [duplicated, ...prev]);
+  };
+
+  const shareTemplate = (template: any) => {
+    Alert.alert('Share Template', `${template.name}\n${template.description || ''}`);
+  };
+
+  const createFolder = async (name: string, color: string = '#f97316', icon: string = '📁') => {
+    if (!user) return;
+    try {
+      const { data, error } = await supabase
+        .from('workout_template_folders')
+        .insert({
+          user_id: user.id,
+          name: name,
+          color: color,
+          icon: icon,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      await fetchFolders();
+      return data;
+    } catch (error) {
+      console.error('Error creating folder:', error);
+      Alert.alert('Error', 'Failed to create folder');
+    }
+  };
 
   const getAllExerciseNames = () => {
     const historyNames = Object.values(data.workouts || {}).flat().map((w: any) => w.name);
@@ -547,18 +770,66 @@ const GymView = ({ data, updateData }: any) => {
     setIsSessionActive(false);
   };
 
-  const saveCurrentAsTemplate = () => {
-    if (!templateName.trim()) return;
-    const newTemplate = {
-      id: Date.now(),
-      name: templateName,
-      icon: '💾',
-      description: `${visibleWorkout.length} Exercises`,
-      exercises: visibleWorkout.map((ex: any) => ex.name)
-    };
-    updateData({ ...data, customTemplates: [newTemplate, ...customTemplates] });
-    setTemplateName('');
+  const saveCurrentAsTemplate = async () => {
+    if (!templateName.trim()) {
+      Alert.alert('Error', 'Please enter a template name');
+      return;
+    }
+    if (visibleWorkout.length === 0) {
+      Alert.alert('Error', 'Cannot save empty workout');
+      return;
+    }
+    try {
+      const exercises = visibleWorkout.map((ex: any) => ex.name);
+      await saveTemplateToSupabase(templateName, exercises, saveTemplateFolder, saveTemplateTags);
+      Alert.alert('Success', 'Template saved successfully');
+      setTemplateName('');
+      setSaveTemplateFolder(null);
+      setSaveTemplateTags([]);
+      setShowSaveTemplateModal(false);
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to save template');
+    }
   };
+
+  // Filter templates based on search, folder, favorites, and tags
+  const filteredTemplates = useMemo(() => {
+    let filtered = templates;
+
+    // Filter by search query
+    if (templateSearchQuery.trim()) {
+      const query = templateSearchQuery.toLowerCase();
+      filtered = filtered.filter((t: any) =>
+        t.name.toLowerCase().includes(query) ||
+        t.description?.toLowerCase().includes(query) ||
+        t.created_by_username?.toLowerCase().includes(query) ||
+        t.exercises?.some((ex: string) => ex.toLowerCase().includes(query))
+      );
+    }
+
+    // Filter by folder
+    if (selectedFolder) {
+      filtered = filtered.filter((t: any) => t.folder_id === selectedFolder);
+    } else if (selectedFolder === null && showTemplatePicker) {
+      // Show only templates without folders when "No Folder" is selected
+      // This is handled in the UI
+    }
+
+    // Filter by favorites
+    if (showFavoritesOnly) {
+      filtered = filtered.filter((t: any) => favorites.has(t.id));
+    }
+
+    // Filter by tags
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter((t: any) =>
+        t.tags && Array.isArray(t.tags) &&
+        selectedTags.some(tag => t.tags.includes(tag))
+      );
+    }
+
+    return filtered;
+  }, [templates, templateSearchQuery, selectedFolder, showFavoritesOnly, selectedTags, favorites]);
 
   const addExercise = (position: 'top' | 'bottom' = 'bottom') => {
     if (!newExerciseName.trim()) return;
@@ -732,47 +1003,286 @@ const GymView = ({ data, updateData }: any) => {
   }
 
   return (
-    <ScrollView style={styles.gymView} contentContainerStyle={styles.gymViewContent}>
+    <>
       {showTemplatePicker && (
-        <View style={styles.templatePickerOverlay}>
-          <View style={styles.templatePicker}>
-            <View style={styles.templatePickerHeader}>
-              <View>
-                <Text style={styles.templatePickerTitle}>WORKOUT PLANS</Text>
-                <Text style={styles.templatePickerSubtitle}>SELECT A WORKOUT</Text>
+        <Modal
+          transparent
+          animationType="fade"
+          visible={showTemplatePicker}
+          onRequestClose={() => setShowTemplatePicker(false)}
+          statusBarTranslucent
+          presentationStyle="fullScreen"
+        >
+          <SafeAreaView style={styles.templateModalSafeArea}>
+            <View style={styles.templatePickerOverlay}>
+              <View style={styles.templatePicker}>
+                <View style={styles.templatePickerHeader}>
+                  <View>
+                    <Text style={styles.templatePickerTitle}>WORKOUT TEMPLATES</Text>
+                    <Text style={styles.templatePickerSubtitle}>
+                      {filteredTemplates.length} {filteredTemplates.length === 1 ? 'TEMPLATE' : 'TEMPLATES'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setShowTemplatePicker(false)} style={styles.templatePickerClose}>
+                    <X size={24} color="#94a3b8" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Search Bar */}
+                <View style={styles.templateSearchContainer}>
+                  <Search size={20} color="#64748b" />
+                  <TextInput
+                    style={styles.templateSearchInput}
+                    placeholder="Search templates..."
+                    placeholderTextColor="#64748b"
+                    value={templateSearchQuery}
+                    onChangeText={setTemplateSearchQuery}
+                  />
+                  {templateSearchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setTemplateSearchQuery('')}>
+                      <X size={16} color="#64748b" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Filter Bar */}
+                <View style={styles.templateFilterBar}>
+                  <TouchableOpacity
+                    onPress={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                    style={[styles.templateFilterButton, showFavoritesOnly && styles.templateFilterButtonActive]}
+                  >
+                    <Heart size={16} color={showFavoritesOnly ? "#f97316" : "#64748b"} fill={showFavoritesOnly ? "#f97316" : "none"} />
+                    <Text style={[styles.templateFilterText, showFavoritesOnly && styles.templateFilterTextActive]}>
+                      FAVORITES
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (selectedFolder === undefined) {
+                        setSelectedFolder(null);
+                      } else if (selectedFolder === null) {
+                        setSelectedFolder(undefined);
+                      } else {
+                        setSelectedFolder(undefined);
+                      }
+                    }}
+                    style={[styles.templateFilterButton, selectedFolder !== undefined && styles.templateFilterButtonActive]}
+                  >
+                    <Folder size={16} color={selectedFolder !== undefined ? "#f97316" : "#64748b"} />
+                    <Text style={[styles.templateFilterText, selectedFolder !== undefined && styles.templateFilterTextActive]}>
+                      FOLDERS
+                    </Text>
+                  </TouchableOpacity>
+
+                  {selectedTags.length > 0 && (
+                    <TouchableOpacity
+                      onPress={() => setSelectedTags([])}
+                      style={styles.templateFilterButton}
+                    >
+                      <Tag size={16} color="#f97316" />
+                      <Text style={styles.templateFilterTextActive}>{selectedTags.length} TAG{selectedTags.length > 1 ? 'S' : ''}</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Folder Selector */}
+                {selectedFolder !== undefined && (
+                  <ScrollView horizontal style={styles.templateFolderSelector} showsHorizontalScrollIndicator={false}>
+                    <TouchableOpacity
+                      onPress={() => setSelectedFolder(null)}
+                      style={[styles.templateFolderChip, selectedFolder === null && styles.templateFolderChipActive]}
+                    >
+                      <Text style={[styles.templateFolderChipText, selectedFolder === null && styles.templateFolderChipTextActive]}>
+                        NO FOLDER
+                      </Text>
+                    </TouchableOpacity>
+                    {folders.map((folder: any) => (
+                      <TouchableOpacity
+                        key={folder.id}
+                        onPress={() => setSelectedFolder(folder.id)}
+                        style={[styles.templateFolderChip, selectedFolder === folder.id && styles.templateFolderChipActive]}
+                      >
+                        <Text style={styles.templateFolderIcon}>{folder.icon || '📁'}</Text>
+                        <Text style={[styles.templateFolderChipText, selectedFolder === folder.id && styles.templateFolderChipTextActive]}>
+                          {folder.name}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      onPress={() => setShowCreateFolderModal(true)}
+                      style={[styles.templateFolderChip, styles.templateFolderChipNew]}
+                    >
+                      <FolderPlus size={16} color="#f97316" />
+                      <Text style={[styles.templateFolderChipText, { color: '#f97316' }]}>NEW</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+                )}
+
+                {/* Tags Selector */}
+                {allTags.length > 0 && (
+                  <ScrollView horizontal style={styles.templateTagsSelector} showsHorizontalScrollIndicator={false}>
+                    {allTags.map((tag: string) => {
+                      const isSelected = selectedTags.includes(tag);
+                      return (
+                        <TouchableOpacity
+                          key={tag}
+                          onPress={() => {
+                            if (isSelected) {
+                              setSelectedTags(selectedTags.filter(t => t !== tag));
+                            } else {
+                              setSelectedTags([...selectedTags, tag]);
+                            }
+                          }}
+                          style={[styles.templateTagChip, isSelected && styles.templateTagChipActive]}
+                        >
+                          <Tag size={12} color={isSelected ? "#0f172a" : "#64748b"} />
+                          <Text style={[styles.templateTagChipText, isSelected && styles.templateTagChipTextActive]}>
+                            {tag}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                )}
+
+                {/* Template List */}
+                <ScrollView
+                  style={styles.templatePickerList}
+                  contentContainerStyle={styles.templatePickerListContent}
+                  showsVerticalScrollIndicator={false}
+                >
+                  {loadingTemplates ? (
+                    <View style={styles.templateLoadingContainer}>
+                      <ActivityIndicator size="large" color="#f97316" />
+                      <Text style={styles.templateLoadingText}>LOADING TEMPLATES...</Text>
+                    </View>
+                  ) : filteredTemplates.length === 0 ? (
+                    <View style={styles.templateEmptyContainer}>
+                      <Text style={styles.templateEmptyText}>NO TEMPLATES FOUND</Text>
+                      <Text style={styles.templateEmptySubtext}>Try adjusting your filters</Text>
+                    </View>
+                  ) : (
+                    filteredTemplates.map((template: any) => {
+                      const isFavorite = favorites.has(template.id);
+                      const folder = folders.find((f: any) => f.id === template.folder_id);
+                      const isUserTemplate = template.user_id === user?.id;
+                      const isStandard = template.is_standard;
+
+                      return (
+                        <GlassCard key={template.id} style={styles.templateCard}>
+                          <TouchableOpacity
+                            onPress={() => applyTemplate(template)}
+                            style={styles.templateCardContent}
+                          >
+                            <Text style={styles.templateIcon}>{template.icon || '💪'}</Text>
+                            <View style={styles.templateInfo}>
+                              <View style={styles.templateHeaderRow}>
+                                <Text style={styles.templateName}>{template.name}</Text>
+                                <TouchableOpacity
+                                  onPress={(e) => {
+                                    e.stopPropagation();
+                                    toggleFavorite(template.id);
+                                  }}
+                                  style={styles.templateFavoriteButton}
+                                >
+                                  <Heart
+                                    size={18}
+                                    color={isFavorite ? "#f97316" : "#64748b"}
+                                    fill={isFavorite ? "#f97316" : "none"}
+                                  />
+                                </TouchableOpacity>
+                              </View>
+                              <Text style={styles.templateDescription}>
+                                {template.description || `${template.exercises?.length || 0} Exercises`}
+                              </Text>
+                              <View style={styles.templateMetaRow}>
+                                {isStandard && (
+                                  <View style={styles.templateBadge}>
+                                    <Text style={styles.templateBadgeText}>STANDARD</Text>
+                                  </View>
+                                )}
+                                {!isStandard && template.created_by_username && (
+                                  <View style={styles.templateBadge}>
+                                    <User size={10} color="#64748b" />
+                                    <Text style={styles.templateBadgeText}>{template.created_by_username}</Text>
+                                  </View>
+                                )}
+                                {folder && (
+                                  <View style={[styles.templateBadge, { backgroundColor: folder.color + '20' }]}>
+                                    <Text style={styles.templateFolderIcon}>{folder.icon || '📁'}</Text>
+                                    <Text style={[styles.templateBadgeText, { color: folder.color }]}>{folder.name}</Text>
+                                  </View>
+                                )}
+                                {template.tags && template.tags.length > 0 && (
+                                  <View style={styles.templateTagsRow}>
+                                    {template.tags.slice(0, 2).map((tag: string, idx: number) => (
+                                      <View key={idx} style={styles.templateTagBadge}>
+                                        <Tag size={8} color="#64748b" />
+                                        <Text style={styles.templateTagBadgeText}>{tag}</Text>
+                                      </View>
+                                    ))}
+                                    {template.tags.length > 2 && (
+                                      <Text style={styles.templateTagMore}>+{template.tags.length - 2}</Text>
+                                    )}
+                                  </View>
+                                )}
+                              </View>
+                            </View>
+                          </TouchableOpacity>
+                          <View style={styles.templateActions}>
+                            {isUserTemplate && (
+                              <>
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    setTemplateName(template.name);
+                                    setSaveTemplateFolder(template.folder_id || null);
+                                    setSaveTemplateTags(template.tags || []);
+                                    setShowSaveTemplateModal(true);
+                                  }}
+                                  style={styles.templateActionButton}
+                                >
+                                  <Edit3 size={16} color="#22d3ee" />
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  onPress={() => confirmDeleteTemplate(template.id)}
+                                  style={styles.templateActionButton}
+                                >
+                                  <Trash2 size={16} color="#ef4444" />
+                                </TouchableOpacity>
+                              </>
+                            )}
+                            {!isStandard && (
+                              <TouchableOpacity
+                                onPress={() => duplicateTemplate(template)}
+                                style={styles.templateActionButton}
+                              >
+                                <Copy size={16} color="#f97316" />
+                              </TouchableOpacity>
+                            )}
+                            <TouchableOpacity
+                              onPress={() => shareTemplate(template)}
+                              style={styles.templateActionButton}
+                            >
+                              <Share2 size={16} color="#22d3ee" />
+                            </TouchableOpacity>
+                          </View>
+                        </GlassCard>
+                      );
+                    })
+                  )}
+                </ScrollView>
               </View>
-              <TouchableOpacity onPress={() => setShowTemplatePicker(false)} style={styles.templatePickerClose}>
-                <X size={24} color="#94a3b8" />
-              </TouchableOpacity>
             </View>
-            <ScrollView style={styles.templatePickerList}>
-              {customTemplates.map((template: any) => (
-                <GlassCard key={template.id} onPress={() => applyTemplate(template)} style={styles.templateCard}>
-                  <Text style={styles.templateIcon}>{template.icon}</Text>
-                  <View style={styles.templateInfo}>
-                    <Text style={styles.templateName}>{template.name}</Text>
-                    <Text style={styles.templateDescription}>{template.description}</Text>
-                  </View>
-                </GlassCard>
-              ))}
-              {WORKOUT_TEMPLATES.map((template: any) => (
-                <GlassCard key={template.id} onPress={() => applyTemplate(template)} style={styles.templateCard}>
-                  <Text style={styles.templateIcon}>{template.icon}</Text>
-                  <View style={styles.templateInfo}>
-                    <Text style={styles.templateName}>{template.name}</Text>
-                    <Text style={styles.templateDescription}>{template.description}</Text>
-                  </View>
-                </GlassCard>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
+          </SafeAreaView>
+        </Modal>
       )}
 
-      {isAddingExercise && (
-        <View style={styles.addExerciseOverlay}>
-          <View style={styles.addExerciseModal}>
-            <Text style={styles.addExerciseTitle}>ADD EXERCISE</Text>
+      <ScrollView style={styles.gymView} contentContainerStyle={styles.gymViewContent}>
+        {isAddingExercise && (
+          <View style={styles.addExerciseOverlay}>
+            <View style={styles.addExerciseModal}>
+              <Text style={styles.addExerciseTitle}>ADD EXERCISE</Text>
             <View style={styles.addExerciseInputContainer}>
               <TextInput
                 autoFocus
@@ -802,6 +1312,162 @@ const GymView = ({ data, updateData }: any) => {
                 <Text>ADD</Text>
               </NeonButton>
               <TouchableOpacity onPress={() => setIsAddingExercise(false)} style={styles.addExerciseCancel}>
+                <X size={24} color="#94a3b8" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {showSaveTemplateModal && (
+        <View style={styles.addExerciseOverlay}>
+          <View style={styles.addExerciseModal}>
+            <View style={styles.saveTemplateHeader}>
+              <Text style={styles.addExerciseTitle}>SAVE TEMPLATE</Text>
+              <TouchableOpacity onPress={() => {
+                setShowSaveTemplateModal(false);
+                setTemplateName('');
+                setSaveTemplateFolder(null);
+                setSaveTemplateTags([]);
+              }} style={styles.addExerciseCancel}>
+                <X size={24} color="#94a3b8" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.saveTemplateSubtitle}>{visibleWorkout.length} Exercises</Text>
+            
+            <Text style={styles.saveTemplateLabel}>TEMPLATE NAME</Text>
+            <TextInput
+              style={styles.addExerciseInput}
+              placeholder="Enter template name..."
+              placeholderTextColor="#64748b"
+              value={templateName}
+              onChangeText={setTemplateName}
+              autoFocus
+            />
+
+            <Text style={[styles.saveTemplateLabel, { marginTop: 16 }]}>FOLDER (OPTIONAL)</Text>
+            <ScrollView horizontal style={styles.saveTemplateFolderSelector} showsHorizontalScrollIndicator={false}>
+              <TouchableOpacity
+                onPress={() => setSaveTemplateFolder(null)}
+                style={[styles.templateFolderChip, !saveTemplateFolder && styles.templateFolderChipActive]}
+              >
+                <Text style={[styles.templateFolderChipText, !saveTemplateFolder && styles.templateFolderChipTextActive]}>
+                  NO FOLDER
+                </Text>
+              </TouchableOpacity>
+              {folders.map((folder: any) => (
+                <TouchableOpacity
+                  key={folder.id}
+                  onPress={() => setSaveTemplateFolder(folder.id)}
+                  style={[styles.templateFolderChip, saveTemplateFolder === folder.id && styles.templateFolderChipActive]}
+                >
+                  <Text style={styles.templateFolderIcon}>{folder.icon || '📁'}</Text>
+                  <Text style={[styles.templateFolderChipText, saveTemplateFolder === folder.id && styles.templateFolderChipTextActive]}>
+                    {folder.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.saveTemplateLabel, { marginTop: 16 }]}>TAGS (OPTIONAL)</Text>
+            <View style={styles.saveTemplateTagsContainer}>
+              <ScrollView
+                horizontal
+                style={styles.saveTemplateTagsInput}
+                contentContainerStyle={styles.saveTemplateTagsInputContent}
+                showsHorizontalScrollIndicator={false}
+              >
+                {saveTemplateTags.map((tag, idx) => (
+                  <View key={idx} style={styles.saveTemplateTag}>
+                    <Text style={styles.saveTemplateTagText}>{tag}</Text>
+                    <TouchableOpacity onPress={() => setSaveTemplateTags(saveTemplateTags.filter((_, i) => i !== idx))}>
+                      <X size={12} color="#64748b" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TextInput
+                  ref={saveTemplateTagInputRef}
+                  style={styles.saveTemplateTagInput}
+                  placeholder="Add tag..."
+                  placeholderTextColor="#64748b"
+                  onSubmitEditing={(e) => {
+                    const tag = e.nativeEvent.text.trim();
+                    if (tag && !saveTemplateTags.includes(tag)) {
+                      setSaveTemplateTags([...saveTemplateTags, tag]);
+                    }
+                    saveTemplateTagInputRef.current?.clear();
+                  }}
+                />
+              </ScrollView>
+            </View>
+
+            <View style={styles.addExerciseActions}>
+              <NeonButton onPress={saveCurrentAsTemplate} style={styles.addExerciseButton} disabled={!templateName.trim()}>
+                <Save size={18} color="#0f172a" />
+                <Text style={{ marginLeft: 8 }}>SAVE</Text>
+              </NeonButton>
+              <TouchableOpacity onPress={() => {
+                setShowSaveTemplateModal(false);
+                setTemplateName('');
+                setSaveTemplateFolder(null);
+                setSaveTemplateTags([]);
+              }} style={styles.addExerciseCancel}>
+                <X size={24} color="#94a3b8" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {showCreateFolderModal && (
+        <View style={styles.addExerciseOverlay}>
+          <View style={styles.addExerciseModal}>
+            <View style={styles.saveTemplateHeader}>
+              <Text style={styles.addExerciseTitle}>CREATE FOLDER</Text>
+              <TouchableOpacity onPress={() => {
+                setShowCreateFolderModal(false);
+                setNewFolderName('');
+              }} style={styles.addExerciseCancel}>
+                <X size={24} color="#94a3b8" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={styles.saveTemplateLabel}>FOLDER NAME</Text>
+            <TextInput
+              style={styles.addExerciseInput}
+              placeholder="Enter folder name..."
+              placeholderTextColor="#64748b"
+              value={newFolderName}
+              onChangeText={setNewFolderName}
+              autoFocus
+              onSubmitEditing={() => {
+                if (newFolderName.trim()) {
+                  createFolder(newFolderName.trim());
+                  setShowCreateFolderModal(false);
+                  setNewFolderName('');
+                }
+              }}
+            />
+
+            <View style={styles.addExerciseActions}>
+              <NeonButton 
+                onPress={() => {
+                  if (newFolderName.trim()) {
+                    createFolder(newFolderName.trim());
+                    setShowCreateFolderModal(false);
+                    setNewFolderName('');
+                  }
+                }} 
+                style={styles.addExerciseButton} 
+                disabled={!newFolderName.trim()}
+              >
+                <FolderPlus size={18} color="#0f172a" />
+                <Text style={{ marginLeft: 8 }}>CREATE</Text>
+              </NeonButton>
+              <TouchableOpacity onPress={() => {
+                setShowCreateFolderModal(false);
+                setNewFolderName('');
+              }} style={styles.addExerciseCancel}>
                 <X size={24} color="#94a3b8" />
               </TouchableOpacity>
             </View>
@@ -889,6 +1555,13 @@ const GymView = ({ data, updateData }: any) => {
             >
               <Plus size={20} color="#f97316" />
               <Text style={styles.overviewAddButtonText}>ADD EXERCISE</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setShowSaveTemplateModal(true)}
+              style={styles.overviewSaveButton}
+            >
+              <Save size={20} color="#22d3ee" />
+              <Text style={styles.overviewSaveButtonText}>SAVE TEMPLATE</Text>
             </TouchableOpacity>
             <NeonButton onPress={startSession} style={styles.overviewStartButton} disabled={visibleWorkout.length === 0}>
               <Play size={20} color="#0f172a" />
@@ -1108,38 +1781,27 @@ const GymView = ({ data, updateData }: any) => {
         </View>
       )}
     </ScrollView>
+    </>
   );
 };
 
-const ChallengesView = ({ data, updateData }: any) => {
+const ChallengesView = () => {
   return (
     <ScrollView style={styles.challengesView} contentContainerStyle={styles.challengesViewContent}>
-      <Text style={styles.sectionTitle}>ACTIVE CHALLENGES</Text>
-      {data.activeChallenges?.length === 0 && (
-        <GlassCard style={styles.emptyCard}>
-          <Text style={styles.emptyCardText}>No active challenges</Text>
-        </GlassCard>
-      )}
-      <Text style={styles.sectionTitle}>CHALLENGE LIBRARY</Text>
-      {CHALLENGE_LIBRARY.map((challenge) => (
-        <GlassCard key={challenge.id} style={styles.challengeCard}>
-          <Text style={styles.challengeIcon}>{challenge.icon}</Text>
-          <View style={styles.challengeInfo}>
-            <Text style={styles.challengeTitle}>{challenge.title}</Text>
-            <Text style={styles.challengeDescription}>{challenge.description}</Text>
-          </View>
-        </GlassCard>
-      ))}
+      <GlassCard style={styles.emptyCard}>
+        <Text style={styles.sectionTitle}>CHALLENGES</Text>
+        <Text style={styles.emptyCardText}>Nothing here yet. Coming soon.</Text>
+      </GlassCard>
     </ScrollView>
   );
 };
 
-const StepsView = ({ data, updateData }: any) => {
+const StepsView = () => {
   return (
     <ScrollView style={styles.stepsView} contentContainerStyle={styles.stepsViewContent}>
-      <GlassCard style={styles.stepsCard}>
-        <Text style={styles.stepsValue}>{data.stepsToday || 0}</Text>
-        <Text style={styles.stepsLabel}>STEPS TODAY</Text>
+      <GlassCard style={styles.emptyCard}>
+        <Text style={styles.sectionTitle}>STEPS</Text>
+        <Text style={styles.emptyCardText}>Nothing here yet. Coming soon.</Text>
       </GlassCard>
     </ScrollView>
   );
@@ -1270,8 +1932,9 @@ export default function App() {
           filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          if (payload.new) {
-            setData({ ...DEFAULT_DATA, ...payload.new.data });
+          const newRecord: any = (payload as any).new;
+          if (newRecord && newRecord.data) {
+            setData({ ...DEFAULT_DATA, ...newRecord.data });
           }
         }
       )
@@ -1401,11 +2064,11 @@ export default function App() {
       case 'home':
         return <HomeView data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
       case 'steps':
-        return <StepsView data={data} updateData={saveData} />;
+        return <StepsView />;
       case 'gym':
-        return <GymView data={data} updateData={saveData} />;
+        return <GymView data={data} updateData={saveData} user={user} />;
       case 'challenges':
-        return <ChallengesView data={data} updateData={saveData} />;
+        return <ChallengesView />;
       case 'stats':
         return <StatsView data={data} />;
       default:
@@ -1927,6 +2590,7 @@ const styles = StyleSheet.create({
   // Gym View
   gymView: {
     flex: 1,
+    position: 'relative',
   },
   gymViewContent: {
     paddingBottom: 24,
@@ -2012,18 +2676,22 @@ const styles = StyleSheet.create({
   },
 
   // Template Picker
+  templateModalSafeArea: {
+    flex: 1,
+  },
   templatePickerOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    ...StyleSheet.absoluteFillObject,
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
     zIndex: 50,
-    padding: 24,
+    padding: 0,
   },
   templatePicker: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#0f172a',
+    padding: 24,
   },
   templatePickerHeader: {
     flexDirection: 'row',
@@ -2049,12 +2717,28 @@ const styles = StyleSheet.create({
   },
   templatePickerList: {
     flex: 1,
+    marginTop: 8,
+  },
+  templatePickerListContent: {
+    paddingBottom: 24,
   },
   templateCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
     marginBottom: 12,
+  },
+  templateActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  templateActionButton: {
+    padding: 8,
+    borderRadius: 10,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
   },
   templateIcon: {
     fontSize: 24,
@@ -2074,6 +2758,285 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     marginTop: 4,
+  },
+  templateSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+    gap: 12,
+  },
+  templateSearchInput: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 16,
+  },
+  templateFilterBar: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 16,
+    flexWrap: 'wrap',
+  },
+  templateFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+  },
+  templateFilterButtonActive: {
+    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+    borderColor: '#f97316',
+  },
+  templateFilterText: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  templateFilterTextActive: {
+    color: '#f97316',
+  },
+  templateFolderSelector: {
+    marginBottom: 16,
+    maxHeight: 50,
+  },
+  templateFolderChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  templateFolderChipActive: {
+    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+    borderColor: '#f97316',
+  },
+  templateFolderChipNew: {
+    borderStyle: 'dashed',
+    borderColor: '#f97316',
+  },
+  templateFolderChipText: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  templateFolderChipTextActive: {
+    color: '#f97316',
+  },
+  templateFolderIcon: {
+    fontSize: 14,
+  },
+  templateTagsSelector: {
+    marginBottom: 16,
+    maxHeight: 50,
+  },
+  templateTagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  templateTagChipActive: {
+    backgroundColor: '#f97316',
+    borderColor: '#f97316',
+  },
+  templateTagChipText: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  templateTagChipTextActive: {
+    color: '#0f172a',
+  },
+  templateLoadingContainer: {
+    padding: 48,
+    alignItems: 'center',
+    gap: 16,
+  },
+  templateLoadingText: {
+    color: '#64748b',
+    fontSize: 12,
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
+  },
+  templateEmptyContainer: {
+    padding: 48,
+    alignItems: 'center',
+    gap: 8,
+  },
+  templateEmptyText: {
+    color: '#64748b',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  templateEmptySubtext: {
+    color: '#475569',
+    fontSize: 12,
+  },
+  templateCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  templateHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  templateFavoriteButton: {
+    padding: 4,
+  },
+  templateMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  templateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#1e293b',
+    borderRadius: 6,
+  },
+  templateBadgeText: {
+    fontSize: 9,
+    color: '#64748b',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  templateTagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexWrap: 'wrap',
+  },
+  templateTagBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    backgroundColor: '#1e293b',
+    borderRadius: 4,
+  },
+  templateTagBadgeText: {
+    fontSize: 8,
+    color: '#64748b',
+  },
+  templateTagMore: {
+    fontSize: 8,
+    color: '#64748b',
+    marginLeft: 4,
+  },
+  saveTemplateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  saveTemplateSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  saveTemplateLabel: {
+    fontSize: 10,
+    color: '#64748b',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  saveTemplateFolderSelector: {
+    marginBottom: 16,
+    maxHeight: 50,
+  },
+  saveTemplateTagsContainer: {
+    marginBottom: 16,
+  },
+  saveTemplateTagsInput: {
+    minHeight: 40,
+  },
+  saveTemplateTagsInputContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  saveTemplateTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  saveTemplateTagText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  saveTemplateTagInput: {
+    minWidth: 100,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 8,
+    color: '#fff',
+    fontSize: 12,
+  },
+  overviewSaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#22d3ee',
+    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+  },
+  overviewSaveButtonText: {
+    color: '#22d3ee',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
 
   // Add Exercise

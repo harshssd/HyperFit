@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "updatedAt": "2025-12-07T00:00:00.000Z",
+    "source": "managed via scripts/backlog.js"
+  },
+  "items": [
+    {
+      "id": "BL-1",
+      "title": "CI lint/format/type checks + unit/integration tests + E2E smoke",
+      "status": "todo",
+      "category": "stability",
+      "notes": "ESLint/Prettier/TypeScript strict; unit/integration around templates/session/sync; Detox/Playwright smoke."
+    },
+    {
+      "id": "BL-2",
+      "title": "Data & sync hardening",
+      "status": "todo",
+      "category": "data",
+      "notes": "Supabase constraints/RLS; optimistic updates with rollback; offline queue."
+    },
+    {
+      "id": "BL-3",
+      "title": "Performance & UX polish",
+      "status": "todo",
+      "category": "perf",
+      "notes": "Virtualize template list, cache + debounce search, skeletons/retry."
+    },
+    {
+      "id": "BL-4",
+      "title": "Observability",
+      "status": "todo",
+      "category": "observability",
+      "notes": "Logging/analytics for template/session funnels; Sentry/Crashlytics for errors."
+    },
+    {
+      "id": "BL-5",
+      "title": "Release hygiene",
+      "status": "todo",
+      "category": "release",
+      "notes": "Dev/stage/prod envs; versioning and release checklist; feature flags for new tabs."
+    },
+    {
+      "id": "BL-6",
+      "title": "Security & accounts",
+      "status": "todo",
+      "category": "security",
+      "notes": "Auth hardening, secure storage, privacy/scoping for templates."
+    },
+    {
+      "id": "BL-7",
+      "title": "Steps tab MVP",
+      "status": "todo",
+      "category": "product",
+      "notes": "Device pedometer integration; daily summary/history; goals/reminders."
+    },
+    {
+      "id": "BL-8",
+      "title": "Challenges tab MVP",
+      "status": "todo",
+      "category": "product",
+      "notes": "Join/leave, progress tracking, streaks, social share."
+    }
+  ]
+}
+
