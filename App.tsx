@@ -99,6 +99,7 @@ import ChallengesViewComponent from './src/components/ChallengesView';
 import StepsViewComponent from './src/components/StepsView';
 import WorkoutHeader from './src/components/WorkoutHeader';
 import WorkoutFocusHeader from './src/components/WorkoutFocusHeader';
+import CreateFolderModal from './src/components/CreateFolderModal';
 
 // --- Supabase Imports ---
 import 'react-native-url-polyfill/auto';
@@ -1022,61 +1023,23 @@ const GymView = ({ data, updateData, user }: any) => {
         exerciseCount={visibleWorkout.length}
       />
 
-      {showCreateFolderModal && (
-        <View style={styles.addExerciseOverlay}>
-          <View style={styles.addExerciseModal}>
-            <View style={styles.saveTemplateHeader}>
-              <Text style={styles.addExerciseTitle}>CREATE FOLDER</Text>
-              <TouchableOpacity onPress={() => {
-                setShowCreateFolderModal(false);
-                setNewFolderName('');
-              }} style={styles.addExerciseCancel}>
-                <X size={24} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
-            
-            <Text style={styles.saveTemplateLabel}>FOLDER NAME</Text>
-            <TextInput
-              style={styles.addExerciseInput}
-              placeholder="Enter folder name..."
-              placeholderTextColor="#64748b"
-              value={newFolderName}
-              onChangeText={setNewFolderName}
-              autoFocus
-              onSubmitEditing={() => {
-                if (newFolderName.trim()) {
-                  createFolder(newFolderName.trim());
-                  setShowCreateFolderModal(false);
-                  setNewFolderName('');
-                }
-              }}
-            />
-
-            <View style={styles.addExerciseActions}>
-              <NeonButton 
-                onPress={() => {
-                  if (newFolderName.trim()) {
-                    createFolder(newFolderName.trim());
-                    setShowCreateFolderModal(false);
-                    setNewFolderName('');
-                  }
-                }} 
-                style={styles.addExerciseButton} 
-                disabled={!newFolderName.trim()}
-              >
-                <FolderPlus size={18} color="#0f172a" />
-                <Text style={{ marginLeft: 8 }}>CREATE</Text>
-              </NeonButton>
-              <TouchableOpacity onPress={() => {
-                setShowCreateFolderModal(false);
-                setNewFolderName('');
-              }} style={styles.addExerciseCancel}>
-                <X size={24} color="#94a3b8" />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      )}
+      <CreateFolderModal
+        visible={showCreateFolderModal}
+        newFolderName={newFolderName}
+        onChangeFolderName={setNewFolderName}
+        onCreate={() => {
+          const name = newFolderName.trim();
+          if (name) {
+            createFolder(name);
+            setShowCreateFolderModal(false);
+            setNewFolderName('');
+          }
+        }}
+        onClose={() => {
+          setShowCreateFolderModal(false);
+          setNewFolderName('');
+        }}
+      />
 
       {showOverview && !isSessionActive ? (
         <View style={styles.overviewContainer}>
