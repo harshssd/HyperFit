@@ -100,6 +100,9 @@ import StepsViewComponent from './src/components/StepsView';
 import WorkoutHeader from './src/components/WorkoutHeader';
 import WorkoutFocusHeader from './src/components/WorkoutFocusHeader';
 import CreateFolderModal from './src/components/CreateFolderModal';
+import WorkoutOverview from './src/components/WorkoutOverview';
+import WorkoutListView from './src/components/WorkoutListView';
+import WorkoutFocusSets from './src/components/WorkoutFocusSets';
 
 // --- Supabase Imports ---
 import 'react-native-url-polyfill/auto';
@@ -461,6 +464,20 @@ const GymView = ({ data, updateData, user }: any) => {
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+
+  const closeOverview = () => {
+    setShowOverview(false);
+    const preservedWorkouts = todaysWorkout.filter((ex: any) => ex.archived);
+    updateData({ ...data, workouts: { ...data.workouts, [today]: preservedWorkouts } });
+  };
+
+  const handleRenameExercise = (id: number, name: string) => {
+    const realIndex = todaysWorkout.findIndex((e: any) => e.id === id);
+    if (realIndex === -1) return;
+    const updated = [...todaysWorkout];
+    updated[realIndex].name = name;
+    updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
+  };
 
   const handleToggleFolderFilter = () => {
     if (selectedFolder === undefined) {
@@ -1042,99 +1059,19 @@ const GymView = ({ data, updateData, user }: any) => {
       />
 
       {showOverview && !isSessionActive ? (
-        <View style={styles.overviewContainer}>
-          <View style={styles.overviewHeader}>
-            <View>
-              <Text style={styles.overviewTitle}>WORKOUT OVERVIEW</Text>
-              <Text style={styles.overviewSubtitle}>{visibleWorkout.length} Exercises</Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => {
-                setShowOverview(false);
-                const preservedWorkouts = todaysWorkout.filter((ex: any) => ex.archived);
-                updateData({ ...data, workouts: { ...data.workouts, [today]: preservedWorkouts } });
-              }}
-              style={styles.overviewCloseButton}
-            >
-              <X size={24} color="#94a3b8" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={styles.overviewList} contentContainerStyle={styles.overviewListContent}>
-            {visibleWorkout.map((ex: any, index: number) => (
-              <GlassCard key={ex.id} style={styles.overviewExerciseCard}>
-                <View style={styles.overviewExerciseContent}>
-                  <View style={styles.overviewExerciseNumber}>
-                    <Text style={styles.overviewExerciseNumberText}>{index + 1}</Text>
-                  </View>
-                  {editingExerciseId === ex.id ? (
-                    <TextInput
-                      style={styles.overviewExerciseNameInput}
-                      value={ex.name}
-                      onChangeText={(text) => {
-                        const realIndex = todaysWorkout.findIndex((e: any) => e.id === ex.id);
-                        if (realIndex === -1) return;
-                        const updated = [...todaysWorkout];
-                        updated[realIndex].name = text;
-                        updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
-                      }}
-                      onSubmitEditing={() => setEditingExerciseId(null)}
-                      onBlur={() => setEditingExerciseId(null)}
-                      autoFocus
-                    />
-                  ) : (
-                    <Text style={styles.overviewExerciseName} onPress={() => setEditingExerciseId(ex.id)}>
-                      {ex.name}
-                    </Text>
-                  )}
-                  <View style={styles.overviewExerciseActions}>
-                    <TouchableOpacity
-                      onPress={() => moveExercise(ex.id, 'up')}
-                      disabled={index === 0}
-                      style={[styles.overviewActionButton, index === 0 && styles.overviewActionButtonDisabled]}
-                    >
-                      <ArrowUp size={16} color={index === 0 ? "#475569" : "#94a3b8"} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => moveExercise(ex.id, 'down')}
-                      disabled={index === visibleWorkout.length - 1}
-                      style={[styles.overviewActionButton, index === visibleWorkout.length - 1 && styles.overviewActionButtonDisabled]}
-                    >
-                      <ArrowDown size={16} color={index === visibleWorkout.length - 1 ? "#475569" : "#94a3b8"} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => deleteExercise(ex.id)}
-                      style={[styles.overviewActionButton, styles.overviewActionButtonDelete]}
-                    >
-                      <Trash2 size={16} color="#f87171" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </GlassCard>
-            ))}
-          </ScrollView>
-
-          <View style={styles.overviewActions}>
-            <TouchableOpacity
-              onPress={() => setIsAddingExercise(true)}
-              style={styles.overviewAddButton}
-            >
-              <Plus size={20} color="#f97316" />
-              <Text style={styles.overviewAddButtonText}>ADD EXERCISE</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setShowSaveTemplateModal(true)}
-              style={styles.overviewSaveButton}
-            >
-              <Save size={20} color="#22d3ee" />
-              <Text style={styles.overviewSaveButtonText}>SAVE TEMPLATE</Text>
-            </TouchableOpacity>
-            <NeonButton onPress={startSession} style={styles.overviewStartButton} disabled={visibleWorkout.length === 0}>
-              <Play size={20} color="#0f172a" />
-              <Text style={{ marginLeft: 8 }}>START SESSION</Text>
-            </NeonButton>
-          </View>
-        </View>
+        <WorkoutOverview
+          visibleWorkout={visibleWorkout}
+          editingExerciseId={editingExerciseId}
+          onClose={closeOverview}
+          onAddExercise={() => setIsAddingExercise(true)}
+          onSaveTemplate={() => setShowSaveTemplateModal(true)}
+          onStartSession={startSession}
+          onMoveExercise={moveExercise}
+          onDeleteExercise={deleteExercise}
+          onBeginEdit={setEditingExerciseId}
+          onRenameExercise={handleRenameExercise}
+          onEndEdit={() => setEditingExerciseId(null)}
+        />
       ) : visibleWorkout.length === 0 ? (
         <View style={styles.emptyWorkout}>
           <View style={styles.emptyWorkoutIcon}>
@@ -1175,34 +1112,15 @@ const GymView = ({ data, updateData, user }: any) => {
           />
 
           {viewMode === 'list' ? (
-            <View style={styles.workoutList}>
-              {visibleWorkout.map((ex: any, i: number) => (
-                <GlassCard
-                  key={ex.id}
-                  onPress={() => {
-                    setCurrentExIndex(i);
-                    setViewMode('focus');
-                  }}
-                  style={styles.workoutListItem}
-                >
-                  <Text style={styles.workoutListItemName}>{ex.name}</Text>
-                  <View style={styles.workoutListItemInfo}>
-                    <Text style={styles.workoutListItemSets}>
-                      {ex.sets.filter((s: any) => s.completed).length}/{ex.sets.length} SETS
-                    </Text>
-                    <ChevronRight size={16} color="#64748b" />
-                  </View>
-                </GlassCard>
-              ))}
-              <View style={styles.workoutListActions}>
-                <NeonButton onPress={finishWorkout} style={styles.finishButton}>
-                  <Text>FINISH WORKOUT</Text>
-                </NeonButton>
-                <TouchableOpacity onPress={abortSession} style={styles.abortButton}>
-                  <Text style={styles.abortButtonText}>Abort Session</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            <WorkoutListView
+              visibleWorkout={visibleWorkout}
+              onSelectExercise={(i) => {
+                setCurrentExIndex(i);
+                setViewMode('focus');
+              }}
+              onFinish={finishWorkout}
+              onAbort={abortSession}
+            />
           ) : (
             <View style={styles.workoutFocus}>
               <WorkoutFocusHeader
@@ -1213,68 +1131,20 @@ const GymView = ({ data, updateData, user }: any) => {
                 onNext={() => setCurrentExIndex(Math.min(visibleWorkout.length - 1, currentExIndex + 1))}
               />
 
-              <View style={styles.workoutSets}>
-                {currentExercise?.sets.map((set: any, setIndex: number) => {
-                  const exConfig = getExerciseConfig(currentExercise.name);
-                  return (
-                    <View
-                      key={set.id}
-                      style={[
-                        styles.workoutSet,
-                        set.completed && styles.workoutSetCompleted
-                      ]}
-                    >
-                      <View style={styles.workoutSetHeader}>
-                        <View style={[styles.workoutSetNumber, set.completed && styles.workoutSetNumberCompleted]}>
-                          <Text style={styles.workoutSetNumberText}>{setIndex + 1}</Text>
-                        </View>
-                        <View style={styles.workoutSetDivider} />
-                        <TouchableOpacity
-                          onPress={() => updateSet(currentExercise.id, setIndex, 'completed', !set.completed)}
-                          style={[
-                            styles.workoutSetCheck,
-                            set.completed && styles.workoutSetCheckCompleted
-                          ]}
-                        >
-                          <CheckCircle size={24} color={set.completed ? "#0f172a" : "#475569"} />
-                        </TouchableOpacity>
-                      </View>
-                      {!set.completed && (
-                        <View style={styles.workoutSetControls}>
-                          <NumberControl
-                            label={exConfig.weightLabel}
-                            value={set.weight}
-                            step={exConfig.weightStep}
-                            placeholder={exConfig.weightPlaceholder}
-                            onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'weight', val)}
-                          />
-                          <NumberControl
-                            label={exConfig.repLabel}
-                            value={set.reps}
-                            step={exConfig.repStep}
-                            placeholder={exConfig.repPlaceholder}
-                            onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'reps', val)}
-                          />
-                        </View>
-                      )}
-                      {set.completed && (
-                        <View style={styles.workoutSetCompletedInfo}>
-                          <Text style={styles.workoutSetCompletedText}>
-                            {set.weight || 0} {exConfig.weightLabel === 'LBS' ? 'LBS' : ''}
-                          </Text>
-                          <Text style={styles.workoutSetCompletedText}>
-                            {set.reps || 0} {exConfig.repLabel === 'REPS' ? 'REPS' : 'SEC'}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  );
-                })}
-                <TouchableOpacity onPress={() => addSet(currentExercise.id)} style={styles.addSetButton}>
-                  <Plus size={16} color="#64748b" />
-                  <Text style={styles.addSetButtonText}>ADD SET</Text>
-                </TouchableOpacity>
-              </View>
+              <WorkoutFocusSets
+                currentExercise={currentExercise}
+                getExerciseConfig={getExerciseConfig}
+                updateSet={updateSet}
+              />
+
+              <TouchableOpacity
+                onPress={() => currentExercise && addSet(currentExercise.id)}
+                style={styles.addSetButton}
+                disabled={!currentExercise}
+              >
+                <Plus size={16} color="#64748b" />
+                <Text style={styles.addSetButtonText}>ADD SET</Text>
+              </TouchableOpacity>
 
               <View style={styles.workoutFocusActions}>
                 {currentExIndex < visibleWorkout.length - 1 ? (
