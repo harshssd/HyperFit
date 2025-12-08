@@ -9,15 +9,15 @@ import {
   deleteTemplateById,
   createTemplateFolder,
 } from '../../../services/templates';
-import { Template } from '../../../types/workout';
+import { TemplateType, UserData, WorkoutExercise } from '../../../types/workout';
 import { WORKOUT_TEMPLATES } from '../../../constants/appConstants';
 
 type UseTemplatesArgs = {
   userId?: string;
-  data: any;
-  updateData: (d: any) => void;
+  data: UserData;
+  updateData: (d: UserData) => void;
   today: string;
-  todaysWorkout: any[];
+  todaysWorkout: WorkoutExercise[];
   isCheckedIn: boolean;
 };
 
@@ -29,7 +29,7 @@ export const useTemplates = ({
   todaysWorkout,
   isCheckedIn,
 }: UseTemplatesArgs) => {
-  const [templates, setTemplates] = useState<Template[]>(WORKOUT_TEMPLATES);
+  const [templates, setTemplates] = useState<TemplateType[]>(WORKOUT_TEMPLATES);
   const [folders, setFolders] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -73,8 +73,8 @@ export const useTemplates = ({
   }, [fetchFavorites, fetchFolders, fetchTemplates, userId]);
 
   const applyTemplateToDay = useCallback(
-    (template: any) => {
-      const newExercises = template.exercises.map((name, index) => ({
+    (template: TemplateType) => {
+      const newExercises = (template.exercises || []).map((name, index) => ({
         id: `${Date.now()}-${index}-${Math.random()}`,
         name,
         sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }],
@@ -95,12 +95,12 @@ export const useTemplates = ({
     [fetchAll, userId]
   );
 
-  const shareTemplate = useCallback((template: any) => {
+  const shareTemplate = useCallback((template: TemplateType) => {
     showSuccess(`${template.name}\n${template.description || ''}`, 'Share Template');
   }, []);
 
   const applyTemplate = useCallback(
-    (template: any) => applyTemplateToDay(template),
+    (template: TemplateType) => applyTemplateToDay(template),
     [applyTemplateToDay]
   );
 
@@ -108,12 +108,13 @@ export const useTemplates = ({
   const closePicker = useCallback(() => setPickerOpen(false), []);
 
   const toggleFavorite = useCallback(
-    async (templateId: string) => {
-      const nowFavorite = await toggleFavoriteTemplate(userId, templateId, favorites.has(templateId));
+    async (templateId: string | number) => {
+      const idStr = String(templateId);
+      const nowFavorite = await toggleFavoriteTemplate(userId, idStr, favorites.has(idStr));
       setFavorites((prev) => {
         const next = new Set(prev);
-        if (nowFavorite) next.add(templateId);
-        else next.delete(templateId);
+        if (nowFavorite) next.add(idStr);
+        else next.delete(idStr);
         return next;
       });
     },
@@ -121,15 +122,15 @@ export const useTemplates = ({
   );
 
   const deleteTemplate = useCallback(
-    async (templateId: string) => {
+    async (templateId: string | number) => {
       if (!userId) return;
-      await deleteTemplateById(userId, templateId);
+      await deleteTemplateById(userId, String(templateId));
       setTemplates((prev) => prev.filter((t) => t.id !== templateId));
     },
     [userId]
   );
 
-  const duplicateTemplate = useCallback((template: any) => {
+  const duplicateTemplate = useCallback((template: TemplateType) => {
     const duplicated = {
       ...template,
       id: `local-${Date.now()}`,
@@ -149,27 +150,28 @@ export const useTemplates = ({
   );
 
   const filteredTemplates = useCallback(
-    (all: Template[]) => {
+    (all: TemplateType[]) => {
       let filtered = all;
       if (templateSearchQuery.trim()) {
         const q = templateSearchQuery.toLowerCase();
         filtered = filtered.filter(
-          (t: any) =>
+          (t: TemplateType) =>
             t.name.toLowerCase().includes(q) ||
             t.description?.toLowerCase().includes(q) ||
             t.created_by_username?.toLowerCase().includes(q) ||
-            t.exercises?.some((ex: string) => ex.toLowerCase().includes(q))
+            (t.exercises || []).some((ex: string) => ex.toLowerCase().includes(q))
         );
       }
       if (selectedFolder) {
-        filtered = filtered.filter((t: any) => t.folder_id === selectedFolder);
+        filtered = filtered.filter((t: TemplateType) => t.folder_id === selectedFolder);
       }
       if (showFavoritesOnly) {
-        filtered = filtered.filter((t: any) => favorites.has(t.id));
+        filtered = filtered.filter((t: TemplateType) => favorites.has(String(t.id)));
       }
       if (selectedTags.length) {
         filtered = filtered.filter(
-          (t: any) => t.tags && Array.isArray(t.tags) && selectedTags.some((tag) => t.tags.includes(tag))
+          (t: TemplateType) =>
+            t.tags && Array.isArray(t.tags) && selectedTags.some((tag) => t.tags?.includes(tag))
         );
       }
       return filtered;

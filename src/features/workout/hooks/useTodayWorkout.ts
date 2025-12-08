@@ -15,8 +15,8 @@ import { WorkoutExercise, UserData } from '../../../types/workout';
 
 type UpdateData = (data: UserData) => void;
 
-export const useTodayWorkout = (data: UserData, updateData: UpdateData) => {
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+export const useTodayWorkout = (data: UserData, updateData: UpdateData, todayOverride?: string) => {
+  const today = useMemo(() => todayOverride ?? new Date().toISOString().split('T')[0], [todayOverride]);
 
   const todaysWorkout = (data.workouts?.[today] as WorkoutExercise[] | undefined) || [];
   const visibleWorkout = useMemo(

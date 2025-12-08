@@ -32,6 +32,12 @@ export type Template = {
   is_public?: boolean;
 };
 
+// Accepts both remote (string ids) and local (number ids) templates
+export type TemplateType = Template & {
+  id: string | number;
+  exercises: string[];
+};
+
 export type TemplateFolder = {
   id: string;
   name: string;
