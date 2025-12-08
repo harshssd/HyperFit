@@ -42,5 +42,5 @@ const WorkoutListView = ({ visibleWorkout, onSelectExercise, onFinish, onAbort }
   );
 };
 
-export default WorkoutListView;
+export default React.memo(WorkoutListView);
 

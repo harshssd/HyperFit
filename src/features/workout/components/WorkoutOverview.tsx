@@ -110,5 +110,5 @@ const WorkoutOverview = ({
   );
 };
 
-export default WorkoutOverview;
+export default React.memo(WorkoutOverview);
 
