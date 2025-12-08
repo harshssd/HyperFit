@@ -3,6 +3,8 @@ export type WorkoutSet = {
   weight: string | number;
   reps: string | number;
   completed: boolean;
+  restSeconds?: number;
+  completedAt?: string;
 };
 
 export type WorkoutExercise = {

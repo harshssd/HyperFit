@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, radii } from './theme';
+import { colors, spacing, radii, shadows } from './theme';
 
 // Styles extracted from the workout-related sections of appStyles.ts.
 // These cover gym view, finished session, templates, add-exercise overlay,
@@ -664,6 +664,45 @@ export const workoutStyles = StyleSheet.create({
   // Workout Focus
   workoutFocus: {
     gap: spacing.xl,
+  },
+  restTimerPill: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    ...shadows.card,
+  },
+  restTimerText: {
+    color: '#e2e8f0',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  restTimerActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  restTimerButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+  },
+  restTimerButtonSecondary: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radii.sm,
+  },
+  restTimerButtonText: {
+    color: '#0f172a',
+    fontWeight: '600',
   },
   workoutFocusHeader: {
     flexDirection: 'row',

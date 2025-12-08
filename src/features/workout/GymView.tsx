@@ -49,6 +49,9 @@ type GymViewProps = {
 };
 
 const GymView = ({ data, updateData, user }: GymViewProps) => {
+  const DEFAULT_REST_SECONDS = 90;
+  const REST_INCREMENT_SECONDS = 30;
+
   const {
     today,
     todaysWorkout,
@@ -72,6 +75,9 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [templateName, setTemplateName] = useState('');
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null);
+  const [restSeconds, setRestSeconds] = useState<number | null>(null);
+  const restTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [lastCompletedAt, setLastCompletedAt] = useState<number | null>(null);
 
   const {
     viewMode,
@@ -178,6 +184,14 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     fetchAll();
   }, [user, pickerOpen, fetchAll]);
 
+  useEffect(() => {
+    return () => {
+      if (restTimerRef.current) {
+        clearInterval(restTimerRef.current);
+      }
+    };
+  }, []);
+
   const confirmDeleteTemplate = (templateId: string) => {
     confirmAction('Delete Template', 'Remove this template permanently?', () => deleteTemplate(templateId), 'Delete');
   };
@@ -204,6 +218,45 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     closePicker();
     setShowOverview(true);
     stopSession();
+  };
+
+  const clearRestTimer = () => {
+    if (restTimerRef.current) {
+      clearInterval(restTimerRef.current);
+      restTimerRef.current = null;
+    }
+    setRestSeconds(null);
+  };
+
+  const startRestTimer = (seconds: number = DEFAULT_REST_SECONDS) => {
+    if (seconds <= 0) {
+      clearRestTimer();
+      return;
+    }
+    clearRestTimer();
+    setRestSeconds(seconds);
+    restTimerRef.current = setInterval(() => {
+      setRestSeconds((prev) => {
+        if (prev === null) return null;
+        if (prev <= 1) {
+          clearRestTimer();
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const skipRest = () => clearRestTimer();
+  const extendRest = (extra: number = REST_INCREMENT_SECONDS) => {
+    setRestSeconds((prev) => {
+      const next = (prev ?? 0) + extra;
+      if (!restTimerRef.current) {
+        startRestTimer(next);
+        return next;
+      }
+      return next;
+    });
   };
 
   const saveCurrentAsTemplate = async () => {
@@ -292,7 +345,34 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const updateSet = (exId: number, setIndex: number, field: string, value: any) => {
-    updateSetHook(exId, setIndex, field, value);
+    // Apply updates locally to avoid overwriting when multiple updates happen in one action
+    const workoutsCopy = [...todaysWorkout];
+    const exIdx = workoutsCopy.findIndex((ex) => ex.id === exId);
+    if (exIdx === -1) return;
+    const sets = [...workoutsCopy[exIdx].sets];
+    if (!sets[setIndex]) return;
+
+    const updatedSet: any = { ...sets[setIndex], [field]: value };
+
+    if (field === 'completed' && value === true) {
+      const now = Date.now();
+      const elapsedSec = lastCompletedAt
+        ? Math.max(0, Math.round((now - lastCompletedAt) / 1000))
+        : 0;
+      updatedSet.restSeconds = elapsedSec;
+      updatedSet.completedAt = new Date(now).toISOString();
+      startRestTimer();
+      setLastCompletedAt(now);
+    } else if (field === 'completed' && value === false) {
+      skipRest();
+      setLastCompletedAt(null);
+      updatedSet.restSeconds = undefined;
+      updatedSet.completedAt = undefined;
+    }
+
+    sets[setIndex] = updatedSet;
+    workoutsCopy[exIdx] = { ...workoutsCopy[exIdx], sets };
+    updateData({ ...data, workouts: { ...data.workouts, [today]: workoutsCopy } });
   };
 
   const addSet = (exId: number) => {
@@ -405,6 +485,22 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
         onPrev={prevExercise}
         onNext={nextExercise}
       />
+
+      {restSeconds !== null && (
+        <View style={workoutStyles.restTimerPill}>
+          <Text style={workoutStyles.restTimerText}>
+            REST {Math.floor(restSeconds / 60)}:{String(restSeconds % 60).padStart(2, '0')}
+          </Text>
+          <View style={workoutStyles.restTimerActions}>
+            <TouchableOpacity onPress={() => extendRest()} style={workoutStyles.restTimerButton}>
+              <Text style={workoutStyles.restTimerButtonText}>+30s</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={skipRest} style={workoutStyles.restTimerButtonSecondary}>
+              <Text style={workoutStyles.restTimerButtonText}>Skip</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
 
       <WorkoutFocusSets
         currentExercise={currentExercise}

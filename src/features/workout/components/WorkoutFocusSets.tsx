@@ -66,6 +66,11 @@ const WorkoutFocusSets = ({ currentExercise, getExerciseConfig, updateSet }: Wor
                 <Text style={workoutStyles.workoutSetCompletedText}>
                   {set.reps || 0} {exConfig.repLabel === 'REPS' ? 'REPS' : 'SEC'}
                 </Text>
+                {typeof set.restSeconds === 'number' && (
+                  <Text style={workoutStyles.workoutSetCompletedText}>
+                    Rest: {set.restSeconds}s
+                  </Text>
+                )}
               </View>
             )}
           </View>
