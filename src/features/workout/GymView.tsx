@@ -34,7 +34,7 @@ import FinishedSessionView from './components/FinishedSessionView';
 import NeonButton from '../../components/NeonButton';
 import GlassCard from '../../components/GlassCard';
 import workoutStyles from '../../styles/workout';
-import { DEFAULT_EXERCISES } from '../../constants/appConstants';
+import { getAllExerciseNames } from './workoutConfig';
 import { calculateTotalVolume, getExerciseConfig } from './helpers';
 import { ABORT_SESSION_MESSAGE, ABORT_SESSION_TITLE } from '../../constants/text';
 import { confirmAction, showError, showSuccess } from '../../utils/alerts';
@@ -182,16 +182,10 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     confirmAction('Delete Template', 'Remove this template permanently?', () => deleteTemplate(templateId), 'Delete');
   };
 
-  const getAllExerciseNames = () => {
-    const historyNames = Object.values(data.workouts || {}).flat().map((w: any) => w.name);
-    const uniqueNames = [...new Set([...DEFAULT_EXERCISES, ...historyNames])];
-    return uniqueNames.sort();
-  };
-
   const handleNameChange = (val: string) => {
     setNewExerciseName(val);
     if (val.length > 0) {
-      const allNames = getAllExerciseNames();
+      const allNames = getAllExerciseNames(data);
       const filtered = allNames.filter(name => name.toLowerCase().includes(val.toLowerCase()));
       setSuggestions(filtered.slice(0, 5));
     } else {
