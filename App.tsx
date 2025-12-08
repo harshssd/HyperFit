@@ -100,6 +100,7 @@ import WorkoutFocusActions from './src/features/workout/components/WorkoutFocusA
 import EmptyWorkoutCard from './src/features/workout/components/EmptyWorkoutCard';
 import HomeViewComponent from './src/components/HomeView';
 import StatsViewComponent from './src/components/StatsView';
+import HistoryView from './src/features/history/HistoryView';
 import Header from './src/components/Header';
 import FinishedSessionView from './src/features/workout/components/FinishedSessionView';
 import ProgressRing from './src/components/ProgressRing';
@@ -295,6 +296,8 @@ export default function App() {
         return <GymView data={data} updateData={saveData} user={user} />;
       case 'challenges':
         return <ChallengesViewComponent />;
+      case 'history':
+        return <HistoryView data={data} updateData={saveData} />;
       case 'stats':
         return <StatsViewComponent data={data} />;
       default:
