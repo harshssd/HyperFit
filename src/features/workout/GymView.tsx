@@ -29,13 +29,14 @@ import WorkoutFocusSets from './components/WorkoutFocusSets';
 import WorkoutFocusActions from './components/WorkoutFocusActions';
 import WorkoutHeader from './components/WorkoutHeader';
 import WorkoutFocusHeader from './components/WorkoutFocusHeader';
-import EmptyWorkoutCard from './components/EmptyWorkoutCard';
+import WorkoutPlanner, { WorkoutPlanCreator } from './components/WorkoutPlanner';
 import FinishedSessionView from './components/FinishedSessionView';
 import NeonButton from '../../components/NeonButton';
 import GlassCard from '../../components/GlassCard';
 import workoutStyles from '../../styles/workout';
 import { getAllExerciseNames } from './workoutConfig';
-import { calculateTotalVolume, getExerciseConfig } from './helpers';
+import { calculateTotalVolume, getExerciseConfig, calculateXP } from './helpers';
+import { WorkoutPlan } from '../../types/workout';
 import { ABORT_SESSION_MESSAGE, ABORT_SESSION_TITLE } from '../../constants/text';
 import { confirmAction, showError, showSuccess } from '../../utils/alerts';
 import { useTodayWorkout } from './hooks/useTodayWorkout';
@@ -149,6 +150,8 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const saveTemplateTagInputRef = useRef<TextInput | null>(null);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
+  const [showPlanCreator, setShowPlanCreator] = useState(false);
+  const [suggestedPlanType, setSuggestedPlanType] = useState<WorkoutPlan['type'] | undefined>();
 
   const closeOverview = closeOverviewView;
 
@@ -350,6 +353,71 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const editExerciseName = (exId: number, newName: string) => {
     renameExerciseHook(exId, newName);
     setEditingExerciseId(null);
+  };
+
+  const handleQuickWorkout = (type: string) => {
+    const workoutTemplates = {
+      push: ['Bench Press', 'Overhead Press', 'Incline Dumbbell Press', 'Tricep Dips', 'Lateral Raises'],
+      pull: ['Deadlift', 'Pull-ups', 'Barbell Rows', 'Face Pulls', 'Bicep Curls'],
+      legs: ['Squats', 'Romanian Deadlift', 'Leg Press', 'Calf Raises', 'Leg Curls'],
+      fullbody: ['Bench Press', 'Squats', 'Pull-ups', 'Overhead Press', 'Barbell Rows']
+    };
+
+    const exercises = workoutTemplates[type as keyof typeof workoutTemplates] || [];
+    exercises.forEach((exercise, index) => {
+      setTimeout(() => {
+        addExerciseHook(exercise);
+      }, index * 100); // Stagger adding exercises
+    });
+
+    setShowOverview(true);
+    showSuccess(`${type.toUpperCase()} workout loaded!`);
+  };
+
+  const handleAISuggestion = () => {
+    // For now, create a balanced workout based on recent activity
+    // In a real implementation, this would call an AI service
+    const aiWorkout = ['Bench Press', 'Squats', 'Pull-ups', 'Overhead Press', 'Plank'];
+    aiWorkout.forEach((exercise, index) => {
+      setTimeout(() => {
+        addExerciseHook(exercise);
+      }, index * 100);
+    });
+
+    setShowOverview(true);
+    showSuccess('AI workout generated based on your progress!');
+  };
+
+  const handleCreatePlan = (plan: Omit<WorkoutPlan, 'id' | 'createdAt'>) => {
+    const newPlan: WorkoutPlan = {
+      ...plan,
+      id: `plan_${Date.now()}`,
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedPlans = [...(data.workoutPlans || []), newPlan];
+    updateData({ ...data, workoutPlans: updatedPlans });
+    showSuccess(`Plan "${newPlan.name}" created successfully!`);
+  };
+
+  const handleActivatePlan = (planId: string) => {
+    const updatedPlans = (data.workoutPlans || []).map((plan: WorkoutPlan) => ({
+      ...plan,
+      isActive: plan.id === planId
+    }));
+
+    updateData({
+      ...data,
+      workoutPlans: updatedPlans,
+      activePlanId: planId
+    });
+
+    const activePlan = updatedPlans.find((p: WorkoutPlan) => p.isActive);
+    showSuccess(`${activePlan?.name} activated!`);
+  };
+
+  const handleSelectWorkout = (workoutType: string, planId?: string) => {
+    handleQuickWorkout(workoutType);
   };
 
   const updateSet = (exId: number, setIndex: number, field: string, value: any) => {
@@ -555,14 +623,57 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     }
 
     if (visibleWorkout.length === 0) {
+      // Prepare recent workouts data
+      const recentWorkouts = (data.gymLogs || [])
+        .slice(-30) // Last 30 days for calendar view
+        .map((date: string) => {
+          const workout = data.workouts?.[date] || [];
+          const volume = calculateTotalVolume(workout);
+          return {
+            date: new Date(date).toLocaleDateString(),
+            dateStr: date,
+            exercises: workout.length,
+            volume,
+            name: workout.length > 0 ? `${workout[0].name}${workout.length > 1 ? ` +${workout.length - 1}` : ''}` : 'Empty Workout'
+          };
+        });
+
+      const workoutPlans: WorkoutPlan[] = data.workoutPlans || [];
+      const activePlan = workoutPlans.find((plan: WorkoutPlan) => plan.isActive);
+
       return (
-        <EmptyWorkoutCard
+        <>
+        <WorkoutPlanner
           onLoadTemplate={() => openPicker()}
           onCustomInput={() => {
             setIsAddingExercise(true);
             setShowOverview(true);
           }}
+          onQuickWorkout={(type) => handleQuickWorkout(type)}
+          onAISuggestion={() => handleAISuggestion()}
+          onCreatePlan={(suggestedType) => {
+            setSuggestedPlanType(suggestedType);
+            setShowPlanCreator(true);
+          }}
+          onSelectWorkout={handleSelectWorkout}
+          recentWorkouts={recentWorkouts}
+          workoutPlans={workoutPlans}
+          activePlan={activePlan}
+          onActivatePlan={handleActivatePlan}
+          userEquipment="gym" // TODO: Get from user preferences
+          userFrequency={3} // TODO: Get from user preferences
         />
+
+          <WorkoutPlanCreator
+            visible={showPlanCreator}
+            onClose={() => {
+              setShowPlanCreator(false);
+              setSuggestedPlanType(undefined);
+            }}
+            onCreatePlan={handleCreatePlan}
+            suggestedType={suggestedPlanType}
+          />
+        </>
       );
     }
 
