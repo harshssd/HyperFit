@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import {
   CheckCircle,
@@ -34,37 +34,13 @@ import FinishedSessionView from './components/FinishedSessionView';
 import NeonButton from '../../components/NeonButton';
 import GlassCard from '../../components/GlassCard';
 import workoutStyles from '../../styles/workout';
-import { Template, TemplateFolder, WorkoutExercise } from '../../types/workout';
-import {
-  ASSETS,
-  WORKOUT_TEMPLATES,
-  DEFAULT_EXERCISES,
-} from '../../constants/appConstants';
-import {
-  isExerciseEmpty,
-  renameExercise,
-  updateSetValue,
-  addSetToExercise,
-  deleteExerciseFromWorkout,
-  moveExerciseInWorkout,
-  calculateTotalVolume,
-  finishWorkoutState,
-  undoFinishState,
-  startNewSessionState,
-  abortSessionState,
-  getExerciseConfig,
-} from './helpers';
+import { DEFAULT_EXERCISES } from '../../constants/appConstants';
+import { calculateTotalVolume, getExerciseConfig } from './helpers';
 import { ABORT_SESSION_MESSAGE, ABORT_SESSION_TITLE } from '../../constants/text';
-import {
-  createTemplateFolder,
-  deleteTemplateById,
-  fetchFavoritesForUser,
-  fetchFoldersForUser,
-  fetchTemplatesForUser,
-  saveTemplate,
-  toggleFavoriteTemplate,
-} from '../../services/templates';
 import { confirmAction, showError, showSuccess } from '../../utils/alerts';
+import { useTodayWorkout } from './hooks/useTodayWorkout';
+import { useSessionView } from './hooks/useSessionView';
+import { useTemplates } from './hooks/useTemplates';
 
 type GymViewProps = {
   data: any;
@@ -73,50 +49,98 @@ type GymViewProps = {
 };
 
 const GymView = ({ data, updateData, user }: GymViewProps) => {
-  const today = new Date().toISOString().split('T')[0];
-  const isCheckedIn = data.gymLogs.includes(today);
-  const isFinished = data.workoutStatus?.[today]?.finished || false;
+  const {
+    today,
+    todaysWorkout,
+    visibleWorkout,
+    isCheckedIn,
+    isFinished,
+    toggleCheckIn,
+    addExercise: addExerciseHook,
+    rename: renameExerciseHook,
+    move: moveExerciseHook,
+    remove: deleteExerciseHook,
+    addSet: addSetHook,
+    updateSet: updateSetHook,
+    finishWorkout: finishWorkoutHook,
+    undoFinish: undoFinishHook,
+    startNewSession: startNewSessionHook,
+    abortSession: abortSessionHook,
+  } = useTodayWorkout(data, updateData);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [templateName, setTemplateName] = useState('');
-  const [currentExIndex, setCurrentExIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<'list' | 'focus'>('focus');
-  const [showOverview, setShowOverview] = useState(false);
-  const [isSessionActive, setIsSessionActive] = useState(false);
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null);
-  const todaysWorkout: WorkoutExercise[] = data.workouts?.[today] || [];
-  const visibleWorkout = todaysWorkout.filter((ex) => !ex.archived);
-  const customTemplates: Template[] = data.customTemplates || [];
-  const [collapsedExercises, setCollapsedExercises] = useState<string[]>([]);
 
-  // Template management state
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [folders, setFolders] = useState<TemplateFolder[]>([]);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [templateSearchQuery, setTemplateSearchQuery] = useState('');
-  const [selectedFolder, setSelectedFolder] = useState<string | null | undefined>(undefined);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const {
+    viewMode,
+    currentExIndex,
+    showOverview,
+    isSessionActive,
+    selectExercise,
+    nextExercise,
+    prevExercise,
+    toggleViewMode,
+    startSession: startSessionView,
+    stopSession,
+    openOverview,
+    closeOverview: closeOverviewView,
+    setCurrentExIndex,
+    setViewMode,
+    setShowOverview,
+  } = useSessionView(visibleWorkout);
+
+  const {
+    templates,
+    folders,
+    favorites,
+    loading,
+    templateSearchQuery,
+    selectedFolder,
+    selectedTags,
+    showFavoritesOnly,
+    pickerOpen,
+    openPicker,
+    closePicker,
+    setTemplateSearchQuery,
+    setSelectedFolder,
+    setSelectedTags,
+    setShowFavoritesOnly,
+    fetchAll,
+    applyTemplate,
+    saveTemplateToSupabase,
+    toggleFavorite,
+    deleteTemplate,
+    duplicateTemplate,
+    createFolder,
+    shareTemplate,
+    filteredTemplates,
+    allTags,
+  } = useTemplates({
+    userId: user?.id,
+    data,
+    updateData,
+    today,
+    todaysWorkout,
+    isCheckedIn,
+  });
+
+  const startSessionHandler = () => {
+    startSessionView();
+    closePicker();
+  };
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [saveTemplateFolder, setSaveTemplateFolder] = useState<string | null>(null);
   const [saveTemplateTags, setSaveTemplateTags] = useState<string[]>([]);
   const saveTemplateTagInputRef = useRef<TextInput | null>(null);
-  const [allTags, setAllTags] = useState<string[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
-  const closeOverview = () => {
-    setShowOverview(false);
-    const preservedWorkouts = todaysWorkout.filter((ex) => ex.archived);
-    updateData({ ...data, workouts: { ...data.workouts, [today]: preservedWorkouts } });
-  };
+  const closeOverview = closeOverviewView;
 
   const handleRenameExercise = (id: number, name: string) => {
-    const updated = renameExercise(todaysWorkout, id, name);
-    updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
+    renameExerciseHook(id, name);
   };
 
   const handleToggleFolderFilter = () => {
@@ -145,126 +169,12 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   useEffect(() => {
-    if (visibleWorkout.length > 0 && currentExIndex >= visibleWorkout.length) {
-      setCurrentExIndex(Math.max(0, visibleWorkout.length - 1));
-    }
-  }, [visibleWorkout.length]);
-
-  useEffect(() => {
-    if (!user || !showTemplatePicker) return;
-    fetchTemplates();
-    fetchFolders();
-    fetchFavorites();
-  }, [user, showTemplatePicker]);
-
-  const fetchTemplates = async () => {
-    setLoadingTemplates(true);
-    try {
-      const { templates: userTemplates, tags } = await fetchTemplatesForUser(user?.id);
-      setAllTags(tags);
-      setTemplates(userTemplates || []);
-    } catch (error) {
-      console.error('Error fetching templates:', error);
-      setTemplates([...WORKOUT_TEMPLATES, ...customTemplates]);
-    } finally {
-      setLoadingTemplates(false);
-    }
-  };
-
-  const fetchFolders = async () => {
-    try {
-      const data = await fetchFoldersForUser(user?.id);
-      setFolders(data || []);
-    } catch (error) {
-      console.error('Error fetching folders:', error);
-    }
-  };
-
-  const fetchFavorites = async () => {
-    try {
-      const favoriteIds = await fetchFavoritesForUser(user?.id);
-      setFavorites(favoriteIds);
-    } catch (error) {
-      console.error('Error fetching favorites:', error);
-    }
-  };
-
-  const saveTemplateToSupabase = async (name: string, exercises: string[], folderId?: string | null, tags?: string[]) => {
-    try {
-      const username = user?.email?.split('@')[0] || user?.user_metadata?.full_name || 'User';
-      await saveTemplate(user?.id, name, exercises, folderId, tags, username);
-      await fetchTemplates();
-    } catch (error) {
-      console.error('Error saving template:', error);
-      const newTemplate = {
-        id: Date.now(),
-        name: name,
-        icon: '💾',
-        description: `${exercises.length} Exercises`,
-        exercises: exercises
-      };
-      updateData({ ...data, customTemplates: [newTemplate, ...customTemplates] });
-      throw error;
-    }
-  };
-
-  const toggleFavorite = async (templateId: string) => {
-    try {
-      const isFavorite = favorites.has(templateId);
-      const nowFavorite = await toggleFavoriteTemplate(user?.id, templateId, isFavorite);
-      setFavorites(prev => {
-        const next = new Set(prev);
-        if (nowFavorite) {
-          next.add(templateId);
-        } else {
-          next.delete(templateId);
-        }
-        return next;
-      });
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-    }
-  };
-
-  const deleteTemplate = async (templateId: string) => {
-    if (!user?.id) return;
-    try {
-      await deleteTemplateById(user?.id, templateId);
-    } catch (error) {
-      console.error('Error deleting template:', error);
-    } finally {
-      setTemplates(prev => prev.filter(t => t.id !== templateId));
-    }
-  };
+    if (!user || !pickerOpen) return;
+    fetchAll();
+  }, [user, pickerOpen, fetchAll]);
 
   const confirmDeleteTemplate = (templateId: string) => {
     confirmAction('Delete Template', 'Remove this template permanently?', () => deleteTemplate(templateId), 'Delete');
-  };
-
-  const duplicateTemplate = (template: any) => {
-    const duplicated = {
-      ...template,
-      id: `local-${Date.now()}`,
-      name: `${template.name} (Copy)`,
-      user_id: user?.id,
-    };
-    setTemplates(prev => [duplicated, ...prev]);
-  };
-
-  const shareTemplate = (template: any) => {
-    showSuccess(`${template.name}\n${template.description || ''}`, 'Share Template');
-  };
-
-  const createFolder = async (name: string, color: string = '#f97316', icon: string = '📁') => {
-    if (!user?.id) return;
-    try {
-      const data = await createTemplateFolder(user?.id, name, color, icon);
-      await fetchFolders();
-      return data;
-    } catch (error) {
-      console.error('Error creating folder:', error);
-      showError('Failed to create folder');
-    }
   };
 
   const getAllExerciseNames = () => {
@@ -289,23 +199,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     setSuggestions([]);
   };
 
-  const toggleCheckIn = () => {
-    let newLogs = isCheckedIn ? data.gymLogs.filter((d: string) => d !== today) : [...data.gymLogs, today];
-    updateData({ ...data, gymLogs: newLogs });
-  };
-
-  const applyTemplate = (template: any) => {
-    const newExercises: WorkoutExercise[] = template.exercises.map((name: string, index: number) => ({
-      id: `${Date.now()}-${index}-${Math.random()}`,
-      name: name,
-      sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }]
-    }));
-    const updatedWorkouts = { ...data.workouts, [today]: [...todaysWorkout, ...newExercises] };
-    const newLogs = !isCheckedIn ? [...data.gymLogs, today] : data.gymLogs;
-    updateData({ ...data, workouts: updatedWorkouts, gymLogs: newLogs });
-    setShowTemplatePicker(false);
+  const applyTemplateHandler = (template: any) => {
+    applyTemplate(template);
+    closePicker();
     setShowOverview(true);
-    setIsSessionActive(false);
+    stopSession();
   };
 
   const saveCurrentAsTemplate = async () => {
@@ -330,113 +228,64 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     }
   };
 
-  const filteredTemplates = useMemo(() => {
-    let filtered = templates;
-
-    if (templateSearchQuery.trim()) {
-      const query = templateSearchQuery.toLowerCase();
-      filtered = filtered.filter((t: any) =>
-        t.name.toLowerCase().includes(query) ||
-        t.description?.toLowerCase().includes(query) ||
-        t.created_by_username?.toLowerCase().includes(query) ||
-        t.exercises?.some((ex: string) => ex.toLowerCase().includes(query))
-      );
-    }
-
-    if (selectedFolder) {
-      filtered = filtered.filter((t: any) => t.folder_id === selectedFolder);
-    } else if (selectedFolder === null && showTemplatePicker) {
-      // no-op; UI handles no-folder display
-    }
-
-    if (showFavoritesOnly) {
-      filtered = filtered.filter((t: any) => favorites.has(t.id));
-    }
-
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter((t: any) =>
-        t.tags && Array.isArray(t.tags) &&
-        selectedTags.some(tag => t.tags.includes(tag))
-      );
-    }
-
-    return filtered;
-  }, [templates, templateSearchQuery, selectedFolder, showFavoritesOnly, selectedTags, favorites, showTemplatePicker]);
-
   const addExercise = (position: 'top' | 'bottom' = 'bottom') => {
     if (!newExerciseName.trim()) return;
-    const newExercise: WorkoutExercise = {
-      id: Date.now(),
-      name: newExerciseName,
-      sets: [{ id: Date.now() + 1, weight: '', reps: '', completed: false }]
-    };
-    const updatedList = position === 'top' ? [newExercise, ...todaysWorkout] : [...todaysWorkout, newExercise];
-    const newLogs = !isCheckedIn ? [...data.gymLogs, today] : data.gymLogs;
-    updateData({ ...data, workouts: { ...data.workouts, [today]: updatedList }, gymLogs: newLogs });
+    addExerciseHook(newExerciseName, position);
     setNewExerciseName('');
     setIsAddingExercise(false);
     setEditingExerciseId(null);
   };
 
-  const startSession = () => {
-    if (visibleWorkout.length === 0) return;
-    setIsSessionActive(true);
-    setShowOverview(false);
-    setViewMode('focus');
-    setCurrentExIndex(0);
-    setShowTemplatePicker(false);
-  };
+  const startSession = startSessionHandler;
 
   const editExerciseName = (exId: number, newName: string) => {
-    const updated = renameExercise(todaysWorkout, exId, newName);
-    updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
+    renameExerciseHook(exId, newName);
     setEditingExerciseId(null);
   };
 
   const updateSet = (exId: number, setIndex: number, field: string, value: any) => {
-    const updated = updateSetValue(todaysWorkout, exId, setIndex, field, value);
-    updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
+    updateSetHook(exId, setIndex, field, value);
   };
 
   const addSet = (exId: number) => {
-    const updated = addSetToExercise(todaysWorkout, exId);
-    updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
+    addSetHook(exId);
   };
 
   const deleteExercise = (exId: number) => {
-    const updated = deleteExerciseFromWorkout(todaysWorkout, exId);
-    updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
+    deleteExerciseHook(exId);
   };
 
   const moveExercise = (exId: number, direction: 'up' | 'down') => {
-    const updated = moveExerciseInWorkout(todaysWorkout, exId, direction);
-    updateData({ ...data, workouts: { ...data.workouts, [today]: updated } });
+    moveExerciseHook(exId, direction);
   };
 
   const finishWorkout = () => {
-    updateData(finishWorkoutState(data, today, todaysWorkout));
-    setIsSessionActive(false);
+    finishWorkoutHook();
+    stopSession();
     setShowOverview(false);
   };
 
   const undoFinish = () => {
-    updateData(undoFinishState(data, today));
+    undoFinishHook();
     setShowOverview(true);
-    setIsSessionActive(false);
+    stopSession();
   };
 
   const startNewSession = () => {
-    updateData(startNewSessionState(data, today, todaysWorkout));
-    setIsSessionActive(false);
+    startNewSessionHook();
+    stopSession();
     setShowOverview(false);
-    setTimeout(() => setShowTemplatePicker(true), 100);
+    setViewMode('focus');
+    setCurrentExIndex(0);
+    setTimeout(() => openPicker(), 100);
   };
 
   const abortSession = () => {
     confirmAction(ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE, () => {
-      updateData(abortSessionState(data, today));
+      abortSessionHook(true);
+      stopSession();
       setIsAddingExercise(false);
-      setShowTemplatePicker(false);
+      closePicker();
       setNewExerciseName('');
       setSuggestions([]);
     }, 'Discard');
@@ -460,8 +309,8 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   return (
     <>
       <TemplatePickerModal
-        visible={showTemplatePicker}
-        onClose={() => setShowTemplatePicker(false)}
+        visible={pickerOpen}
+        onClose={() => closePicker()}
         templateSearchQuery={templateSearchQuery}
         onChangeSearch={setTemplateSearchQuery}
         showFavoritesOnly={showFavoritesOnly}
@@ -475,11 +324,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
         folders={folders}
         onNewFolder={() => setShowCreateFolderModal(true)}
         allTags={allTags}
-        loading={loadingTemplates}
+        loading={loading}
         templates={filteredTemplates}
         favorites={favorites}
         userId={user?.id}
-        onApplyTemplate={applyTemplate}
+        onApplyTemplate={applyTemplateHandler}
         onToggleFavorite={toggleFavorite}
         onEditTemplate={handleEditTemplate}
         onDeleteTemplate={confirmDeleteTemplate}
@@ -552,7 +401,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
           />
         ) : visibleWorkout.length === 0 ? (
           <EmptyWorkoutCard
-            onLoadTemplate={() => setShowTemplatePicker(true)}
+            onLoadTemplate={() => openPicker()}
             onCustomInput={() => {
               setIsAddingExercise(true);
               setShowOverview(true);
@@ -567,19 +416,16 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
               totalExercises={visibleWorkout.length}
               onBackToOverview={() => {
                 setShowOverview(true);
-                setIsSessionActive(false);
+                stopSession();
               }}
-              onToggleViewMode={() => setViewMode(viewMode === 'list' ? 'focus' : 'list')}
+              onToggleViewMode={toggleViewMode}
               onAddExercise={() => setIsAddingExercise(true)}
             />
 
             {viewMode === 'list' ? (
               <WorkoutListView
                 visibleWorkout={visibleWorkout}
-                onSelectExercise={(i) => {
-                  setCurrentExIndex(i);
-                  setViewMode('focus');
-                }}
+                onSelectExercise={(i) => selectExercise(i)}
                 onFinish={finishWorkout}
                 onAbort={abortSession}
               />
@@ -589,8 +435,8 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
                   currentExerciseName={currentExercise?.name}
                   currentIndex={currentExIndex}
                   totalExercises={visibleWorkout.length}
-                  onPrev={() => setCurrentExIndex(Math.max(0, currentExIndex - 1))}
-                  onNext={() => setCurrentExIndex(Math.min(visibleWorkout.length - 1, currentExIndex + 1))}
+                  onPrev={prevExercise}
+                  onNext={nextExercise}
                 />
 
                 <WorkoutFocusSets
@@ -610,7 +456,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
                 <WorkoutFocusActions
                   hasNext={currentExIndex < visibleWorkout.length - 1}
-                  onNext={() => setCurrentExIndex(currentExIndex + 1)}
+                  onNext={nextExercise}
                   onFinish={finishWorkout}
                   onAbort={abortSession}
                 />
