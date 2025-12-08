@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-nativ
 import { Save, X } from 'lucide-react-native';
 import NeonButton from './NeonButton';
 import workoutStyles from '../styles/workout';
+import { modalStyles, colors } from '../styles';
 
 type SaveTemplateModalProps = {
   visible: boolean;
@@ -36,12 +37,12 @@ const SaveTemplateModal = ({
   if (!visible) return null;
 
   return (
-    <View style={workoutStyles.addExerciseOverlay}>
-      <View style={workoutStyles.addExerciseModal}>
-        <View style={workoutStyles.saveTemplateHeader}>
+    <View style={modalStyles.overlay}>
+      <View style={[modalStyles.card, { maxWidth: 480, width: '100%' }]}>
+        <View style={modalStyles.headerRow}>
           <Text style={workoutStyles.addExerciseTitle}>SAVE TEMPLATE</Text>
           <TouchableOpacity onPress={onClose} style={workoutStyles.addExerciseCancel}>
-            <X size={24} color="#94a3b8" />
+            <X size={24} color={colors.textMutedAlt} />
           </TouchableOpacity>
         </View>
         <Text style={workoutStyles.saveTemplateSubtitle}>{exerciseCount} Exercises</Text>
@@ -50,7 +51,7 @@ const SaveTemplateModal = ({
         <TextInput
           style={workoutStyles.addExerciseInput}
           placeholder="Enter template name..."
-          placeholderTextColor="#64748b"
+          placeholderTextColor={colors.muted}
           value={templateName}
           onChangeText={onChangeTemplateName}
           autoFocus
@@ -118,7 +119,7 @@ const SaveTemplateModal = ({
             <Text style={{ marginLeft: 8 }}>SAVE</Text>
           </NeonButton>
           <TouchableOpacity onPress={onClose} style={workoutStyles.addExerciseCancel}>
-            <X size={24} color="#94a3b8" />
+            <X size={24} color={colors.textMutedAlt} />
           </TouchableOpacity>
         </View>
       </View>

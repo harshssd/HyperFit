@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { FolderPlus, X } from 'lucide-react-native';
 import NeonButton from './NeonButton';
-import { workoutStyles } from '../styles';
+import { workoutStyles, modalStyles } from '../styles';
 
 type CreateFolderModalProps = {
   visible: boolean;
@@ -24,9 +24,9 @@ const CreateFolderModal = ({
   const trimmed = newFolderName.trim();
 
   return (
-    <View style={workoutStyles.addExerciseOverlay}>
-      <View style={workoutStyles.addExerciseModal}>
-        <View style={workoutStyles.saveTemplateHeader}>
+    <View style={modalStyles.overlay}>
+      <View style={[modalStyles.card, { maxWidth: 400, width: '100%' }]}>
+        <View style={modalStyles.headerRow}>
           <Text style={workoutStyles.addExerciseTitle}>CREATE FOLDER</Text>
           <TouchableOpacity
             onPress={onClose}

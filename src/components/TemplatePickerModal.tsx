@@ -24,6 +24,7 @@ import {
 } from 'lucide-react-native';
 import GlassCard from './GlassCard';
 import workoutStyles from '../styles/workout';
+import { modalStyles, colors } from '../styles';
 
 type FolderType = {
   id: string;
@@ -107,9 +108,9 @@ const TemplatePickerModal = ({
       onRequestClose={onClose}
       presentationStyle="fullScreen"
     >
-      <SafeAreaView style={workoutStyles.templateModalSafeArea}>
-        <View style={workoutStyles.templatePickerOverlay}>
-          <View style={workoutStyles.templatePicker}>
+      <SafeAreaView style={modalStyles.sheet}>
+        <View style={modalStyles.overlay}>
+          <View style={[workoutStyles.templatePicker, modalStyles.card, { padding: 16, width: '100%', maxWidth: 520 }]}>
             <View style={workoutStyles.templatePickerHeader}>
               <View>
                 <Text style={workoutStyles.templatePickerTitle}>WORKOUT TEMPLATES</Text>
@@ -118,23 +119,23 @@ const TemplatePickerModal = ({
                 </Text>
               </View>
               <TouchableOpacity onPress={onClose} style={workoutStyles.templatePickerClose}>
-                <X size={24} color="#94a3b8" />
+                <X size={24} color={colors.textMutedAlt} />
               </TouchableOpacity>
             </View>
 
             {/* Search Bar */}
             <View style={workoutStyles.templateSearchContainer}>
-              <Search size={20} color="#64748b" />
+              <Search size={20} color={colors.muted} />
               <TextInput
                 style={workoutStyles.templateSearchInput}
                 placeholder="Search templates..."
-                placeholderTextColor="#64748b"
+                placeholderTextColor={colors.muted}
                 value={templateSearchQuery}
                 onChangeText={onChangeSearch}
               />
               {templateSearchQuery.length > 0 && (
                 <TouchableOpacity onPress={() => onChangeSearch('')}>
-                  <X size={16} color="#64748b" />
+                  <X size={16} color={colors.muted} />
                 </TouchableOpacity>
               )}
             </View>
@@ -145,7 +146,7 @@ const TemplatePickerModal = ({
                 onPress={onToggleFavorites}
                 style={[workoutStyles.templateFilterButton, showFavoritesOnly && workoutStyles.templateFilterButtonActive]}
               >
-                <Heart size={16} color={showFavoritesOnly ? "#f97316" : "#64748b"} fill={showFavoritesOnly ? "#f97316" : "none"} />
+                <Heart size={16} color={showFavoritesOnly ? colors.primary : colors.muted} fill={showFavoritesOnly ? colors.primary : "none"} />
                 <Text style={[workoutStyles.templateFilterText, showFavoritesOnly && workoutStyles.templateFilterTextActive]}>
                   FAVORITES
                 </Text>
@@ -155,7 +156,7 @@ const TemplatePickerModal = ({
                 onPress={onToggleFolderFilter}
                 style={[workoutStyles.templateFilterButton, selectedFolder !== undefined && workoutStyles.templateFilterButtonActive]}
               >
-                <Folder size={16} color={selectedFolder !== undefined ? "#f97316" : "#64748b"} />
+                <Folder size={16} color={selectedFolder !== undefined ? colors.primary : colors.muted} />
                 <Text style={[workoutStyles.templateFilterText, selectedFolder !== undefined && workoutStyles.templateFilterTextActive]}>
                   FOLDERS
                 </Text>
@@ -166,7 +167,7 @@ const TemplatePickerModal = ({
                   onPress={onClearTags}
                   style={workoutStyles.templateFilterButton}
                 >
-                  <Tag size={16} color="#f97316" />
+                  <Tag size={16} color={colors.primary} />
                   <Text style={workoutStyles.templateFilterTextActive}>
                     {selectedTags.length} TAG{selectedTags.length > 1 ? 'S' : ''}
                   </Text>
@@ -201,8 +202,8 @@ const TemplatePickerModal = ({
                   onPress={onNewFolder}
                   style={[workoutStyles.templateFolderChip, workoutStyles.templateFolderChipNew]}
                 >
-                  <FolderPlus size={16} color="#f97316" />
-                  <Text style={[workoutStyles.templateFolderChipText, { color: '#f97316' }]}>NEW</Text>
+                  <FolderPlus size={16} color={colors.primary} />
+                  <Text style={[workoutStyles.templateFolderChipText, { color: colors.primary }]}>NEW</Text>
                 </TouchableOpacity>
               </ScrollView>
             )}
@@ -218,7 +219,7 @@ const TemplatePickerModal = ({
                       onPress={() => onToggleTag(tag)}
                       style={[workoutStyles.templateTagChip, isSelected && workoutStyles.templateTagChipActive]}
                     >
-                      <Tag size={12} color={isSelected ? "#0f172a" : "#64748b"} />
+                      <Tag size={12} color={isSelected ? colors.background : colors.muted} />
                       <Text style={[workoutStyles.templateTagChipText, isSelected && workoutStyles.templateTagChipTextActive]}>
                         {tag}
                       </Text>
