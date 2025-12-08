@@ -9,6 +9,8 @@ const modalStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.xl,
+    zIndex: 1000,
+    elevation: 12,
   },
   sheet: {
     flex: 1,

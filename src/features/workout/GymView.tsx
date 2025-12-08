@@ -161,11 +161,16 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const handleClearTags = () => setSelectedTags([]);
 
+  const openSaveTemplate = () => {
+    closePicker();
+    setShowSaveTemplateModal(true);
+  };
+
   const handleEditTemplate = (template: any) => {
     setTemplateName(template.name);
     setSaveTemplateFolder(template.folder_id || null);
     setSaveTemplateTags(template.tags || []);
-    setShowSaveTemplateModal(true);
+    openSaveTemplate();
   };
 
   useEffect(() => {
@@ -200,7 +205,8 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const applyTemplateHandler = (template: any) => {
-    applyTemplate(template);
+    const normalized = { ...(template as any), exercises: (template.exercises || []) as string[] };
+    applyTemplate(normalized as any);
     closePicker();
     setShowOverview(true);
     stopSession();
@@ -295,175 +301,205 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const currentExercise = visibleWorkout[currentExIndex];
 
-  if (isFinished) {
-    return (
-      <FinishedSessionView
-        visibleWorkout={visibleWorkout}
-        calculateTotalVolume={calculateTotalVolumeLocal}
-        onStartNewSession={startNewSession}
-        onUndo={undoFinish}
+  const renderTemplatePicker = () => (
+    <TemplatePickerModal
+      visible={pickerOpen}
+      onClose={() => closePicker()}
+      templateSearchQuery={templateSearchQuery}
+      onChangeSearch={setTemplateSearchQuery}
+      showFavoritesOnly={showFavoritesOnly}
+      onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
+      selectedFolder={selectedFolder}
+      onToggleFolderFilter={handleToggleFolderFilter}
+      onSelectFolder={(folderId) => setSelectedFolder(folderId)}
+      selectedTags={selectedTags}
+      onToggleTag={handleToggleTag}
+      onClearTags={handleClearTags}
+      folders={folders}
+      onNewFolder={() => setShowCreateFolderModal(true)}
+      allTags={allTags}
+      loading={loading}
+      templates={filteredTemplates}
+      favorites={favorites}
+      userId={user?.id}
+      onApplyTemplate={applyTemplateHandler as any}
+      onToggleFavorite={toggleFavorite}
+      onEditTemplate={handleEditTemplate as any}
+      onDeleteTemplate={confirmDeleteTemplate}
+      onDuplicateTemplate={duplicateTemplate as any}
+      onShareTemplate={shareTemplate as any}
+    />
+  );
+
+  const renderAddExerciseOverlay = () => (
+    <AddExerciseOverlay
+      visible={isAddingExercise}
+      newExerciseName={newExerciseName}
+      suggestions={suggestions}
+      onChangeName={handleNameChange}
+      onSubmit={() => addExercise()}
+      onSelectSuggestion={selectSuggestion}
+      onClose={() => setIsAddingExercise(false)}
+    />
+  );
+
+  const renderSaveTemplateModal = () => (
+    <SaveTemplateModal
+      visible={showSaveTemplateModal}
+      onClose={() => {
+        setShowSaveTemplateModal(false);
+        setTemplateName('');
+        setSaveTemplateFolder(null);
+        setSaveTemplateTags([]);
+      }}
+      onSave={saveCurrentAsTemplate}
+      templateName={templateName}
+      onChangeTemplateName={setTemplateName}
+      saveTemplateFolder={saveTemplateFolder}
+      onSelectFolder={(folderId) => setSaveTemplateFolder(folderId)}
+      folders={folders}
+      saveTemplateTags={saveTemplateTags}
+      onChangeTags={setSaveTemplateTags}
+      saveTemplateTagInputRef={saveTemplateTagInputRef}
+      exerciseCount={visibleWorkout.length}
+    />
+  );
+
+  const renderCreateFolderModal = () => (
+    <CreateFolderModal
+      visible={showCreateFolderModal}
+      newFolderName={newFolderName}
+      onChangeFolderName={setNewFolderName}
+      onCreate={() => {
+        const name = newFolderName.trim();
+        if (name) {
+          createFolder(name);
+          setShowCreateFolderModal(false);
+          setNewFolderName('');
+        }
+      }}
+      onClose={() => {
+        setShowCreateFolderModal(false);
+        setNewFolderName('');
+      }}
+    />
+  );
+
+  const renderWorkoutList = () => (
+    <WorkoutListView
+      visibleWorkout={visibleWorkout}
+      onSelectExercise={(i) => selectExercise(i)}
+      onFinish={finishWorkout}
+      onAbort={abortSession}
+    />
+  );
+
+  const renderWorkoutFocus = () => (
+    <View style={workoutStyles.workoutFocus}>
+      <WorkoutFocusHeader
+        currentExerciseName={currentExercise?.name}
+        currentIndex={currentExIndex}
+        totalExercises={visibleWorkout.length}
+        onPrev={prevExercise}
+        onNext={nextExercise}
       />
+
+      <WorkoutFocusSets
+        currentExercise={currentExercise}
+        getExerciseConfig={getExerciseConfig}
+        updateSet={updateSet}
+      />
+
+      <TouchableOpacity
+        onPress={() => currentExercise && addSet(currentExercise.id)}
+        style={workoutStyles.addSetButton}
+        disabled={!currentExercise}
+      >
+        <Plus size={16} color="#64748b" />
+        <Text style={workoutStyles.addSetButtonText}>ADD SET</Text>
+      </TouchableOpacity>
+
+      <WorkoutFocusActions
+        hasNext={currentExIndex < visibleWorkout.length - 1}
+        onNext={nextExercise}
+        onFinish={finishWorkout}
+        onAbort={abortSession}
+      />
+    </View>
+  );
+
+  const renderOverview = () => {
+    if (showOverview && !isSessionActive) {
+      return (
+        <WorkoutOverview
+          visibleWorkout={visibleWorkout}
+          editingExerciseId={editingExerciseId}
+          onClose={closeOverview}
+          onAddExercise={() => setIsAddingExercise(true)}
+          onSaveTemplate={openSaveTemplate}
+          onStartSession={startSession}
+          onMoveExercise={moveExercise}
+          onDeleteExercise={deleteExercise}
+          onBeginEdit={setEditingExerciseId}
+          onRenameExercise={handleRenameExercise}
+          onEndEdit={() => setEditingExerciseId(null)}
+        />
+      );
+    }
+
+    if (visibleWorkout.length === 0) {
+      return (
+        <EmptyWorkoutCard
+          onLoadTemplate={() => openPicker()}
+          onCustomInput={() => {
+            setIsAddingExercise(true);
+            setShowOverview(true);
+          }}
+        />
+      );
+    }
+
+    return (
+      <View style={workoutStyles.workoutContainer}>
+        <WorkoutHeader
+          isSessionActive={isSessionActive}
+          viewMode={viewMode}
+          currentIndex={currentExIndex}
+          totalExercises={visibleWorkout.length}
+          onBackToOverview={() => {
+            setShowOverview(true);
+            stopSession();
+          }}
+          onToggleViewMode={toggleViewMode}
+          onAddExercise={() => setIsAddingExercise(true)}
+        />
+
+        {viewMode === 'list' ? renderWorkoutList() : renderWorkoutFocus()}
+      </View>
     );
+  };
+
+  const renderFinished = () => (
+    <FinishedSessionView
+      visibleWorkout={visibleWorkout}
+      calculateTotalVolume={calculateTotalVolumeLocal}
+      onStartNewSession={startNewSession}
+      onUndo={undoFinish}
+    />
+  );
+
+  if (isFinished) {
+    return renderFinished();
   }
 
   return (
     <>
-      <TemplatePickerModal
-        visible={pickerOpen}
-        onClose={() => closePicker()}
-        templateSearchQuery={templateSearchQuery}
-        onChangeSearch={setTemplateSearchQuery}
-        showFavoritesOnly={showFavoritesOnly}
-        onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
-        selectedFolder={selectedFolder}
-        onToggleFolderFilter={handleToggleFolderFilter}
-        onSelectFolder={(folderId) => setSelectedFolder(folderId)}
-        selectedTags={selectedTags}
-        onToggleTag={handleToggleTag}
-        onClearTags={handleClearTags}
-        folders={folders}
-        onNewFolder={() => setShowCreateFolderModal(true)}
-        allTags={allTags}
-        loading={loading}
-        templates={filteredTemplates}
-        favorites={favorites}
-        userId={user?.id}
-        onApplyTemplate={applyTemplateHandler}
-        onToggleFavorite={toggleFavorite}
-        onEditTemplate={handleEditTemplate}
-        onDeleteTemplate={confirmDeleteTemplate}
-        onDuplicateTemplate={duplicateTemplate}
-        onShareTemplate={shareTemplate}
-      />
-
+      {renderTemplatePicker()}
+      {renderSaveTemplateModal()}
+      {renderCreateFolderModal()}
+      {renderAddExerciseOverlay()}
       <ScrollView style={workoutStyles.gymView} contentContainerStyle={workoutStyles.gymViewContent}>
-        <AddExerciseOverlay
-          visible={isAddingExercise}
-          newExerciseName={newExerciseName}
-          suggestions={suggestions}
-          onChangeName={handleNameChange}
-          onSubmit={() => addExercise()}
-          onSelectSuggestion={selectSuggestion}
-          onClose={() => setIsAddingExercise(false)}
-        />
-
-        <SaveTemplateModal
-          visible={showSaveTemplateModal}
-          onClose={() => {
-            setShowSaveTemplateModal(false);
-            setTemplateName('');
-            setSaveTemplateFolder(null);
-            setSaveTemplateTags([]);
-          }}
-          onSave={saveCurrentAsTemplate}
-          templateName={templateName}
-          onChangeTemplateName={setTemplateName}
-          saveTemplateFolder={saveTemplateFolder}
-          onSelectFolder={(folderId) => setSaveTemplateFolder(folderId)}
-          folders={folders}
-          saveTemplateTags={saveTemplateTags}
-          onChangeTags={setSaveTemplateTags}
-          saveTemplateTagInputRef={saveTemplateTagInputRef}
-          exerciseCount={visibleWorkout.length}
-        />
-
-        <CreateFolderModal
-          visible={showCreateFolderModal}
-          newFolderName={newFolderName}
-          onChangeFolderName={setNewFolderName}
-          onCreate={() => {
-            const name = newFolderName.trim();
-            if (name) {
-              createFolder(name);
-              setShowCreateFolderModal(false);
-              setNewFolderName('');
-            }
-          }}
-          onClose={() => {
-            setShowCreateFolderModal(false);
-            setNewFolderName('');
-          }}
-        />
-
-        {showOverview && !isSessionActive ? (
-          <WorkoutOverview
-            visibleWorkout={visibleWorkout}
-            editingExerciseId={editingExerciseId}
-            onClose={closeOverview}
-            onAddExercise={() => setIsAddingExercise(true)}
-            onSaveTemplate={() => setShowSaveTemplateModal(true)}
-            onStartSession={startSession}
-            onMoveExercise={moveExercise}
-            onDeleteExercise={deleteExercise}
-            onBeginEdit={setEditingExerciseId}
-            onRenameExercise={handleRenameExercise}
-            onEndEdit={() => setEditingExerciseId(null)}
-          />
-        ) : visibleWorkout.length === 0 ? (
-          <EmptyWorkoutCard
-            onLoadTemplate={() => openPicker()}
-            onCustomInput={() => {
-              setIsAddingExercise(true);
-              setShowOverview(true);
-            }}
-          />
-        ) : (
-          <View style={workoutStyles.workoutContainer}>
-            <WorkoutHeader
-              isSessionActive={isSessionActive}
-              viewMode={viewMode}
-              currentIndex={currentExIndex}
-              totalExercises={visibleWorkout.length}
-              onBackToOverview={() => {
-                setShowOverview(true);
-                stopSession();
-              }}
-              onToggleViewMode={toggleViewMode}
-              onAddExercise={() => setIsAddingExercise(true)}
-            />
-
-            {viewMode === 'list' ? (
-              <WorkoutListView
-                visibleWorkout={visibleWorkout}
-                onSelectExercise={(i) => selectExercise(i)}
-                onFinish={finishWorkout}
-                onAbort={abortSession}
-              />
-            ) : (
-              <View style={workoutStyles.workoutFocus}>
-                <WorkoutFocusHeader
-                  currentExerciseName={currentExercise?.name}
-                  currentIndex={currentExIndex}
-                  totalExercises={visibleWorkout.length}
-                  onPrev={prevExercise}
-                  onNext={nextExercise}
-                />
-
-                <WorkoutFocusSets
-                  currentExercise={currentExercise}
-                  getExerciseConfig={getExerciseConfig}
-                  updateSet={updateSet}
-                />
-
-                <TouchableOpacity
-                  onPress={() => currentExercise && addSet(currentExercise.id)}
-                  style={workoutStyles.addSetButton}
-                  disabled={!currentExercise}
-                >
-                  <Plus size={16} color="#64748b" />
-                  <Text style={workoutStyles.addSetButtonText}>ADD SET</Text>
-                </TouchableOpacity>
-
-                <WorkoutFocusActions
-                  hasNext={currentExIndex < visibleWorkout.length - 1}
-                  onNext={nextExercise}
-                  onFinish={finishWorkout}
-                  onAbort={abortSession}
-                />
-              </View>
-            )}
-          </View>
-        )}
+        {renderOverview()}
       </ScrollView>
     </>
   );
