@@ -234,6 +234,54 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     }
   };
 
+  const templatePickerProps = {
+    visible: pickerOpen,
+    onClose: () => closePicker(),
+    templateSearchQuery,
+    onChangeSearch: setTemplateSearchQuery,
+    showFavoritesOnly,
+    onToggleFavorites: () => setShowFavoritesOnly(!showFavoritesOnly),
+    selectedFolder,
+    onToggleFolderFilter: handleToggleFolderFilter,
+    onSelectFolder: (folderId: string | null) => setSelectedFolder(folderId),
+    selectedTags,
+    onToggleTag: handleToggleTag,
+    onClearTags: handleClearTags,
+    folders,
+    onNewFolder: () => setShowCreateFolderModal(true),
+    allTags,
+    loading,
+    templates: filteredTemplates,
+    favorites,
+    userId: user?.id,
+    onApplyTemplate: applyTemplateHandler as any,
+    onToggleFavorite: toggleFavorite,
+    onEditTemplate: handleEditTemplate as any,
+    onDeleteTemplate: confirmDeleteTemplate,
+    onDuplicateTemplate: duplicateTemplate as any,
+    onShareTemplate: shareTemplate as any,
+  };
+
+  const saveTemplateModalProps = {
+    visible: showSaveTemplateModal,
+    onClose: () => {
+      setShowSaveTemplateModal(false);
+      setTemplateName('');
+      setSaveTemplateFolder(null);
+      setSaveTemplateTags([]);
+    },
+    onSave: saveCurrentAsTemplate,
+    templateName,
+    onChangeTemplateName: setTemplateName,
+    saveTemplateFolder,
+    onSelectFolder: (folderId: string | null) => setSaveTemplateFolder(folderId),
+    folders,
+    saveTemplateTags,
+    onChangeTags: setSaveTemplateTags,
+    saveTemplateTagInputRef,
+    exerciseCount: visibleWorkout.length,
+  };
+
   const addExercise = (position: 'top' | 'bottom' = 'bottom') => {
     if (!newExerciseName.trim()) return;
     addExerciseHook(newExerciseName, position);
@@ -303,31 +351,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const renderTemplatePicker = () => (
     <TemplatePickerModal
-      visible={pickerOpen}
-      onClose={() => closePicker()}
-      templateSearchQuery={templateSearchQuery}
-      onChangeSearch={setTemplateSearchQuery}
-      showFavoritesOnly={showFavoritesOnly}
-      onToggleFavorites={() => setShowFavoritesOnly(!showFavoritesOnly)}
-      selectedFolder={selectedFolder}
-      onToggleFolderFilter={handleToggleFolderFilter}
-      onSelectFolder={(folderId) => setSelectedFolder(folderId)}
-      selectedTags={selectedTags}
-      onToggleTag={handleToggleTag}
-      onClearTags={handleClearTags}
-      folders={folders}
-      onNewFolder={() => setShowCreateFolderModal(true)}
-      allTags={allTags}
-      loading={loading}
-      templates={filteredTemplates}
-      favorites={favorites}
-      userId={user?.id}
-      onApplyTemplate={applyTemplateHandler as any}
-      onToggleFavorite={toggleFavorite}
-      onEditTemplate={handleEditTemplate as any}
-      onDeleteTemplate={confirmDeleteTemplate}
-      onDuplicateTemplate={duplicateTemplate as any}
-      onShareTemplate={shareTemplate as any}
+      {...templatePickerProps}
     />
   );
 
@@ -345,23 +369,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const renderSaveTemplateModal = () => (
     <SaveTemplateModal
-      visible={showSaveTemplateModal}
-      onClose={() => {
-        setShowSaveTemplateModal(false);
-        setTemplateName('');
-        setSaveTemplateFolder(null);
-        setSaveTemplateTags([]);
-      }}
-      onSave={saveCurrentAsTemplate}
-      templateName={templateName}
-      onChangeTemplateName={setTemplateName}
-      saveTemplateFolder={saveTemplateFolder}
-      onSelectFolder={(folderId) => setSaveTemplateFolder(folderId)}
-      folders={folders}
-      saveTemplateTags={saveTemplateTags}
-      onChangeTags={setSaveTemplateTags}
-      saveTemplateTagInputRef={saveTemplateTagInputRef}
-      exerciseCount={visibleWorkout.length}
+      {...saveTemplateModalProps}
     />
   );
 
