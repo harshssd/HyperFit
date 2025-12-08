@@ -3,7 +3,7 @@ import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { Medal, RotateCcw, PlusCircle } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
-import styles from '../../../styles/appStyles';
+import workoutStyles from '../../../styles/workout';
 
 type FinishedSessionViewProps = {
   visibleWorkout: any[];
@@ -19,32 +19,32 @@ const FinishedSessionView = ({
   onUndo,
 }: FinishedSessionViewProps) => {
   return (
-    <ScrollView contentContainerStyle={styles.finishedContainer}>
-      <View style={styles.finishedIcon}>
+    <ScrollView contentContainerStyle={workoutStyles.finishedContainer}>
+      <View style={workoutStyles.finishedIcon}>
         <Medal size={48} color="#22d3ee" />
       </View>
-      <View style={styles.finishedText}>
-        <Text style={styles.finishedTitle}>SESSION COMPLETE</Text>
-        <Text style={styles.finishedSubtitle}>DATA UPLOADED SUCCESSFULLY</Text>
+      <View style={workoutStyles.finishedText}>
+        <Text style={workoutStyles.finishedTitle}>SESSION COMPLETE</Text>
+        <Text style={workoutStyles.finishedSubtitle}>DATA UPLOADED SUCCESSFULLY</Text>
       </View>
-      <View style={styles.finishedStats}>
-        <GlassCard style={styles.finishedStatCard}>
-          <Text style={styles.finishedStatValue}>{visibleWorkout.length}</Text>
-          <Text style={styles.finishedStatLabel}>Exercises</Text>
+      <View style={workoutStyles.finishedStats}>
+        <GlassCard style={workoutStyles.finishedStatCard}>
+          <Text style={workoutStyles.finishedStatValue}>{visibleWorkout.length}</Text>
+          <Text style={workoutStyles.finishedStatLabel}>Exercises</Text>
         </GlassCard>
-        <GlassCard style={styles.finishedStatCard}>
-          <Text style={styles.finishedStatValue}>{calculateTotalVolume().toLocaleString()}</Text>
-          <Text style={styles.finishedStatLabel}>Vol. Load (LB)</Text>
+        <GlassCard style={workoutStyles.finishedStatCard}>
+          <Text style={workoutStyles.finishedStatValue}>{calculateTotalVolume().toLocaleString()}</Text>
+          <Text style={workoutStyles.finishedStatLabel}>Vol. Load (LB)</Text>
         </GlassCard>
       </View>
-      <View style={styles.finishedActions}>
-        <NeonButton onPress={onStartNewSession} style={styles.finishedButton}>
+      <View style={workoutStyles.finishedActions}>
+        <NeonButton onPress={onStartNewSession} style={workoutStyles.finishedButton}>
           <PlusCircle size={18} color="#0f172a" />
           <Text style={{ marginLeft: 8 }}>INITIATE NEW SESSION</Text>
         </NeonButton>
-        <TouchableOpacity onPress={onUndo} style={styles.finishedUndo}>
+        <TouchableOpacity onPress={onUndo} style={workoutStyles.finishedUndo}>
           <RotateCcw size={12} color="#64748b" />
-          <Text style={styles.finishedUndoText}>MODIFY LOG DATA</Text>
+          <Text style={workoutStyles.finishedUndoText}>MODIFY LOG DATA</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text } from 'react-native';
 import { ChevronLeft, List, Maximize2, Plus } from 'lucide-react-native';
-import styles from '../../../styles/appStyles';
+import workoutStyles from '../../../styles/workout';
 
 type WorkoutHeaderProps = {
   isSessionActive: boolean;
@@ -23,28 +23,28 @@ const WorkoutHeader = ({
   onAddExercise,
 }: WorkoutHeaderProps) => {
   return (
-    <View style={styles.workoutHeader}>
+    <View style={workoutStyles.workoutHeader}>
       {isSessionActive && (
-        <TouchableOpacity onPress={onBackToOverview} style={styles.backToOverviewButton}>
+        <TouchableOpacity onPress={onBackToOverview} style={workoutStyles.backToOverviewButton}>
           <ChevronLeft size={20} color="#94a3b8" />
-          <Text style={styles.backToOverviewText}>OVERVIEW</Text>
+          <Text style={workoutStyles.backToOverviewText}>OVERVIEW</Text>
         </TouchableOpacity>
       )}
 
-      <View style={styles.workoutDots}>
+      <View style={workoutStyles.workoutDots}>
         {Array.from({ length: totalExercises }).map((_, idx) => (
           <View
             key={idx}
             style={[
-              styles.workoutDot,
-              idx === currentIndex && styles.workoutDotActive
+              workoutStyles.workoutDot,
+              idx === currentIndex && workoutStyles.workoutDotActive
             ]}
           />
         ))}
       </View>
 
-      <View style={styles.workoutHeaderActions}>
-        <TouchableOpacity onPress={onToggleViewMode} style={styles.workoutHeaderButton}>
+      <View style={workoutStyles.workoutHeaderActions}>
+        <TouchableOpacity onPress={onToggleViewMode} style={workoutStyles.workoutHeaderButton}>
           {viewMode === 'list' ? (
             <Maximize2 size={18} color="#94a3b8" />
           ) : (
@@ -52,7 +52,7 @@ const WorkoutHeader = ({
           )}
         </TouchableOpacity>
         {!isSessionActive && (
-          <TouchableOpacity onPress={onAddExercise} style={styles.workoutHeaderButton}>
+          <TouchableOpacity onPress={onAddExercise} style={workoutStyles.workoutHeaderButton}>
             <Plus size={18} color="#f97316" />
           </TouchableOpacity>
         )}

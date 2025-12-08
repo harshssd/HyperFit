@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
-import styles from '../../../styles/appStyles';
+import workoutStyles from '../../../styles/workout';
 
 type WorkoutListViewProps = {
   visibleWorkout: any[];
@@ -14,28 +14,28 @@ type WorkoutListViewProps = {
 
 const WorkoutListView = ({ visibleWorkout, onSelectExercise, onFinish, onAbort }: WorkoutListViewProps) => {
   return (
-    <View style={styles.workoutList}>
+    <View style={workoutStyles.workoutList}>
       {visibleWorkout.map((ex: any, i: number) => (
         <GlassCard
           key={ex.id}
           onPress={() => onSelectExercise(i)}
-          style={styles.workoutListItem}
+          style={workoutStyles.workoutListItem}
         >
-          <Text style={styles.workoutListItemName}>{ex.name}</Text>
-          <View style={styles.workoutListItemInfo}>
-            <Text style={styles.workoutListItemSets}>
+          <Text style={workoutStyles.workoutListItemName}>{ex.name}</Text>
+          <View style={workoutStyles.workoutListItemInfo}>
+            <Text style={workoutStyles.workoutListItemSets}>
               {ex.sets.filter((s: any) => s.completed).length}/{ex.sets.length} SETS
             </Text>
             <ChevronRight size={16} color="#64748b" />
           </View>
         </GlassCard>
       ))}
-      <View style={styles.workoutListActions}>
-        <NeonButton onPress={onFinish} style={styles.finishButton}>
+      <View style={workoutStyles.workoutListActions}>
+        <NeonButton onPress={onFinish} style={workoutStyles.finishButton}>
           <Text>FINISH WORKOUT</Text>
         </NeonButton>
-        <TouchableOpacity onPress={onAbort} style={styles.abortButton}>
-          <Text style={styles.abortButtonText}>Abort Session</Text>
+        <TouchableOpacity onPress={onAbort} style={workoutStyles.abortButton}>
+          <Text style={workoutStyles.abortButtonText}>Abort Session</Text>
         </TouchableOpacity>
       </View>
     </View>

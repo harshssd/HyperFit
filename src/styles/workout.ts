@@ -1,0 +1,945 @@
+import { StyleSheet } from 'react-native';
+import { colors, spacing, radii } from './theme';
+
+// Styles extracted from the workout-related sections of appStyles.ts.
+// These cover gym view, finished session, templates, add-exercise overlay,
+// empty state, workout list/focus/overview, and related controls.
+export const workoutStyles = StyleSheet.create({
+  // Gym View
+  gymView: {
+    flex: 1,
+    position: 'relative',
+  },
+  gymViewContent: {
+    paddingBottom: spacing.xl,
+  },
+
+  // Finished Session
+  finishedContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    minHeight: 400,
+  },
+  finishedIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(34, 211, 238, 0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(34, 211, 238, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  finishedText: {
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  finishedTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    letterSpacing: 1,
+  },
+  finishedSubtitle: {
+    color: colors.muted,
+    fontFamily: 'monospace',
+    fontSize: 12,
+    marginTop: spacing.sm,
+  },
+  finishedStats: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    width: '100%',
+    marginBottom: 32,
+  },
+  finishedStatCard: {
+    flex: 1,
+    padding: spacing.lg,
+    alignItems: 'center',
+  },
+  finishedStatValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#fff',
+    fontFamily: 'monospace',
+  },
+  finishedStatLabel: {
+    fontSize: 10,
+    color: colors.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    marginTop: spacing.sm,
+  },
+  finishedActions: {
+    width: '100%',
+    gap: spacing.md,
+  },
+  finishedButton: {
+    width: '100%',
+  },
+  finishedUndo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+  },
+  finishedUndoText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  // Template Picker
+  templateModalSafeArea: {
+    flex: 1,
+  },
+  templatePickerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    zIndex: 50,
+    padding: 0,
+  },
+  templatePicker: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.background,
+    padding: spacing.xl,
+  },
+  templatePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  templatePickerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  templatePickerSubtitle: {
+    color: colors.muted,
+    fontSize: 12,
+    fontFamily: 'monospace',
+    marginTop: spacing.sm,
+  },
+  templatePickerClose: {
+    padding: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radii.full,
+  },
+  templatePickerList: {
+    flex: 1,
+    marginTop: spacing.sm,
+  },
+  templatePickerListContent: {
+    paddingBottom: spacing.xl,
+  },
+  templateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  templateIcon: {
+    fontSize: 24,
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    borderRadius: radii.sm,
+  },
+  templateInfo: {
+    flex: 1,
+  },
+  templateName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  templateDescription: {
+    fontSize: 12,
+    color: colors.muted,
+    marginTop: spacing.sm,
+  },
+  templateSearchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    marginBottom: spacing.lg,
+    gap: spacing.md,
+  },
+  templateSearchInput: {
+    flex: 1,
+    color: '#fff',
+    fontSize: 16,
+  },
+  templateFilterBar: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+    flexWrap: 'wrap',
+  },
+  templateFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+  },
+  templateFilterButtonActive: {
+    backgroundColor: 'rgba(249, 115, 22, 0.1)',
+    borderColor: colors.primary,
+  },
+  templateFilterText: {
+    fontSize: 11,
+    color: colors.muted,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  templateFilterTextActive: {
+    color: colors.primary,
+  },
+  templateFolderSelector: {
+    marginBottom: spacing.lg,
+  },
+  templateFolderChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    marginRight: spacing.sm,
+  },
+  templateFolderChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  templateFolderChipText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  templateFolderChipTextActive: {
+    color: colors.background,
+  },
+  templateFolderChipNew: {
+    borderColor: colors.primary,
+  },
+  templateFolderIcon: {
+    fontSize: 14,
+  },
+  templateTagsSelector: {
+    marginBottom: spacing.lg,
+  },
+  templateTagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: 10,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    marginRight: spacing.sm,
+  },
+  templateTagChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  templateTagChipText: {
+    fontSize: 11,
+    color: colors.muted,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  templateTagChipTextActive: {
+    color: colors.background,
+  },
+  templateLoadingContainer: {
+    padding: 48,
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  templateLoadingText: {
+    color: colors.muted,
+    fontSize: 12,
+    fontFamily: 'monospace',
+    textTransform: 'uppercase',
+  },
+  templateEmptyContainer: {
+    padding: 48,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  templateEmptyText: {
+    color: colors.muted,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  templateEmptySubtext: {
+    color: '#475569',
+    fontSize: 12,
+  },
+  templateCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+  },
+  templateHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  templateFavoriteButton: {
+    padding: spacing.xs,
+  },
+  templateMetaRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  templateBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.surface,
+    borderRadius: 6,
+  },
+  templateBadgeText: {
+    fontSize: 9,
+    color: colors.muted,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  templateTagsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flexWrap: 'wrap',
+  },
+  templateTagBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    backgroundColor: colors.surface,
+    borderRadius: 4,
+  },
+  templateTagBadgeText: {
+    fontSize: 8,
+    color: colors.muted,
+  },
+  templateTagMore: {
+    fontSize: 8,
+    color: colors.muted,
+    marginLeft: spacing.xs,
+  },
+  templateActions: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  templateActionButton: {
+    padding: spacing.sm,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+  },
+
+  // Save Template
+  saveTemplateHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  saveTemplateSubtitle: {
+    fontSize: 12,
+    color: colors.muted,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  saveTemplateLabel: {
+    fontSize: 10,
+    color: colors.muted,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: spacing.sm,
+  },
+  saveTemplateFolderSelector: {
+    marginBottom: spacing.lg,
+    maxHeight: 50,
+  },
+  saveTemplateTagsContainer: {
+    marginBottom: spacing.lg,
+  },
+  saveTemplateTagsInput: {
+    minHeight: 40,
+  },
+  saveTemplateTagsInputContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  saveTemplateTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: 10,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    marginRight: spacing.sm,
+  },
+  saveTemplateTagText: {
+    fontSize: 12,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  saveTemplateTagInput: {
+    minWidth: 100,
+    paddingHorizontal: 10,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.sm,
+    color: '#fff',
+    fontSize: 12,
+  },
+  overviewSaveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#22d3ee',
+    backgroundColor: 'rgba(34, 211, 238, 0.1)',
+  },
+  overviewSaveButtonText: {
+    color: '#22d3ee',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  // Add Exercise
+  addExerciseOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+    zIndex: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+  },
+  addExerciseModal: {
+    width: '100%',
+    maxWidth: 400,
+    gap: spacing.md,
+  },
+  addExerciseTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    textAlign: 'center',
+  },
+  addExerciseInputContainer: {
+    position: 'relative',
+  },
+  addExerciseInput: {
+    width: '100%',
+    padding: spacing.lg,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: '#fff',
+    fontSize: 18,
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    marginTop: spacing.sm,
+    zIndex: 30,
+    maxHeight: 200,
+  },
+  suggestionItem: {
+    padding: spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  suggestionText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  addExerciseActions: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  addExerciseButton: {
+    flex: 1,
+  },
+  addExerciseCancel: {
+    padding: spacing.md,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
+  },
+
+  // Empty Workout
+  emptyWorkout: {
+    alignItems: 'center',
+    paddingTop: 32,
+  },
+  emptyWorkoutIcon: {
+    width: 96,
+    height: 96,
+    borderRadius: radii.full,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  emptyWorkoutTitle: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#fff',
+    fontStyle: 'italic',
+    marginBottom: spacing.sm,
+  },
+  emptyWorkoutSubtitle: {
+    color: colors.muted,
+    fontSize: 14,
+    fontFamily: 'monospace',
+    marginBottom: spacing.xl,
+  },
+  emptyWorkoutActions: {
+    width: '100%',
+    gap: spacing.lg,
+  },
+  emptyWorkoutButton: {
+    width: '100%',
+    paddingVertical: 24,
+  },
+  emptyWorkoutCustom: {
+    width: '100%',
+    paddingVertical: 20,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  emptyWorkoutCustomText: {
+    color: colors.muted,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    fontSize: 16,
+    letterSpacing: 1,
+  },
+
+  // Workout Container & Header
+  workoutContainer: {
+    gap: spacing.xl,
+  },
+  workoutHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  workoutDots: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+  },
+  workoutDot: {
+    width: 8,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.surface,
+  },
+  workoutDotActive: {
+    width: 32,
+    backgroundColor: colors.primary,
+  },
+  workoutHeaderActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  workoutHeaderButton: {
+    padding: spacing.sm,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+  },
+
+  // Workout List
+  workoutList: {
+    gap: spacing.lg,
+  },
+  workoutListItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  workoutListItemName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  workoutListItemInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  workoutListItemSets: {
+    fontSize: 12,
+    color: colors.muted,
+    fontFamily: 'monospace',
+  },
+  workoutListActions: {
+    gap: spacing.md,
+    marginTop: 32,
+  },
+  finishButton: {
+    width: '100%',
+    backgroundColor: colors.success,
+    borderColor: colors.successBright,
+  },
+  abortButton: {
+    width: '100%',
+    paddingVertical: spacing.md,
+  },
+  abortButtonText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: 'rgba(244, 63, 94, 0.5)',
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  // Workout Focus
+  workoutFocus: {
+    gap: spacing.xl,
+  },
+  workoutFocusHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  workoutNavButton: {
+    padding: spacing.md,
+    borderRadius: radii.full,
+    backgroundColor: colors.surface,
+  },
+  workoutNavButtonDisabled: {
+    opacity: 0.3,
+  },
+  workoutFocusTitle: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  workoutFocusTitleText: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  workoutFocusSubtitle: {
+    fontSize: 10,
+    color: colors.primary,
+    fontFamily: 'monospace',
+    letterSpacing: 2,
+    marginTop: spacing.xs,
+  },
+  workoutSets: {
+    gap: spacing.md,
+  },
+  workoutSet: {
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
+  },
+  workoutSetCompleted: {
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  },
+  workoutSetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  workoutSetNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  workoutSetNumberCompleted: {
+    backgroundColor: colors.success,
+  },
+  workoutSetNumberText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    color: colors.mutedAlt,
+  },
+  workoutSetDivider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.divider,
+  },
+  workoutSetCheck: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  workoutSetCheckCompleted: {
+    backgroundColor: colors.success,
+    borderColor: colors.success,
+  },
+  workoutSetControls: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+  },
+  workoutSetCompletedInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.sm,
+  },
+  workoutSetCompletedText: {
+    fontSize: 14,
+    fontFamily: 'monospace',
+    fontWeight: 'bold',
+    color: colors.success,
+  },
+  addSetButton: {
+    width: '100%',
+    paddingVertical: spacing.lg,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  addSetButtonText: {
+    color: colors.muted,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+  },
+  workoutFocusActions: {
+    gap: spacing.md,
+    paddingTop: spacing.lg,
+  },
+  nextButton: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  completeButton: {
+    width: '100%',
+    backgroundColor: colors.success,
+    borderColor: colors.successBright,
+  },
+
+  // Overview Screen
+  overviewContainer: {
+    flex: 1,
+    paddingBottom: spacing.xl,
+  },
+  overviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  overviewTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#fff',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  overviewSubtitle: {
+    fontSize: 12,
+    color: colors.muted,
+    fontFamily: 'monospace',
+    marginTop: spacing.sm,
+  },
+  overviewCloseButton: {
+    padding: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radii.sm,
+  },
+  overviewList: {
+    flex: 1,
+  },
+  overviewListContent: {
+    gap: spacing.md,
+    paddingBottom: spacing.xl,
+  },
+  overviewExerciseCard: {
+    padding: spacing.lg,
+  },
+  overviewExerciseContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  overviewExerciseNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overviewExerciseNumberText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
+    color: colors.mutedAlt,
+  },
+  overviewExerciseName: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  overviewExerciseNameInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    borderRadius: radii.sm,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  overviewExerciseActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  overviewActionButton: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.sm,
+    backgroundColor: colors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  overviewActionButtonDisabled: {
+    opacity: 0.3,
+  },
+  overviewActionButtonDelete: {
+    backgroundColor: 'rgba(248, 113, 113, 0.1)',
+  },
+  overviewActions: {
+    gap: spacing.md,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.divider,
+  },
+  overviewAddButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.lg,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+  },
+  overviewAddButtonText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  overviewStartButton: {
+    width: '100%',
+  },
+  backToOverviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radii.sm,
+    marginRight: spacing.md,
+  },
+  backToOverviewText: {
+    color: colors.mutedAlt,
+    fontSize: 12,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+});
+
+export default workoutStyles;
+

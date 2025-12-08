@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-nativ
 import { ArrowUp, ArrowDown, Trash2, Plus, Save, Play, X } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
-import styles from '../../../styles/appStyles';
+import workoutStyles from '../../../styles/workout';
 
 type WorkoutOverviewProps = {
   visibleWorkout: any[];
@@ -33,27 +33,27 @@ const WorkoutOverview = ({
   onEndEdit,
 }: WorkoutOverviewProps) => {
   return (
-    <View style={styles.overviewContainer}>
-      <View style={styles.overviewHeader}>
+    <View style={workoutStyles.overviewContainer}>
+      <View style={workoutStyles.overviewHeader}>
         <View>
-          <Text style={styles.overviewTitle}>WORKOUT OVERVIEW</Text>
-          <Text style={styles.overviewSubtitle}>{visibleWorkout.length} Exercises</Text>
+          <Text style={workoutStyles.overviewTitle}>WORKOUT OVERVIEW</Text>
+          <Text style={workoutStyles.overviewSubtitle}>{visibleWorkout.length} Exercises</Text>
         </View>
-        <TouchableOpacity onPress={onClose} style={styles.overviewCloseButton}>
+        <TouchableOpacity onPress={onClose} style={workoutStyles.overviewCloseButton}>
           <X size={24} color="#94a3b8" />
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.overviewList} contentContainerStyle={styles.overviewListContent}>
+      <ScrollView style={workoutStyles.overviewList} contentContainerStyle={workoutStyles.overviewListContent}>
         {visibleWorkout.map((ex: any, index: number) => (
-          <GlassCard key={ex.id} style={styles.overviewExerciseCard}>
-            <View style={styles.overviewExerciseContent}>
-              <View style={styles.overviewExerciseNumber}>
-                <Text style={styles.overviewExerciseNumberText}>{index + 1}</Text>
+          <GlassCard key={ex.id} style={workoutStyles.overviewExerciseCard}>
+            <View style={workoutStyles.overviewExerciseContent}>
+              <View style={workoutStyles.overviewExerciseNumber}>
+                <Text style={workoutStyles.overviewExerciseNumberText}>{index + 1}</Text>
               </View>
               {editingExerciseId === ex.id ? (
                 <TextInput
-                  style={styles.overviewExerciseNameInput}
+                  style={workoutStyles.overviewExerciseNameInput}
                   value={ex.name}
                   onChangeText={(text) => onRenameExercise(ex.id, text)}
                   onSubmitEditing={onEndEdit}
@@ -61,28 +61,28 @@ const WorkoutOverview = ({
                   autoFocus
                 />
               ) : (
-                <Text style={styles.overviewExerciseName} onPress={() => onBeginEdit(ex.id)}>
+                <Text style={workoutStyles.overviewExerciseName} onPress={() => onBeginEdit(ex.id)}>
                   {ex.name}
                 </Text>
               )}
-              <View style={styles.overviewExerciseActions}>
+              <View style={workoutStyles.overviewExerciseActions}>
                 <TouchableOpacity
                   onPress={() => onMoveExercise(ex.id, 'up')}
                   disabled={index === 0}
-                  style={[styles.overviewActionButton, index === 0 && styles.overviewActionButtonDisabled]}
+                  style={[workoutStyles.overviewActionButton, index === 0 && workoutStyles.overviewActionButtonDisabled]}
                 >
                   <ArrowUp size={16} color={index === 0 ? "#475569" : "#94a3b8"} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => onMoveExercise(ex.id, 'down')}
                   disabled={index === visibleWorkout.length - 1}
-                  style={[styles.overviewActionButton, index === visibleWorkout.length - 1 && styles.overviewActionButtonDisabled]}
+                  style={[workoutStyles.overviewActionButton, index === visibleWorkout.length - 1 && workoutStyles.overviewActionButtonDisabled]}
                 >
                   <ArrowDown size={16} color={index === visibleWorkout.length - 1 ? "#475569" : "#94a3b8"} />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => onDeleteExercise(ex.id)}
-                  style={[styles.overviewActionButton, styles.overviewActionButtonDelete]}
+                  style={[workoutStyles.overviewActionButton, workoutStyles.overviewActionButtonDelete]}
                 >
                   <Trash2 size={16} color="#f87171" />
                 </TouchableOpacity>
@@ -92,16 +92,16 @@ const WorkoutOverview = ({
         ))}
       </ScrollView>
 
-      <View style={styles.overviewActions}>
-        <TouchableOpacity onPress={onAddExercise} style={styles.overviewAddButton}>
+      <View style={workoutStyles.overviewActions}>
+        <TouchableOpacity onPress={onAddExercise} style={workoutStyles.overviewAddButton}>
           <Plus size={20} color="#f97316" />
-          <Text style={styles.overviewAddButtonText}>ADD EXERCISE</Text>
+          <Text style={workoutStyles.overviewAddButtonText}>ADD EXERCISE</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={onSaveTemplate} style={styles.overviewSaveButton}>
+        <TouchableOpacity onPress={onSaveTemplate} style={workoutStyles.overviewSaveButton}>
           <Save size={20} color="#22d3ee" />
-          <Text style={styles.overviewSaveButtonText}>SAVE TEMPLATE</Text>
+          <Text style={workoutStyles.overviewSaveButtonText}>SAVE TEMPLATE</Text>
         </TouchableOpacity>
-        <NeonButton onPress={onStartSession} style={styles.overviewStartButton} disabled={visibleWorkout.length === 0}>
+        <NeonButton onPress={onStartSession} style={workoutStyles.overviewStartButton} disabled={visibleWorkout.length === 0}>
           <Play size={20} color="#0f172a" />
           <Text style={{ marginLeft: 8 }}>START SESSION</Text>
         </NeonButton>

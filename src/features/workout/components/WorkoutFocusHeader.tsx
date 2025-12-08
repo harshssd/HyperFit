@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
-import styles from '../../../styles/appStyles';
+import workoutStyles from '../../../styles/workout';
 
 type WorkoutFocusHeaderProps = {
   currentExerciseName?: string;
@@ -19,18 +19,18 @@ const WorkoutFocusHeader = ({
   onNext,
 }: WorkoutFocusHeaderProps) => {
   return (
-    <View style={styles.workoutFocusHeader}>
+    <View style={workoutStyles.workoutFocusHeader}>
       <TouchableOpacity
         onPress={onPrev}
         disabled={currentIndex === 0}
-        style={[styles.workoutNavButton, currentIndex === 0 && styles.workoutNavButtonDisabled]}
+        style={[workoutStyles.workoutNavButton, currentIndex === 0 && workoutStyles.workoutNavButtonDisabled]}
       >
         <ChevronLeft size={24} color={currentIndex === 0 ? "#475569" : "#94a3b8"} />
       </TouchableOpacity>
 
-      <View style={styles.workoutFocusTitle}>
-        <Text style={styles.workoutFocusTitleText}>{currentExerciseName}</Text>
-        <Text style={styles.workoutFocusSubtitle}>
+      <View style={workoutStyles.workoutFocusTitle}>
+        <Text style={workoutStyles.workoutFocusTitleText}>{currentExerciseName}</Text>
+        <Text style={workoutStyles.workoutFocusSubtitle}>
           EXERCISE {currentIndex + 1} OF {totalExercises}
         </Text>
       </View>
@@ -38,7 +38,7 @@ const WorkoutFocusHeader = ({
       <TouchableOpacity
         onPress={onNext}
         disabled={currentIndex === totalExercises - 1}
-        style={[styles.workoutNavButton, currentIndex === totalExercises - 1 && styles.workoutNavButtonDisabled]}
+        style={[workoutStyles.workoutNavButton, currentIndex === totalExercises - 1 && workoutStyles.workoutNavButtonDisabled]}
       >
         <ChevronRight size={24} color={currentIndex === totalExercises - 1 ? "#475569" : "#94a3b8"} />
       </TouchableOpacity>

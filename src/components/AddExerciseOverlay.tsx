@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { X } from 'lucide-react-native';
 import NeonButton from './NeonButton';
-import styles from '../styles/appStyles';
+import workoutStyles from '../styles/workout';
 
 type AddExerciseOverlayProps = {
   visible: boolean;
@@ -26,13 +26,13 @@ const AddExerciseOverlay = ({
   if (!visible) return null;
 
   return (
-    <View style={styles.addExerciseOverlay}>
-      <View style={styles.addExerciseModal}>
-        <Text style={styles.addExerciseTitle}>ADD EXERCISE</Text>
-        <View style={styles.addExerciseInputContainer}>
+    <View style={workoutStyles.addExerciseOverlay}>
+      <View style={workoutStyles.addExerciseModal}>
+        <Text style={workoutStyles.addExerciseTitle}>ADD EXERCISE</Text>
+        <View style={workoutStyles.addExerciseInputContainer}>
           <TextInput
             autoFocus
-            style={styles.addExerciseInput}
+            style={workoutStyles.addExerciseInput}
             placeholder="Search..."
             placeholderTextColor="#64748b"
             value={newExerciseName}
@@ -40,24 +40,24 @@ const AddExerciseOverlay = ({
             onSubmitEditing={onSubmit}
           />
           {suggestions.length > 0 && (
-            <View style={styles.suggestionsContainer}>
+            <View style={workoutStyles.suggestionsContainer}>
               {suggestions.map((s, idx) => (
                 <TouchableOpacity
                   key={idx}
                   onPress={() => onSelectSuggestion(s)}
-                  style={styles.suggestionItem}
+                  style={workoutStyles.suggestionItem}
                 >
-                  <Text style={styles.suggestionText}>{s}</Text>
+                  <Text style={workoutStyles.suggestionText}>{s}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
-        <View style={styles.addExerciseActions}>
-          <NeonButton onPress={onSubmit} style={styles.addExerciseButton}>
+        <View style={workoutStyles.addExerciseActions}>
+          <NeonButton onPress={onSubmit} style={workoutStyles.addExerciseButton}>
             <Text>ADD</Text>
           </NeonButton>
-          <TouchableOpacity onPress={onClose} style={styles.addExerciseCancel}>
+          <TouchableOpacity onPress={onClose} style={workoutStyles.addExerciseCancel}>
             <X size={24} color="#94a3b8" />
           </TouchableOpacity>
         </View>

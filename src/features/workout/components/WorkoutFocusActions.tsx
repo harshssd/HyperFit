@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { ArrowRight } from 'lucide-react-native';
 import NeonButton from '../../../components/NeonButton';
-import styles from '../../../styles/appStyles';
+import workoutStyles from '../../../styles/workout';
 
 type WorkoutFocusActionsProps = {
   hasNext: boolean;
@@ -13,19 +13,19 @@ type WorkoutFocusActionsProps = {
 
 const WorkoutFocusActions = ({ hasNext, onNext, onFinish, onAbort }: WorkoutFocusActionsProps) => {
   return (
-    <View style={styles.workoutFocusActions}>
+    <View style={workoutStyles.workoutFocusActions}>
       {hasNext ? (
-        <NeonButton onPress={onNext} style={styles.nextButton}>
+        <NeonButton onPress={onNext} style={workoutStyles.nextButton}>
           <Text>NEXT EXERCISE</Text>
           <ArrowRight size={18} color="#0f172a" />
         </NeonButton>
       ) : (
-        <NeonButton onPress={onFinish} style={styles.completeButton}>
+        <NeonButton onPress={onFinish} style={workoutStyles.completeButton}>
           <Text>COMPLETE SESSION</Text>
         </NeonButton>
       )}
-      <TouchableOpacity onPress={onAbort} style={styles.abortButton}>
-        <Text style={styles.abortButtonText}>Abort Session</Text>
+      <TouchableOpacity onPress={onAbort} style={workoutStyles.abortButton}>
+        <Text style={workoutStyles.abortButtonText}>Abort Session</Text>
       </TouchableOpacity>
     </View>
   );

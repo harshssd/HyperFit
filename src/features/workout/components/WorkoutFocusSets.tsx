@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
 import NumberControl from '../../../components/NumberControl';
-import styles from '../../../styles/appStyles';
+import workoutStyles from '../../../styles/workout';
 
 type WorkoutFocusSetsProps = {
   currentExercise: any;
@@ -14,34 +14,34 @@ const WorkoutFocusSets = ({ currentExercise, getExerciseConfig, updateSet }: Wor
   if (!currentExercise) return null;
 
   return (
-    <View style={styles.workoutSets}>
+    <View style={workoutStyles.workoutSets}>
       {currentExercise.sets.map((set: any, setIndex: number) => {
         const exConfig = getExerciseConfig(currentExercise.name);
         return (
           <View
             key={set.id}
             style={[
-              styles.workoutSet,
-              set.completed && styles.workoutSetCompleted
+              workoutStyles.workoutSet,
+              set.completed && workoutStyles.workoutSetCompleted
             ]}
           >
-            <View style={styles.workoutSetHeader}>
-              <View style={[styles.workoutSetNumber, set.completed && styles.workoutSetNumberCompleted]}>
-                <Text style={styles.workoutSetNumberText}>{setIndex + 1}</Text>
+            <View style={workoutStyles.workoutSetHeader}>
+              <View style={[workoutStyles.workoutSetNumber, set.completed && workoutStyles.workoutSetNumberCompleted]}>
+                <Text style={workoutStyles.workoutSetNumberText}>{setIndex + 1}</Text>
               </View>
-              <View style={styles.workoutSetDivider} />
+              <View style={workoutStyles.workoutSetDivider} />
               <TouchableOpacity
                 onPress={() => updateSet(currentExercise.id, setIndex, 'completed', !set.completed)}
                 style={[
-                  styles.workoutSetCheck,
-                  set.completed && styles.workoutSetCheckCompleted
+                  workoutStyles.workoutSetCheck,
+                  set.completed && workoutStyles.workoutSetCheckCompleted
                 ]}
               >
                 <CheckCircle size={24} color={set.completed ? "#0f172a" : "#475569"} />
               </TouchableOpacity>
             </View>
             {!set.completed && (
-              <View style={styles.workoutSetControls}>
+              <View style={workoutStyles.workoutSetControls}>
                 <NumberControl
                   label={exConfig.weightLabel}
                   value={set.weight}
@@ -59,11 +59,11 @@ const WorkoutFocusSets = ({ currentExercise, getExerciseConfig, updateSet }: Wor
               </View>
             )}
             {set.completed && (
-              <View style={styles.workoutSetCompletedInfo}>
-                <Text style={styles.workoutSetCompletedText}>
+              <View style={workoutStyles.workoutSetCompletedInfo}>
+                <Text style={workoutStyles.workoutSetCompletedText}>
                   {set.weight || 0} {exConfig.weightLabel === 'LBS' ? 'LBS' : ''}
                 </Text>
-                <Text style={styles.workoutSetCompletedText}>
+                <Text style={workoutStyles.workoutSetCompletedText}>
                   {set.reps || 0} {exConfig.repLabel === 'REPS' ? 'REPS' : 'SEC'}
                 </Text>
               </View>

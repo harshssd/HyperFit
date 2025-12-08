@@ -33,7 +33,7 @@ import EmptyWorkoutCard from './components/EmptyWorkoutCard';
 import FinishedSessionView from './components/FinishedSessionView';
 import NeonButton from '../../components/NeonButton';
 import GlassCard from '../../components/GlassCard';
-import styles from '../../styles/appStyles';
+import workoutStyles from '../../styles/workout';
 import { Template, TemplateFolder, WorkoutExercise } from '../../types/workout';
 import {
   ASSETS,
@@ -487,7 +487,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
         onShareTemplate={shareTemplate}
       />
 
-      <ScrollView style={styles.gymView} contentContainerStyle={styles.gymViewContent}>
+      <ScrollView style={workoutStyles.gymView} contentContainerStyle={workoutStyles.gymViewContent}>
         <AddExerciseOverlay
           visible={isAddingExercise}
           newExerciseName={newExerciseName}
@@ -559,7 +559,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             }}
           />
         ) : (
-          <View style={styles.workoutContainer}>
+          <View style={workoutStyles.workoutContainer}>
             <WorkoutHeader
               isSessionActive={isSessionActive}
               viewMode={viewMode}
@@ -584,7 +584,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
                 onAbort={abortSession}
               />
             ) : (
-              <View style={styles.workoutFocus}>
+              <View style={workoutStyles.workoutFocus}>
                 <WorkoutFocusHeader
                   currentExerciseName={currentExercise?.name}
                   currentIndex={currentExIndex}
@@ -601,11 +601,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
                 <TouchableOpacity
                   onPress={() => currentExercise && addSet(currentExercise.id)}
-                  style={styles.addSetButton}
+                  style={workoutStyles.addSetButton}
                   disabled={!currentExercise}
                 >
                   <Plus size={16} color="#64748b" />
-                  <Text style={styles.addSetButtonText}>ADD SET</Text>
+                  <Text style={workoutStyles.addSetButtonText}>ADD SET</Text>
                 </TouchableOpacity>
 
                 <WorkoutFocusActions

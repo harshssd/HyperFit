@@ -2,7 +2,7 @@ import React, { RefObject } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { Save, X } from 'lucide-react-native';
 import NeonButton from './NeonButton';
-import styles from '../styles/appStyles';
+import workoutStyles from '../styles/workout';
 
 type SaveTemplateModalProps = {
   visible: boolean;
@@ -36,19 +36,19 @@ const SaveTemplateModal = ({
   if (!visible) return null;
 
   return (
-    <View style={styles.addExerciseOverlay}>
-      <View style={styles.addExerciseModal}>
-        <View style={styles.saveTemplateHeader}>
-          <Text style={styles.addExerciseTitle}>SAVE TEMPLATE</Text>
-          <TouchableOpacity onPress={onClose} style={styles.addExerciseCancel}>
+    <View style={workoutStyles.addExerciseOverlay}>
+      <View style={workoutStyles.addExerciseModal}>
+        <View style={workoutStyles.saveTemplateHeader}>
+          <Text style={workoutStyles.addExerciseTitle}>SAVE TEMPLATE</Text>
+          <TouchableOpacity onPress={onClose} style={workoutStyles.addExerciseCancel}>
             <X size={24} color="#94a3b8" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.saveTemplateSubtitle}>{exerciseCount} Exercises</Text>
+        <Text style={workoutStyles.saveTemplateSubtitle}>{exerciseCount} Exercises</Text>
 
-        <Text style={styles.saveTemplateLabel}>TEMPLATE NAME</Text>
+        <Text style={workoutStyles.saveTemplateLabel}>TEMPLATE NAME</Text>
         <TextInput
-          style={styles.addExerciseInput}
+          style={workoutStyles.addExerciseInput}
           placeholder="Enter template name..."
           placeholderTextColor="#64748b"
           value={templateName}
@@ -56,13 +56,13 @@ const SaveTemplateModal = ({
           autoFocus
         />
 
-        <Text style={[styles.saveTemplateLabel, { marginTop: 16 }]}>FOLDER (OPTIONAL)</Text>
-        <ScrollView horizontal style={styles.saveTemplateFolderSelector} showsHorizontalScrollIndicator={false}>
+        <Text style={[workoutStyles.saveTemplateLabel, { marginTop: 16 }]}>FOLDER (OPTIONAL)</Text>
+        <ScrollView horizontal style={workoutStyles.saveTemplateFolderSelector} showsHorizontalScrollIndicator={false}>
           <TouchableOpacity
             onPress={() => onSelectFolder(null)}
-            style={[styles.templateFolderChip, !saveTemplateFolder && styles.templateFolderChipActive]}
+            style={[workoutStyles.templateFolderChip, !saveTemplateFolder && workoutStyles.templateFolderChipActive]}
           >
-            <Text style={[styles.templateFolderChipText, !saveTemplateFolder && styles.templateFolderChipTextActive]}>
+            <Text style={[workoutStyles.templateFolderChipText, !saveTemplateFolder && workoutStyles.templateFolderChipTextActive]}>
               NO FOLDER
             </Text>
           </TouchableOpacity>
@@ -70,27 +70,27 @@ const SaveTemplateModal = ({
             <TouchableOpacity
               key={folder.id}
               onPress={() => onSelectFolder(folder.id)}
-              style={[styles.templateFolderChip, saveTemplateFolder === folder.id && styles.templateFolderChipActive]}
+              style={[workoutStyles.templateFolderChip, saveTemplateFolder === folder.id && workoutStyles.templateFolderChipActive]}
             >
-              <Text style={styles.templateFolderIcon}>{folder.icon || '📁'}</Text>
-              <Text style={[styles.templateFolderChipText, saveTemplateFolder === folder.id && styles.templateFolderChipTextActive]}>
+              <Text style={workoutStyles.templateFolderIcon}>{folder.icon || '📁'}</Text>
+              <Text style={[workoutStyles.templateFolderChipText, saveTemplateFolder === folder.id && workoutStyles.templateFolderChipTextActive]}>
                 {folder.name}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        <Text style={[styles.saveTemplateLabel, { marginTop: 16 }]}>TAGS (OPTIONAL)</Text>
-        <View style={styles.saveTemplateTagsContainer}>
+        <Text style={[workoutStyles.saveTemplateLabel, { marginTop: 16 }]}>TAGS (OPTIONAL)</Text>
+        <View style={workoutStyles.saveTemplateTagsContainer}>
           <ScrollView
             horizontal
-            style={styles.saveTemplateTagsInput}
-            contentContainerStyle={styles.saveTemplateTagsInputContent}
+            style={workoutStyles.saveTemplateTagsInput}
+            contentContainerStyle={workoutStyles.saveTemplateTagsInputContent}
             showsHorizontalScrollIndicator={false}
           >
             {saveTemplateTags.map((tag, idx) => (
-              <View key={idx} style={styles.saveTemplateTag}>
-                <Text style={styles.saveTemplateTagText}>{tag}</Text>
+              <View key={idx} style={workoutStyles.saveTemplateTag}>
+                <Text style={workoutStyles.saveTemplateTagText}>{tag}</Text>
                 <TouchableOpacity onPress={() => onChangeTags(saveTemplateTags.filter((_, i) => i !== idx))}>
                   <X size={12} color="#64748b" />
                 </TouchableOpacity>
@@ -98,7 +98,7 @@ const SaveTemplateModal = ({
             ))}
             <TextInput
               ref={saveTemplateTagInputRef}
-              style={styles.saveTemplateTagInput}
+              style={workoutStyles.saveTemplateTagInput}
               placeholder="Add tag..."
               placeholderTextColor="#64748b"
               onSubmitEditing={(e) => {
@@ -112,12 +112,12 @@ const SaveTemplateModal = ({
           </ScrollView>
         </View>
 
-        <View style={styles.addExerciseActions}>
-          <NeonButton onPress={onSave} style={styles.addExerciseButton} disabled={!templateName.trim()}>
+        <View style={workoutStyles.addExerciseActions}>
+          <NeonButton onPress={onSave} style={workoutStyles.addExerciseButton} disabled={!templateName.trim()}>
             <Save size={18} color="#0f172a" />
             <Text style={{ marginLeft: 8 }}>SAVE</Text>
           </NeonButton>
-          <TouchableOpacity onPress={onClose} style={styles.addExerciseCancel}>
+          <TouchableOpacity onPress={onClose} style={workoutStyles.addExerciseCancel}>
             <X size={24} color="#94a3b8" />
           </TouchableOpacity>
         </View>
