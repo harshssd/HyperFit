@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
-import NumberControl from './NumberControl';
-import styles from '../styles/appStyles';
+import NumberControl from '../../../components/NumberControl';
+import styles from '../../../styles/appStyles';
 
 type WorkoutFocusSetsProps = {
   currentExercise: any;

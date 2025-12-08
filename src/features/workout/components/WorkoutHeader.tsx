@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text } from 'react-native';
 import { ChevronLeft, List, Maximize2, Plus } from 'lucide-react-native';
-import styles from '../styles/appStyles';
+import styles from '../../../styles/appStyles';
 
 type WorkoutHeaderProps = {
   isSessionActive: boolean;

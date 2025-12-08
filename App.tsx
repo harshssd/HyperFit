@@ -90,18 +90,18 @@ import SaveTemplateModal from './src/components/SaveTemplateModal';
 import AddExerciseOverlay from './src/components/AddExerciseOverlay';
 import ChallengesViewComponent from './src/components/ChallengesView';
 import StepsViewComponent from './src/components/StepsView';
-import WorkoutHeader from './src/components/WorkoutHeader';
-import WorkoutFocusHeader from './src/components/WorkoutFocusHeader';
+import WorkoutHeader from './src/features/workout/components/WorkoutHeader';
+import WorkoutFocusHeader from './src/features/workout/components/WorkoutFocusHeader';
 import CreateFolderModal from './src/components/CreateFolderModal';
-import WorkoutOverview from './src/components/WorkoutOverview';
-import WorkoutListView from './src/components/WorkoutListView';
-import WorkoutFocusSets from './src/components/WorkoutFocusSets';
-import WorkoutFocusActions from './src/components/WorkoutFocusActions';
-import EmptyWorkoutCard from './src/components/EmptyWorkoutCard';
+import WorkoutOverview from './src/features/workout/components/WorkoutOverview';
+import WorkoutListView from './src/features/workout/components/WorkoutListView';
+import WorkoutFocusSets from './src/features/workout/components/WorkoutFocusSets';
+import WorkoutFocusActions from './src/features/workout/components/WorkoutFocusActions';
+import EmptyWorkoutCard from './src/features/workout/components/EmptyWorkoutCard';
 import HomeViewComponent from './src/components/HomeView';
 import StatsViewComponent from './src/components/StatsView';
 import Header from './src/components/Header';
-import FinishedSessionView from './src/components/FinishedSessionView';
+import FinishedSessionView from './src/features/workout/components/FinishedSessionView';
 import ProgressRing from './src/components/ProgressRing';
 import NavBar from './src/components/NavBar';
 import { GymView } from './src/features/workout';
@@ -345,4 +345,3 @@ export default function App() {
     </ImageBackground>
   );
 }
-

@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { ArrowUp, ArrowDown, Trash2, Plus, Save, Play, X } from 'lucide-react-native';
-import GlassCard from './GlassCard';
-import NeonButton from './NeonButton';
-import styles from '../styles/appStyles';
+import GlassCard from '../../../components/GlassCard';
+import NeonButton from '../../../components/NeonButton';
+import styles from '../../../styles/appStyles';
 
 type WorkoutOverviewProps = {
   visibleWorkout: any[];

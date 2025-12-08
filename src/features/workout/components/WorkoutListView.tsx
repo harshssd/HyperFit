@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { ChevronRight } from 'lucide-react-native';
-import GlassCard from './GlassCard';
-import NeonButton from './NeonButton';
-import styles from '../styles/appStyles';
+import GlassCard from '../../../components/GlassCard';
+import NeonButton from '../../../components/NeonButton';
+import styles from '../../../styles/appStyles';
 
 type WorkoutListViewProps = {
   visibleWorkout: any[];

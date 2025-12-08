@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Dumbbell, Layout, PlusCircle } from 'lucide-react-native';
-import NeonButton from './NeonButton';
-import styles from '../styles/appStyles';
+import NeonButton from '../../../components/NeonButton';
+import styles from '../../../styles/appStyles';
 
 type EmptyWorkoutCardProps = {
   onLoadTemplate: () => void;
