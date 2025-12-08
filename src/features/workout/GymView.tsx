@@ -51,6 +51,13 @@ type GymViewProps = {
 const GymView = ({ data, updateData, user }: GymViewProps) => {
   const DEFAULT_REST_SECONDS = 90;
   const REST_INCREMENT_SECONDS = 30;
+  const Haptics = (() => {
+    try {
+      return require('expo-haptics');
+    } catch {
+      return null;
+    }
+  })();
 
   const {
     today,
@@ -271,6 +278,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     try {
       const exercises = visibleWorkout.map((ex: any) => ex.name);
       await saveTemplateToSupabase(templateName, exercises, saveTemplateFolder, saveTemplateTags);
+      Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       showSuccess('Template saved successfully');
       setTemplateName('');
       setSaveTemplateFolder(null);
@@ -355,6 +363,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     const updatedSet: any = { ...sets[setIndex], [field]: value };
 
     if (field === 'completed' && value === true) {
+      Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       const now = Date.now();
       const elapsedSec = lastCompletedAt
         ? Math.max(0, Math.round((now - lastCompletedAt) / 1000))

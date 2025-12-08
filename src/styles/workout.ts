@@ -919,6 +919,25 @@ export const workoutStyles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
+  supersetConnectorWrapper: {
+    alignItems: 'center',
+    marginVertical: spacing.sm,
+  },
+  supersetConnectorOverview: {
+    alignItems: 'center',
+    marginVertical: spacing.sm,
+  },
+  supersetConnectorLine: {
+    width: 2,
+    height: 16,
+    backgroundColor: colors.border,
+    marginVertical: 2,
+  },
+  supersetLabel: {
+    fontSize: 10,
+    color: colors.mutedAlt,
+    letterSpacing: 1,
+  },
   overviewActionButton: {
     width: 36,
     height: 36,

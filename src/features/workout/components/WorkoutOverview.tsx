@@ -45,51 +45,69 @@ const WorkoutOverview = ({
       </View>
 
       <ScrollView style={workoutStyles.overviewList} contentContainerStyle={workoutStyles.overviewListContent}>
-        {visibleWorkout.map((ex: any, index: number) => (
-          <GlassCard key={ex.id} style={workoutStyles.overviewExerciseCard}>
-            <View style={workoutStyles.overviewExerciseContent}>
-              <View style={workoutStyles.overviewExerciseNumber}>
-                <Text style={workoutStyles.overviewExerciseNumberText}>{index + 1}</Text>
-              </View>
-              {editingExerciseId === ex.id ? (
-                <TextInput
-                  style={workoutStyles.overviewExerciseNameInput}
-                  value={ex.name}
-                  onChangeText={(text) => onRenameExercise(ex.id, text)}
-                  onSubmitEditing={onEndEdit}
-                  onBlur={onEndEdit}
-                  autoFocus
-                />
-              ) : (
-                <Text style={workoutStyles.overviewExerciseName} onPress={() => onBeginEdit(ex.id)}>
-                  {ex.name}
-                </Text>
+        {visibleWorkout.map((ex: any, index: number) => {
+          const next = visibleWorkout[index + 1];
+          const isSuperset =
+            ex.supersetGroupId !== undefined &&
+            next &&
+            next.supersetGroupId !== undefined &&
+            next.supersetGroupId === ex.supersetGroupId;
+
+          return (
+            <View key={ex.id}>
+              <GlassCard style={workoutStyles.overviewExerciseCard}>
+                <View style={workoutStyles.overviewExerciseContent}>
+                  <View style={workoutStyles.overviewExerciseNumber}>
+                    <Text style={workoutStyles.overviewExerciseNumberText}>{index + 1}</Text>
+                  </View>
+                  {editingExerciseId === ex.id ? (
+                    <TextInput
+                      style={workoutStyles.overviewExerciseNameInput}
+                      value={ex.name}
+                      onChangeText={(text) => onRenameExercise(ex.id, text)}
+                      onSubmitEditing={onEndEdit}
+                      onBlur={onEndEdit}
+                      autoFocus
+                    />
+                  ) : (
+                    <Text style={workoutStyles.overviewExerciseName} onPress={() => onBeginEdit(ex.id)}>
+                      {ex.name}
+                    </Text>
+                  )}
+                  <View style={workoutStyles.overviewExerciseActions}>
+                    <TouchableOpacity
+                      onPress={() => onMoveExercise(ex.id, 'up')}
+                      disabled={index === 0}
+                      style={[workoutStyles.overviewActionButton, index === 0 && workoutStyles.overviewActionButtonDisabled]}
+                    >
+                      <ArrowUp size={16} color={index === 0 ? "#475569" : "#94a3b8"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => onMoveExercise(ex.id, 'down')}
+                      disabled={index === visibleWorkout.length - 1}
+                      style={[workoutStyles.overviewActionButton, index === visibleWorkout.length - 1 && workoutStyles.overviewActionButtonDisabled]}
+                    >
+                      <ArrowDown size={16} color={index === visibleWorkout.length - 1 ? "#475569" : "#94a3b8"} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => onDeleteExercise(ex.id)}
+                      style={[workoutStyles.overviewActionButton, workoutStyles.overviewActionButtonDelete]}
+                    >
+                      <Trash2 size={16} color="#f87171" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </GlassCard>
+              {isSuperset && (
+                <View style={workoutStyles.supersetConnectorOverview}>
+                  <View style={workoutStyles.supersetConnectorLine} />
+                  <Text style={workoutStyles.supersetLabel}>SUPERSET</Text>
+                  <View style={workoutStyles.supersetConnectorLine} />
+                </View>
               )}
-              <View style={workoutStyles.overviewExerciseActions}>
-                <TouchableOpacity
-                  onPress={() => onMoveExercise(ex.id, 'up')}
-                  disabled={index === 0}
-                  style={[workoutStyles.overviewActionButton, index === 0 && workoutStyles.overviewActionButtonDisabled]}
-                >
-                  <ArrowUp size={16} color={index === 0 ? "#475569" : "#94a3b8"} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => onMoveExercise(ex.id, 'down')}
-                  disabled={index === visibleWorkout.length - 1}
-                  style={[workoutStyles.overviewActionButton, index === visibleWorkout.length - 1 && workoutStyles.overviewActionButtonDisabled]}
-                >
-                  <ArrowDown size={16} color={index === visibleWorkout.length - 1 ? "#475569" : "#94a3b8"} />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => onDeleteExercise(ex.id)}
-                  style={[workoutStyles.overviewActionButton, workoutStyles.overviewActionButtonDelete]}
-                >
-                  <Trash2 size={16} color="#f87171" />
-                </TouchableOpacity>
-              </View>
             </View>
-          </GlassCard>
-        ))}
+          );
+        })}
       </ScrollView>
 
       <View style={workoutStyles.overviewActions}>

@@ -12,6 +12,7 @@ export type WorkoutExercise = {
   name: string;
   sets: WorkoutSet[];
   archived?: boolean;
+  supersetGroupId?: string | number;
 };
 
 export type WorkoutStatus = {

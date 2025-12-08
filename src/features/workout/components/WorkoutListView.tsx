@@ -15,21 +15,38 @@ type WorkoutListViewProps = {
 const WorkoutListView = ({ visibleWorkout, onSelectExercise, onFinish, onAbort }: WorkoutListViewProps) => {
   return (
     <View style={workoutStyles.workoutList}>
-      {visibleWorkout.map((ex: any, i: number) => (
-        <GlassCard
-          key={ex.id}
-          onPress={() => onSelectExercise(i)}
-          style={workoutStyles.workoutListItem}
-        >
-          <Text style={workoutStyles.workoutListItemName}>{ex.name}</Text>
-          <View style={workoutStyles.workoutListItemInfo}>
-            <Text style={workoutStyles.workoutListItemSets}>
-              {ex.sets.filter((s: any) => s.completed).length}/{ex.sets.length} SETS
-            </Text>
-            <ChevronRight size={16} color="#64748b" />
+      {visibleWorkout.map((ex: any, i: number) => {
+        const next = visibleWorkout[i + 1];
+        const isSuperset =
+          ex.supersetGroupId !== undefined &&
+          next &&
+          next.supersetGroupId !== undefined &&
+          next.supersetGroupId === ex.supersetGroupId;
+
+        return (
+          <View key={ex.id}>
+            <GlassCard
+              onPress={() => onSelectExercise(i)}
+              style={workoutStyles.workoutListItem}
+            >
+              <Text style={workoutStyles.workoutListItemName}>{ex.name}</Text>
+              <View style={workoutStyles.workoutListItemInfo}>
+                <Text style={workoutStyles.workoutListItemSets}>
+                  {ex.sets.filter((s: any) => s.completed).length}/{ex.sets.length} SETS
+                </Text>
+                <ChevronRight size={16} color="#64748b" />
+              </View>
+            </GlassCard>
+            {isSuperset && (
+              <View style={workoutStyles.supersetConnectorWrapper}>
+                <View style={workoutStyles.supersetConnectorLine} />
+                <Text style={workoutStyles.supersetLabel}>SUPERSET</Text>
+                <View style={workoutStyles.supersetConnectorLine} />
+              </View>
+            )}
           </View>
-        </GlassCard>
-      ))}
+        );
+      })}
       <View style={workoutStyles.workoutListActions}>
         <NeonButton onPress={onFinish} style={workoutStyles.finishButton}>
           <Text>FINISH WORKOUT</Text>
