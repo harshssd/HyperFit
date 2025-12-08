@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
-import styles from '../styles/appStyles';
+import { navbarStyles } from '../styles';
 
 type IconType = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 
@@ -17,15 +17,15 @@ type NavBarProps = {
 };
 
 const NavItem = ({ id, icon: Icon, isActive, onPress }: { id: string; icon: IconType; isActive: boolean; onPress: () => void }) => (
-  <TouchableOpacity onPress={onPress} style={styles.navItem}>
+  <TouchableOpacity onPress={onPress} style={navbarStyles.navItem}>
     <Icon size={24} color={isActive ? "#22d3ee" : "#475569"} strokeWidth={isActive ? 2.5 : 2} />
-    {isActive && <View style={styles.navItemIndicator} />}
+    {isActive && <View style={navbarStyles.navItemIndicator} />}
   </TouchableOpacity>
 );
 
 const NavBar = ({ activeTab, items, onChange }: NavBarProps) => {
   return (
-    <View style={styles.navBar}>
+    <View style={navbarStyles.navBar}>
       {items.map((item) => (
         <NavItem
           key={item.id}

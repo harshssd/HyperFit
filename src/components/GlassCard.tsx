@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, ViewStyle, StyleProp } from 'react-native';
-import styles from '../styles/appStyles';
+import { cardsStyles } from '../styles';
 
 type GlassCardProps = {
   children: React.ReactNode;
@@ -14,9 +14,9 @@ const GlassCard = ({ children, style, onPress, noPadding = false }: GlassCardPro
     onPress={onPress}
     activeOpacity={0.9}
     style={[
-      styles.glassCard,
-      noPadding && styles.glassCardNoPadding,
-      onPress && styles.glassCardPressable,
+      cardsStyles.glassCard,
+      noPadding && cardsStyles.glassCardNoPadding,
+      onPress && cardsStyles.glassCardPressable,
       style,
     ]}
   >

@@ -1,6 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, View, Text, ViewStyle, StyleProp } from 'react-native';
-import styles from '../styles/appStyles';
+import { buttonStyles } from '../styles';
 
 type NeonButtonProps = {
   children: React.ReactNode;
@@ -11,24 +11,24 @@ type NeonButtonProps = {
 };
 
 const NeonButton = ({ children, onPress, variant = 'primary', style, disabled }: NeonButtonProps) => {
-  const baseStyle = [styles.neonButton, styles.neonButtonBase];
+  const baseStyle = [buttonStyles.neonButton, buttonStyles.neonButtonBase];
   const variants: Record<string, any> = {
-    primary: styles.neonButtonPrimary,
-    secondary: styles.neonButtonSecondary,
-    danger: styles.neonButtonDanger,
-    ghost: styles.neonButtonGhost,
+    primary: buttonStyles.neonButtonPrimary,
+    secondary: buttonStyles.neonButtonSecondary,
+    danger: buttonStyles.neonButtonDanger,
+    ghost: buttonStyles.neonButtonGhost,
   };
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled}
-      style={[baseStyle, variants[variant], disabled && styles.neonButtonDisabled, style]}
+      style={[baseStyle, variants[variant], disabled && buttonStyles.neonButtonDisabled, style]}
       activeOpacity={0.8}
     >
-      <View style={styles.neonButtonContent}>
+      <View style={buttonStyles.neonButtonContent}>
         {typeof children === 'string' ? (
-          <Text style={[styles.neonButtonText, variant === 'primary' && styles.neonButtonTextPrimary]}>
+          <Text style={[buttonStyles.neonButtonText, variant === 'primary' && buttonStyles.neonButtonTextPrimary]}>
             {children}
           </Text>
         ) : (

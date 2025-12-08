@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Minus, Plus } from 'lucide-react-native';
-import styles from '../styles/appStyles';
+import { numberControlStyles } from '../styles';
 
 type NumberControlProps = {
   value: string | number;
@@ -15,17 +15,17 @@ const NumberControl = ({ value, onChange, step = 1, label, placeholder }: Number
   const safeValue = value === '' ? 0 : parseInt(String(value), 10);
 
   return (
-    <View style={styles.numberControl}>
-      {label ? <Text style={styles.numberControlLabel}>{label}</Text> : null}
-      <View style={styles.numberControlContainer}>
+    <View style={numberControlStyles.numberControl}>
+      {label ? <Text style={numberControlStyles.numberControlLabel}>{label}</Text> : null}
+      <View style={numberControlStyles.numberControlContainer}>
         <TouchableOpacity
           onPress={() => onChange(Math.max(0, safeValue - step) === 0 ? '' : Math.max(0, safeValue - step))}
-          style={styles.numberControlButton}
+          style={numberControlStyles.numberControlButton}
         >
           <Minus size={16} color="#94a3b8" />
         </TouchableOpacity>
         <TextInput
-          style={styles.numberControlInput}
+          style={numberControlStyles.numberControlInput}
           value={String(value)}
           placeholder={placeholder}
           placeholderTextColor="#64748b"
@@ -34,7 +34,7 @@ const NumberControl = ({ value, onChange, step = 1, label, placeholder }: Number
         />
         <TouchableOpacity
           onPress={() => onChange(safeValue + step)}
-          style={styles.numberControlButton}
+          style={numberControlStyles.numberControlButton}
         >
           <Plus size={16} color="#94a3b8" />
         </TouchableOpacity>

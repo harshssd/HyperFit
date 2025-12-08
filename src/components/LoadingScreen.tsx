@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
-import styles from '../styles/appStyles';
+import { layoutStyles } from '../styles';
 
 type LoadingScreenProps = {
   message?: string;
@@ -8,9 +8,9 @@ type LoadingScreenProps = {
 
 const LoadingScreen = ({ message = 'Loading...' }: LoadingScreenProps) => {
   return (
-    <View style={styles.loadingContainer}>
+    <View style={layoutStyles.loadingContainer}>
       <ActivityIndicator size="large" color="#22d3ee" />
-      <Text style={styles.loadingText}>{message}</Text>
+      <Text style={layoutStyles.loadingText}>{message}</Text>
     </View>
   );
 };

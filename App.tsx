@@ -16,7 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
-import styles from './src/styles/appStyles';
+import { layoutStyles } from './src/styles';
 
 // Complete auth session for OAuth
 WebBrowser.maybeCompleteAuthSession();
@@ -321,18 +321,18 @@ export default function App() {
   return (
     <ImageBackground
       source={{ uri: ASSETS.background }}
-      style={styles.appContainer}
+      style={layoutStyles.appContainer}
       resizeMode="cover"
     >
-      <View style={styles.appOverlay} />
-      <SafeAreaView style={styles.appContent} edges={['top']}>
+      <View style={layoutStyles.appOverlay} />
+      <SafeAreaView style={layoutStyles.appContent} edges={['top']}>
         <Header
           streak={data.gymLogs.length}
           xp={calculateXP(data)}
           onLogout={handleLogout}
           username={user.email?.split('@')[0] || user.user_metadata?.full_name || 'User'}
         />
-        <ScrollView style={styles.mainContent} contentContainerStyle={styles.mainContentContainer}>
+        <ScrollView style={layoutStyles.mainContent} contentContainerStyle={layoutStyles.mainContentContainer}>
           {renderContent()}
         </ScrollView>
         <NavBar

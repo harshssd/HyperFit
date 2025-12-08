@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, Text } from 'react-native';
 import GlassCard from './GlassCard';
-import styles from '../styles/appStyles';
+import { statsStyles } from '../styles';
 import { getRank, calculateXP } from '../features/workout/helpers';
 
 type StatsViewProps = {
@@ -13,18 +13,18 @@ const StatsView = ({ data }: StatsViewProps) => {
   const currentRank = getRank(xp);
 
   return (
-    <ScrollView style={styles.statsView} contentContainerStyle={styles.statsViewContent}>
-      <GlassCard style={styles.statsCard}>
-        <Text style={styles.statsCardTitle}>TOTAL XP</Text>
-        <Text style={styles.statsCardValue}>{xp.toLocaleString()}</Text>
+    <ScrollView style={statsStyles.statsView} contentContainerStyle={statsStyles.statsViewContent}>
+      <GlassCard style={statsStyles.statsCard}>
+        <Text style={statsStyles.statsCardTitle}>TOTAL XP</Text>
+        <Text style={statsStyles.statsCardValue}>{xp.toLocaleString()}</Text>
       </GlassCard>
-      <GlassCard style={styles.statsCard}>
-        <Text style={styles.statsCardTitle}>RANK</Text>
-        <Text style={[styles.statsCardValue, { color: currentRank.color }]}>{currentRank.title}</Text>
+      <GlassCard style={statsStyles.statsCard}>
+        <Text style={statsStyles.statsCardTitle}>RANK</Text>
+        <Text style={[statsStyles.statsCardValue, { color: currentRank.color }]}>{currentRank.title}</Text>
       </GlassCard>
-      <GlassCard style={styles.statsCard}>
-        <Text style={styles.statsCardTitle}>GYM SESSIONS</Text>
-        <Text style={styles.statsCardValue}>{data?.gymLogs?.length || 0}</Text>
+      <GlassCard style={statsStyles.statsCard}>
+        <Text style={statsStyles.statsCardTitle}>GYM SESSIONS</Text>
+        <Text style={statsStyles.statsCardValue}>{data?.gymLogs?.length || 0}</Text>
       </GlassCard>
     </ScrollView>
   );

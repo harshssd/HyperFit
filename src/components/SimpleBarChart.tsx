@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import styles from '../styles/appStyles';
+import { statsStyles } from '../styles';
 
 type SimpleBarChartProps = {
   data: Array<{ label: string; value: number }>;
@@ -10,8 +10,8 @@ type SimpleBarChartProps = {
 const SimpleBarChart = ({ data, color = '#f97316' }: SimpleBarChartProps) => {
   if (!data || data.length === 0) {
     return (
-      <View style={styles.chartEmpty}>
-        <Text style={styles.chartEmptyText}>NO DATA DETECTED</Text>
+      <View style={statsStyles.chartEmpty}>
+        <Text style={statsStyles.chartEmptyText}>NO DATA DETECTED</Text>
       </View>
     );
   }
@@ -19,18 +19,18 @@ const SimpleBarChart = ({ data, color = '#f97316' }: SimpleBarChartProps) => {
   const maxVal = Math.max(...data.map((d) => d.value));
 
   return (
-    <View style={styles.chartContainer}>
+    <View style={statsStyles.chartContainer}>
       {data.map((item, i) => (
-        <View key={i} style={styles.chartBarWrapper}>
-          <View style={styles.chartBarContainer}>
+        <View key={i} style={statsStyles.chartBarWrapper}>
+          <View style={statsStyles.chartBarContainer}>
             <View
               style={[
-                styles.chartBar,
+                statsStyles.chartBar,
                 { backgroundColor: color, height: `${maxVal > 0 ? (item.value / maxVal) * 100 : 0}%` },
               ]}
             />
           </View>
-          <Text style={styles.chartLabel}>{item.label.slice(0, 3)}</Text>
+          <Text style={statsStyles.chartLabel}>{item.label.slice(0, 3)}</Text>
         </View>
       ))}
     </View>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, ImageBackground, TouchableOpacity, TextInput } from 'react-native';
 import { Zap, AlertTriangle, Loader } from 'lucide-react-native';
 import NeonButton from './NeonButton';
-import styles from '../styles/appStyles';
+import { loginStyles } from '../styles';
 import { ASSETS } from '../constants/appConstants';
 
 type LoginViewProps = {
@@ -53,35 +53,35 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
   return (
     <ImageBackground
       source={{ uri: ASSETS.background }}
-      style={styles.loginContainer}
+      style={loginStyles.loginContainer}
       resizeMode="cover"
     >
       <ScrollView 
-        contentContainerStyle={styles.loginScrollContent}
+        contentContainerStyle={loginStyles.loginScrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.loginCard}>
-          <View style={styles.loginHeader}>
-            <View style={styles.loginLogo}>
+        <View style={loginStyles.loginCard}>
+          <View style={loginStyles.loginHeader}>
+            <View style={loginStyles.loginLogo}>
               <Zap size={32} color="#0f172a" />
             </View>
-            <Text style={styles.loginTitle}>
-              HYPER<Text style={styles.loginTitleAccent}>FIT</Text>
+            <Text style={loginStyles.loginTitle}>
+              HYPER<Text style={loginStyles.loginTitleAccent}>FIT</Text>
             </Text>
-            <Text style={styles.loginSubtitle}>Next Gen Training OS</Text>
+            <Text style={loginStyles.loginSubtitle}>Next Gen Training OS</Text>
           </View>
 
-          <View style={styles.loginForm}>
+          <View style={loginStyles.loginForm}>
             {error ? (
-              <View style={styles.loginError}>
+              <View style={loginStyles.loginError}>
                 <AlertTriangle size={16} color="#f87171" />
-                <Text style={styles.loginErrorText}>{error}</Text>
+                <Text style={loginStyles.loginErrorText}>{error}</Text>
               </View>
             ) : null}
 
-            <Text style={styles.loginLabel}>EMAIL</Text>
+            <Text style={loginStyles.loginLabel}>EMAIL</Text>
             <TextInput
-              style={styles.loginInput}
+              style={loginStyles.loginInput}
               placeholder="your.email@example.com"
               placeholderTextColor="#64748b"
               value={email}
@@ -92,9 +92,9 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
               textContentType="emailAddress"
             />
 
-            <Text style={[styles.loginLabel, { marginTop: 16 }]}>PASSWORD</Text>
+            <Text style={[loginStyles.loginLabel, { marginTop: 16 }]}>PASSWORD</Text>
             <TextInput
-              style={styles.loginInput}
+              style={loginStyles.loginInput}
               placeholder="Enter password"
               placeholderTextColor="#64748b"
               value={password}
@@ -109,7 +109,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
             <NeonButton 
               onPress={handleEmailAuth} 
               disabled={isLoading} 
-              style={styles.loginButton}
+              style={loginStyles.loginButton}
             >
               {isLoading ? (
                 <Loader size={20} color="#0f172a" />
@@ -120,32 +120,32 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
 
             <TouchableOpacity
               onPress={() => setIsSignUp(!isSignUp)}
-              style={styles.loginToggle}
+              style={loginStyles.loginToggle}
             >
-              <Text style={styles.loginToggleText}>
+              <Text style={loginStyles.loginToggleText}>
                 {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
               </Text>
             </TouchableOpacity>
 
-            <View style={styles.loginDivider}>
-              <View style={styles.loginDividerLine} />
-              <Text style={styles.loginDividerText}>OR</Text>
-              <View style={styles.loginDividerLine} />
+            <View style={loginStyles.loginDivider}>
+              <View style={loginStyles.loginDividerLine} />
+              <Text style={loginStyles.loginDividerText}>OR</Text>
+              <View style={loginStyles.loginDividerLine} />
             </View>
 
             <TouchableOpacity
               onPress={handleGoogleLogin}
               disabled={isLoading}
-              style={[styles.googleButton, isLoading && styles.googleButtonDisabled]}
+              style={[loginStyles.googleButton, isLoading && loginStyles.googleButtonDisabled]}
             >
-              <View style={styles.googleButtonContent}>
-                <Text style={styles.googleIcon}>G</Text>
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              <View style={loginStyles.googleButtonContent}>
+                <Text style={loginStyles.googleIcon}>G</Text>
+                <Text style={loginStyles.googleButtonText}>Continue with Google</Text>
               </View>
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.loginFooter}>V 2.1.0 // SECURE CONNECTION</Text>
+          <Text style={loginStyles.loginFooter}>V 2.1.0 // SECURE CONNECTION</Text>
         </View>
       </ScrollView>
     </ImageBackground>

@@ -1,14 +1,14 @@
 import React from 'react';
 import { ScrollView, Text } from 'react-native';
 import GlassCard from './GlassCard';
-import styles from '../styles/appStyles';
+import { challengesStyles } from '../styles';
 
 const ChallengesView = () => {
   return (
-    <ScrollView style={styles.challengesView} contentContainerStyle={styles.challengesViewContent}>
-      <GlassCard style={styles.emptyCard}>
-        <Text style={styles.sectionTitle}>CHALLENGES</Text>
-        <Text style={styles.emptyCardText}>Nothing here yet. Coming soon.</Text>
+    <ScrollView style={challengesStyles.challengesView} contentContainerStyle={challengesStyles.challengesViewContent}>
+      <GlassCard style={challengesStyles.emptyCard}>
+        <Text style={challengesStyles.sectionTitle}>CHALLENGES</Text>
+        <Text style={challengesStyles.emptyCardText}>Nothing here yet. Coming soon.</Text>
       </GlassCard>
     </ScrollView>
   );

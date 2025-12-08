@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, Text, TouchableOpacity } from 'react-native';
 import { Dumbbell } from 'lucide-react-native';
 import GlassCard from './GlassCard';
-import styles from '../styles/appStyles';
+import { homeStyles } from '../styles';
 
 type HomeViewProps = {
   data: any;
@@ -13,15 +13,15 @@ type HomeViewProps = {
 
 const HomeView = ({ data, onChangeView, streak, xp }: HomeViewProps) => {
   return (
-    <ScrollView style={styles.homeView} contentContainerStyle={styles.homeViewContent}>
-      <GlassCard style={styles.homeCard}>
-        <Text style={styles.homeCardTitle}>WELCOME BACK</Text>
-        <Text style={styles.homeCardSubtitle}>Ready to train?</Text>
-        <Text style={styles.homeCardSubtitle}>Streak: {streak} | XP: {xp}</Text>
+    <ScrollView style={homeStyles.homeView} contentContainerStyle={homeStyles.homeViewContent}>
+      <GlassCard style={homeStyles.homeCard}>
+        <Text style={homeStyles.homeCardTitle}>WELCOME BACK</Text>
+        <Text style={homeStyles.homeCardSubtitle}>Ready to train?</Text>
+        <Text style={homeStyles.homeCardSubtitle}>Streak: {streak} | XP: {xp}</Text>
       </GlassCard>
-      <TouchableOpacity onPress={() => onChangeView('gym')} style={styles.homeQuickAction}>
+      <TouchableOpacity onPress={() => onChangeView('gym')} style={homeStyles.homeQuickAction}>
         <Dumbbell size={24} color="#f97316" />
-        <Text style={styles.homeQuickActionText}>START WORKOUT</Text>
+        <Text style={homeStyles.homeQuickActionText}>START WORKOUT</Text>
       </TouchableOpacity>
     </ScrollView>
   );

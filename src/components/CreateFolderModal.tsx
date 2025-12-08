@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { FolderPlus, X } from 'lucide-react-native';
 import NeonButton from './NeonButton';
-import styles from '../styles/appStyles';
+import { workoutStyles } from '../styles';
 
 type CreateFolderModalProps = {
   visible: boolean;
@@ -24,21 +24,21 @@ const CreateFolderModal = ({
   const trimmed = newFolderName.trim();
 
   return (
-    <View style={styles.addExerciseOverlay}>
-      <View style={styles.addExerciseModal}>
-        <View style={styles.saveTemplateHeader}>
-          <Text style={styles.addExerciseTitle}>CREATE FOLDER</Text>
+    <View style={workoutStyles.addExerciseOverlay}>
+      <View style={workoutStyles.addExerciseModal}>
+        <View style={workoutStyles.saveTemplateHeader}>
+          <Text style={workoutStyles.addExerciseTitle}>CREATE FOLDER</Text>
           <TouchableOpacity
             onPress={onClose}
-            style={styles.addExerciseCancel}
+            style={workoutStyles.addExerciseCancel}
           >
             <X size={24} color="#94a3b8" />
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.saveTemplateLabel}>FOLDER NAME</Text>
+        <Text style={workoutStyles.saveTemplateLabel}>FOLDER NAME</Text>
         <TextInput
-          style={styles.addExerciseInput}
+          style={workoutStyles.addExerciseInput}
           placeholder="Enter folder name..."
           placeholderTextColor="#64748b"
           value={newFolderName}
@@ -49,16 +49,16 @@ const CreateFolderModal = ({
           }}
         />
 
-        <View style={styles.addExerciseActions}>
+        <View style={workoutStyles.addExerciseActions}>
           <NeonButton
             onPress={onCreate}
-            style={styles.addExerciseButton}
+            style={workoutStyles.addExerciseButton}
             disabled={!trimmed}
           >
             <FolderPlus size={18} color="#0f172a" />
             <Text style={{ marginLeft: 8 }}>CREATE</Text>
           </NeonButton>
-          <TouchableOpacity onPress={onClose} style={styles.addExerciseCancel}>
+          <TouchableOpacity onPress={onClose} style={workoutStyles.addExerciseCancel}>
             <X size={24} color="#94a3b8" />
           </TouchableOpacity>
         </View>
