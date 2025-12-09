@@ -54,7 +54,7 @@ import NeonButton from '../../components/NeonButton';
 import GlassCard from '../../components/GlassCard';
 import workoutStyles from '../../styles/workout';
 import { getAllExerciseNames } from './workoutConfig';
-import { calculateTotalVolume, getExerciseConfig, calculateXP } from './helpers';
+import { calculateTotalVolume, getExerciseConfig, calculateXP, getNextScheduledWorkout, planToWorkout } from './helpers';
 import { WorkoutPlan } from '../../types/workout';
 import { ABORT_SESSION_MESSAGE, ABORT_SESSION_TITLE } from '../../constants/text';
 import { confirmAction, showError, showSuccess } from '../../utils/alerts';
@@ -161,6 +161,9 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     todaysWorkout,
     isCheckedIn,
   });
+
+  // Get the active user workout plan for use across handlers
+  const activeUserPlan = (data.userWorkoutPlans || []).find((plan: any) => plan.isActive);
 
   const startSessionHandler = () => {
     startSessionView();
@@ -442,6 +445,37 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     handleQuickWorkout(workoutType);
   };
 
+  const handleStartScheduledWorkout = (date: Date, workout: any) => {
+    if (!activeUserPlan?.planData) return;
+
+    // Find the scheduled session for this date
+    const dayOfWeek = date.getDay();
+    const dayNames: (keyof WorkoutPlan['schedule'])[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = dayNames[dayOfWeek];
+    const dailySchedule = activeUserPlan.planData.schedule[dayName] || [];
+
+    if (dailySchedule.length > 0) {
+      const scheduledSession = dailySchedule[0];
+      const session = activeUserPlan.planData.sessions.find((s: any) => s.id === scheduledSession.sessionId);
+
+      if (session) {
+        // Convert the session exercises to workout format and start it
+        const newExercises = session.exercises.map((exercise: any, index: number) => ({
+          id: `${Date.now()}-${index}-${Math.random()}`,
+          name: exercise.name,
+          sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }],
+        }));
+
+        const updatedWorkouts = { ...data.workouts, [today]: [...todaysWorkout, ...newExercises] };
+        const newLogs = !isCheckedIn ? [...(data.gymLogs || []), today] : data.gymLogs || [];
+        updateData({ ...data, workouts: updatedWorkouts, gymLogs: newLogs });
+
+        setShowOverview(true);
+        showSuccess(`Started ${session.name}!`);
+      }
+    }
+  };
+
   const handleEditPlan = () => {
     // TODO: Open plan editor for active plan
     showSuccess('Plan editor coming soon!');
@@ -456,7 +490,6 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const handleEndPlan = () => {
-    const activeUserPlan = (data.userWorkoutPlans || []).find((plan: any) => plan.isActive);
     if (activeUserPlan) {
       const updatedUserPlans = (data.userWorkoutPlans || []).map((plan: any) => ({
         ...plan,
@@ -693,9 +726,9 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
       const workoutPlans: WorkoutPlan[] = data.workoutPlans || [];
       const userWorkoutPlans: any[] = data.userWorkoutPlans || [];
-      const activeUserPlan = userWorkoutPlans.find((plan: any) => plan.isActive);
       const activePlan = activeUserPlan?.planData;
       const activePlanForDisplay = activeUserPlan;
+      const nextScheduledWorkout = getNextScheduledWorkout(activeUserPlan);
 
       return (
         <>
@@ -717,12 +750,15 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
           onCreateFromExisting={handleCreateFromExisting}
           onEndPlan={handleEndPlan}
           onSelectWorkout={handleSelectWorkout}
+          onStartScheduledWorkout={handleStartScheduledWorkout}
+          onStartCalendarWorkout={handleStartScheduledWorkout}
           recentWorkouts={recentWorkouts}
           workoutPlans={workoutPlans}
           activePlan={activePlanForDisplay}
           onActivatePlan={handleActivatePlan}
           userEquipment="gym" // TODO: Get from user preferences
           userFrequency={3} // TODO: Get from user preferences
+          nextScheduledWorkout={nextScheduledWorkout}
         />
 
           <WorkoutPlansLibrary

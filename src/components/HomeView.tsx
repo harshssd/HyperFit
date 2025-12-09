@@ -19,7 +19,7 @@ import SimpleBarChart from './SimpleBarChart';
 
 const HomeView = ({ data, onChangeView, streak, xp }: HomeViewProps) => {
   const today = new Date();
-  const todaysWorkout = getWorkoutForDate(today, [], data.workoutPlans?.find(p => p.id === data.activePlanId));
+  const todaysWorkout = getWorkoutForDate(today, [], data.userWorkoutPlans?.find(p => p.isActive));
 
   // Calculate Weekly Consistency
   const getWeeklyData = () => {

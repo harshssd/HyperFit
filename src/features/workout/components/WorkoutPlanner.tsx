@@ -30,12 +30,15 @@ type WorkoutPlannerProps = {
   onCreateFromExisting: () => void;
   onEndPlan: () => void;
   onSelectWorkout: (workoutType: string, planId?: string) => void;
+  onStartScheduledWorkout?: (date: Date, workout: any) => void;
+  onStartCalendarWorkout?: (date: Date, workout: any) => void;
   recentWorkouts?: any[];
   workoutPlans?: WorkoutPlan[];
   activePlan?: any; // UserWorkoutPlan
   onActivatePlan: (planId: string) => void;
   userEquipment?: WorkoutPlan['equipment'];
   userFrequency?: number;
+  nextScheduledWorkout?: any;
 };
 
 const WorkoutPlanner = ({
@@ -50,12 +53,15 @@ const WorkoutPlanner = ({
   onCreateFromExisting,
   onEndPlan,
   onSelectWorkout,
+  onStartScheduledWorkout,
+  onStartCalendarWorkout,
   recentWorkouts = [],
   workoutPlans = [],
   activePlan,
   onActivatePlan,
   userEquipment = 'gym',
-  userFrequency = 3
+  userFrequency = 3,
+  nextScheduledWorkout
 }: WorkoutPlannerProps) => {
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [showPlanMenu, setShowPlanMenu] = React.useState(false);
@@ -81,7 +87,7 @@ const WorkoutPlanner = ({
   };
 
   const getWorkoutStatus = (date: Date) => {
-    return getWorkoutForDate(date, recentWorkouts, activePlan?.planData);
+    return getWorkoutForDate(date, recentWorkouts, activePlan);
   };
 
   return (
@@ -90,6 +96,46 @@ const WorkoutPlanner = ({
       contentContainerStyle={homeStyles.homeViewContent}
       showsVerticalScrollIndicator={false}
     >
+      {/* Next Scheduled Workout - Priority Suggestion */}
+      {nextScheduledWorkout && (
+        <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl, borderColor: colors.success }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm }}>
+            <CheckCircle size={20} color={colors.success} />
+            <Text style={{
+              fontSize: 14,
+              fontWeight: 'bold',
+              color: colors.success,
+              marginLeft: spacing.sm,
+              textTransform: 'uppercase',
+              letterSpacing: 1,
+            }}>
+              Next Workout Due
+            </Text>
+          </View>
+
+          <View style={{ marginBottom: spacing.md }}>
+            <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 4 }}>
+              {nextScheduledWorkout.name}
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 14 }}>
+              {nextScheduledWorkout.exercises} Exercises • {nextScheduledWorkout.dayName} • {
+                nextScheduledWorkout.daysUntil === 0 ? 'Today' :
+                nextScheduledWorkout.daysUntil === 1 ? 'Tomorrow' :
+                `In ${nextScheduledWorkout.daysUntil} days`
+              }
+            </Text>
+          </View>
+
+          <NeonButton
+            onPress={() => onStartScheduledWorkout?.(nextScheduledWorkout.date, nextScheduledWorkout)}
+            style={{ width: '100%' }}
+          >
+            <Play size={20} color="#0f172a" />
+            <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>START THIS WORKOUT</Text>
+          </NeonButton>
+        </GlassCard>
+      )}
+
       {/* Active Plan Card - The "Hero" */}
       <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl, borderColor: colors.primary }}>
         <View style={{ marginBottom: spacing.md }}>
@@ -266,7 +312,7 @@ const WorkoutPlanner = ({
                         {todaysWorkout.exercises} Exercises • {todaysWorkout.dayName}
                       </Text>
                     </View>
-                    <NeonButton onPress={() => onSelectWorkout(todaysWorkout.name, activePlan?.planId)} style={{ width: '100%' }}>
+                    <NeonButton onPress={() => onStartCalendarWorkout?.(selectedDate, todaysWorkout)} style={{ width: '100%' }}>
                       <Play size={20} color="#0f172a" />
                       <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>START SESSION</Text>
                     </NeonButton>
@@ -280,22 +326,40 @@ const WorkoutPlanner = ({
                 <Text style={{ color: colors.muted, fontSize: 14, marginBottom: spacing.md }}>
                   No workout scheduled for this day.
                 </Text>
-                <TouchableOpacity
-                  onPress={onAISuggestion}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    paddingHorizontal: spacing.lg,
-                    paddingVertical: spacing.md,
-                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                    borderRadius: radii.full,
-                    borderWidth: 1,
-                    borderColor: 'rgba(139, 92, 246, 0.3)'
-                  }}
-                >
-                  <Brain size={16} color="#8b5cf6" />
-                  <Text style={{ marginLeft: 8, color: '#8b5cf6', fontWeight: 'bold' }}>GET SUGGESTION</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  <TouchableOpacity
+                    onPress={onCustomInput}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.sm,
+                      backgroundColor: 'rgba(249, 115, 22, 0.1)',
+                      borderRadius: radii.md,
+                      borderWidth: 1,
+                      borderColor: 'rgba(249, 115, 22, 0.3)'
+                    }}
+                  >
+                    <PlusCircle size={16} color={colors.primary} />
+                    <Text style={{ marginLeft: 6, color: colors.primary, fontWeight: 'bold', fontSize: 12 }}>CUSTOM</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={onAISuggestion}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: spacing.md,
+                      paddingVertical: spacing.sm,
+                      backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                      borderRadius: radii.md,
+                      borderWidth: 1,
+                      borderColor: 'rgba(139, 92, 246, 0.3)'
+                    }}
+                  >
+                    <Brain size={16} color="#8b5cf6" />
+                    <Text style={{ marginLeft: 6, color: '#8b5cf6', fontWeight: 'bold', fontSize: 12 }}>AI</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             );
           })()}

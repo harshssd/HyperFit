@@ -454,3 +454,34 @@ export const getWorkoutForDate = (date: Date, recentWorkouts: any[], activePlan?
 
   return null;
 };
+
+/**
+ * Find the next scheduled workout from the active plan
+ */
+export const getNextScheduledWorkout = (activePlan?: UserWorkoutPlan) => {
+  if (!activePlan || !activePlan.planData?.schedule) {
+    return null;
+  }
+
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+
+  // Check today and the next 7 days
+  for (let i = 0; i < 7; i++) {
+    const checkDate = new Date(today);
+    checkDate.setDate(today.getDate() + i);
+    const checkDateStr = checkDate.toISOString().split('T')[0];
+
+    const workoutForDate = getWorkoutForDate(checkDate, [], activePlan);
+    if (workoutForDate && workoutForDate.type === 'planned') {
+      return {
+        ...workoutForDate,
+        date: checkDate,
+        dateStr: checkDateStr,
+        daysUntil: i
+      };
+    }
+  }
+
+  return null;
+};
