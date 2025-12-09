@@ -89,7 +89,6 @@ import TemplatePickerModal from './src/components/TemplatePickerModal';
 import SaveTemplateModal from './src/components/SaveTemplateModal';
 import AddExerciseOverlay from './src/components/AddExerciseOverlay';
 import ChallengesViewComponent from './src/components/ChallengesView';
-import StepsViewComponent from './src/components/StepsView';
 import WorkoutHeader from './src/features/workout/components/WorkoutHeader';
 import WorkoutFocusHeader from './src/features/workout/components/WorkoutFocusHeader';
 import CreateFolderModal from './src/components/CreateFolderModal';
@@ -99,8 +98,8 @@ import WorkoutFocusSets from './src/features/workout/components/WorkoutFocusSets
 import WorkoutFocusActions from './src/features/workout/components/WorkoutFocusActions';
 import EmptyWorkoutCard from './src/features/workout/components/EmptyWorkoutCard';
 import HomeViewComponent from './src/components/HomeView';
-import StatsViewComponent from './src/components/StatsView';
 import HistoryView from './src/features/history/HistoryView';
+import AnalyticsView from './src/features/analytics/AnalyticsView';
 import Header from './src/components/Header';
 import FinishedSessionView from './src/features/workout/components/FinishedSessionView';
 import ProgressRing from './src/components/ProgressRing';
@@ -290,8 +289,6 @@ export default function App() {
     switch (activeTab) {
       case 'home':
         return <HomeViewComponent data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
-      case 'steps':
-        return <StepsViewComponent />;
       case 'gym':
         return <GymView data={data} updateData={saveData} user={user} />;
       case 'challenges':
@@ -299,7 +296,7 @@ export default function App() {
       case 'history':
         return <HistoryView data={data} updateData={saveData} />;
       case 'stats':
-        return <StatsViewComponent data={data} />;
+        return <AnalyticsView data={data} />;
       default:
         return <HomeViewComponent data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
     }

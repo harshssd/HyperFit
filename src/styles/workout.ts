@@ -12,6 +12,7 @@ export const workoutStyles = StyleSheet.create({
   },
   gymViewContent: {
     paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.sm,
   },
 
   // Finished Session
@@ -504,7 +505,7 @@ export const workoutStyles = StyleSheet.create({
     zIndex: 30,
     maxHeight: 200,
   },
-  suggestionItem: {
+  suggestionDropdownItem: {
     padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255, 255, 255, 0.05)',
@@ -995,6 +996,155 @@ export const workoutStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
     textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  // Workout Planner
+  plannerContainer: {
+    flex: 1,
+  },
+  plannerContent: {
+    padding: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  plannerHeader: {
+    marginBottom: spacing.lg,
+  },
+  plannerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    letterSpacing: 1,
+  },
+  plannerSectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: spacing.md,
+  },
+  activePlanCard: {
+    marginBottom: spacing.xl,
+    padding: spacing.xl,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  activePlanRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  activePlanTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginLeft: spacing.sm,
+    flex: 1, // Allow text to take up available space
+    flexShrink: 1, // Allow text to shrink if needed
+  },
+  activePlanSubtitle: {
+    fontSize: 14,
+    color: colors.muted,
+    lineHeight: 20,
+    marginTop: spacing.xs,
+  },
+  activePlanDate: {
+    fontSize: 12,
+    color: colors.primary,
+    marginTop: spacing.sm,
+    fontStyle: 'italic',
+  },
+  calendarCard: {
+    marginBottom: spacing.xl,
+    padding: spacing.xl,
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+  },
+  calendarMonth: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  calendarGrid: {
+    marginBottom: spacing.lg,
+  },
+  calendarWeekRow: {
+    flexDirection: 'row',
+    marginBottom: spacing.sm,
+  },
+  calendarDayHeader: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.muted,
+    textTransform: 'uppercase',
+  },
+  calendarDaysContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarDay: {
+    flex: 1,
+    aspectRatio: 1,
+    margin: 1,
+    borderRadius: radii.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 0,
+  },
+  calendarDayText: {
+    fontSize: 14,
+  },
+  todayWorkoutCard: {
+    padding: spacing.lg,
+    backgroundColor: 'rgba(15, 23, 42, 0.5)',
+    borderRadius: radii.md,
+    marginBottom: spacing.lg,
+  },
+  todayWorkoutHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  suggestionCard: {
+    marginBottom: spacing.xl,
+    padding: spacing.xl,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+  },
+  suggestionItem: {
+    padding: spacing.md,
+    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderColor: 'rgba(139, 92, 246, 0.3)',
+    marginBottom: spacing.md,
+  },
+  quickActionRow: {
+    gap: spacing.sm,
+  },
+  quickActionButton: {
+    width: '100%',
+    paddingVertical: spacing.lg,
+    borderRadius: radii.md,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: colors.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  quickActionText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.muted,
+    fontFamily: 'monospace',
     letterSpacing: 1,
   },
 });

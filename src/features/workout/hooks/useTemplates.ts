@@ -1,3 +1,22 @@
+/**
+ * USE TEMPLATES HOOK
+ * ==================
+ *
+ * Manages workout template operations with Supabase backend:
+ * - Fetching user templates, folders, and favorites
+ * - Applying templates to create workout instances
+ * - Saving current workouts as reusable templates
+ * - Managing template organization (folders, favorites)
+ *
+ * TEMPLATE HIERARCHY:
+ * - Standard Templates: System-provided, always available
+ * - Public Templates: Community-shared templates
+ * - Custom Templates: User-created and saved templates
+ *
+ * WORKFLOW:
+ * Browse → Select → Apply → Customize → Save (optional)
+ */
+
 import { useState, useCallback } from 'react';
 import { showSuccess } from '../../../utils/alerts';
 import {

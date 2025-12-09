@@ -41,15 +41,14 @@ const WorkoutPlanner = ({
       showsVerticalScrollIndicator={false}
     >
       {/* Welcome Header */}
-      <View style={{ marginBottom: spacing.xl }}>
+      <View style={{ marginBottom: spacing.lg }}>
         <Text style={{
           color: '#fff',
-          fontSize: 28,
+          fontSize: 20,
           fontWeight: 'bold',
-          marginBottom: spacing.sm,
           letterSpacing: 1
         }}>
-          PLAN YOUR WORKOUT
+          PLAN WORKOUT
         </Text>
         <Text style={{
           color: colors.muted,
@@ -63,7 +62,7 @@ const WorkoutPlanner = ({
       {/* Current Stats */}
       <GlassCard style={{
         marginBottom: spacing.xl,
-        padding: spacing.lg,
+        padding: spacing.xl,
         flexDirection: 'row',
         justifyContent: 'space-between'
       }}>
@@ -74,7 +73,7 @@ const WorkoutPlanner = ({
               STREAK
             </Text>
           </View>
-          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>
+          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
             {streak}
           </Text>
         </View>
@@ -86,7 +85,7 @@ const WorkoutPlanner = ({
               XP
             </Text>
           </View>
-          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold' }}>
+          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
             {xp.toLocaleString()}
           </Text>
         </View>

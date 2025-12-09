@@ -417,12 +417,12 @@ const HistoryView = ({ data, updateData }: HistoryViewProps) => {
 
   return (
     <View style={{ flex: 1, paddingBottom: 100 }}>
-      <Text style={{ color: '#fff', fontSize: 24, fontWeight: '900', marginBottom: spacing.lg, paddingHorizontal: spacing.sm }}>
-        SESSION HISTORY
+      <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: spacing.lg, paddingHorizontal: spacing.lg }}>
+        HISTORY
       </Text>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: spacing.sm, paddingBottom: spacing.xl }}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl }}
         nestedScrollEnabled
         keyboardShouldPersistTaps="handled"
         style={{ flex: 1 }}
@@ -446,7 +446,7 @@ const HistoryView = ({ data, updateData }: HistoryViewProps) => {
               <GlassCard
                 key={session.id}
                 style={{
-                  marginBottom: spacing.md,
+                  marginBottom: spacing.lg,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',

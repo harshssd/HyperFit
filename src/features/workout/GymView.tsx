@@ -1,3 +1,22 @@
+/**
+ * GYM VIEW COMPONENT
+ * =================
+ *
+ * Main workout execution interface. Handles:
+ * - Workout planning and creation
+ * - Active workout sessions
+ * - Template and plan management
+ * - Exercise execution with set tracking
+ * - Rest timing and session management
+ *
+ * FEATURE RESPONSIBILITIES:
+ * - Plan selection and creation
+ * - Workout session execution
+ * - Template browsing and application
+ * - Exercise and set management
+ * - Session timing and completion
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import {
@@ -49,7 +68,10 @@ type GymViewProps = {
   user: any;
 };
 
+import WorkoutPlansLibrary from './components/WorkoutPlansLibrary';
+
 const GymView = ({ data, updateData, user }: GymViewProps) => {
+  const [showPlanLibrary, setShowPlanLibrary] = useState(false);
   const DEFAULT_REST_SECONDS = 90;
   const REST_INCREMENT_SECONDS = 30;
   const Haptics = (() => {
@@ -151,7 +173,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
   const [showPlanCreator, setShowPlanCreator] = useState(false);
-  const [suggestedPlanType, setSuggestedPlanType] = useState<WorkoutPlan['type'] | undefined>();
+  const [suggestedPlanType, setSuggestedPlanType] = useState<WorkoutPlan['equipment'] | undefined>();
 
   const closeOverview = closeOverviewView;
 
@@ -388,7 +410,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     showSuccess('AI workout generated based on your progress!');
   };
 
-  const handleCreatePlan = (plan: Omit<WorkoutPlan, 'id' | 'createdAt'>) => {
+  const handleCreatePlan = (plan: Omit<WorkoutPlan, 'id' | 'createdAt' | 'isTemplate'>) => {
     const newPlan: WorkoutPlan = {
       ...plan,
       id: `plan_${Date.now()}`,
@@ -401,23 +423,54 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const handleActivatePlan = (planId: string) => {
-    const updatedPlans = (data.workoutPlans || []).map((plan: WorkoutPlan) => ({
+    const updatedUserPlans = (data.userWorkoutPlans || []).map((plan: any) => ({
       ...plan,
-      isActive: plan.id === planId
+      isActive: plan.planId === planId
     }));
 
     updateData({
       ...data,
-      workoutPlans: updatedPlans,
+      userWorkoutPlans: updatedUserPlans,
       activePlanId: planId
     });
 
-    const activePlan = updatedPlans.find((p: WorkoutPlan) => p.isActive);
-    showSuccess(`${activePlan?.name} activated!`);
+    const activePlan = updatedUserPlans.find((p: any) => p.isActive);
+    showSuccess(`${activePlan?.customName || activePlan?.planData?.name} activated!`);
   };
 
   const handleSelectWorkout = (workoutType: string, planId?: string) => {
     handleQuickWorkout(workoutType);
+  };
+
+  const handleEditPlan = () => {
+    // TODO: Open plan editor for active plan
+    showSuccess('Plan editor coming soon!');
+  };
+
+  const handleChangePlan = () => {
+    setShowPlanLibrary(true);
+  };
+
+  const handleCreateFromExisting = () => {
+    setShowPlanLibrary(true);
+  };
+
+  const handleEndPlan = () => {
+    const activeUserPlan = (data.userWorkoutPlans || []).find((plan: any) => plan.isActive);
+    if (activeUserPlan) {
+      const updatedUserPlans = (data.userWorkoutPlans || []).map((plan: any) => ({
+        ...plan,
+        isActive: false
+      }));
+
+      updateData({
+        ...data,
+        userWorkoutPlans: updatedUserPlans,
+        activePlanId: undefined
+      });
+
+      showSuccess(`${activeUserPlan.customName || activeUserPlan.planData?.name} ended.`);
+    }
   };
 
   const updateSet = (exId: number, setIndex: number, field: string, value: any) => {
@@ -639,7 +692,10 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
         });
 
       const workoutPlans: WorkoutPlan[] = data.workoutPlans || [];
-      const activePlan = workoutPlans.find((plan: WorkoutPlan) => plan.isActive);
+      const userWorkoutPlans: any[] = data.userWorkoutPlans || [];
+      const activeUserPlan = userWorkoutPlans.find((plan: any) => plan.isActive);
+      const activePlan = activeUserPlan?.planData;
+      const activePlanForDisplay = activeUserPlan;
 
       return (
         <>
@@ -655,14 +711,51 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             setSuggestedPlanType(suggestedType);
             setShowPlanCreator(true);
           }}
+          onBrowsePlans={handleChangePlan}
+          onEditPlan={handleEditPlan}
+          onChangePlan={handleChangePlan}
+          onCreateFromExisting={handleCreateFromExisting}
+          onEndPlan={handleEndPlan}
           onSelectWorkout={handleSelectWorkout}
           recentWorkouts={recentWorkouts}
           workoutPlans={workoutPlans}
-          activePlan={activePlan}
+          activePlan={activePlanForDisplay}
           onActivatePlan={handleActivatePlan}
           userEquipment="gym" // TODO: Get from user preferences
           userFrequency={3} // TODO: Get from user preferences
         />
+
+          <WorkoutPlansLibrary
+            visible={showPlanLibrary}
+            onClose={() => setShowPlanLibrary(false)}
+            onSelectPlan={(plan) => {
+              // Convert template to UserWorkoutPlan
+              const userPlan = {
+                id: `plan_${Date.now()}`,
+                userId: user?.id,
+                planId: plan.id,
+                planData: plan,
+                startedAt: new Date().toISOString(),
+                isActive: true,
+                createdAt: new Date().toISOString()
+              };
+              // Add to user plans and activate
+              const updatedUserPlans = [...(data.userWorkoutPlans || []).map((p: any) => ({...p, isActive: false})), userPlan];
+              updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: userPlan.planId });
+              setShowPlanLibrary(false);
+              showSuccess(`Started ${plan.name}!`);
+            }}
+            onManagePlan={(plan) => {
+              // TODO: Open plan editor
+              setShowPlanLibrary(false);
+            }}
+            onCreateNew={() => {
+              setShowPlanCreator(true);
+            }}
+            userPlans={data.workoutPlans || []}
+            userEquipment="gym"
+            userFrequency={3}
+          />
 
           <WorkoutPlanCreator
             visible={showPlanCreator}
@@ -671,7 +764,6 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
               setSuggestedPlanType(undefined);
             }}
             onCreatePlan={handleCreatePlan}
-            suggestedType={suggestedPlanType}
           />
         </>
       );

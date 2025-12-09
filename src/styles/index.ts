@@ -7,7 +7,6 @@ export { default as cardsStyles } from './cards';
 export { default as homeStyles } from './home';
 export { default as statsStyles } from './stats';
 export { default as challengesStyles } from './challenges';
-export { default as stepsStyles } from './steps';
 export { default as loginStyles } from './login';
 export { default as buttonStyles } from './buttons';
 export { default as numberControlStyles } from './numberControl';

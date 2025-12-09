@@ -1,3 +1,21 @@
+/**
+ * USE SESSION VIEW HOOK
+ * ====================
+ *
+ * Manages the UI state for workout session execution. Controls:
+ * - View modes: 'list' (overview) vs 'focus' (exercise-by-exercise)
+ * - Exercise navigation during active sessions
+ * - Session start/stop state management
+ * - Overview vs detailed workout views
+ *
+ * VIEW MODES:
+ * - 'list': Shows all exercises with completion status
+ * - 'focus': Shows one exercise at a time with detailed set tracking
+ *
+ * SESSION FLOW:
+ * Planning → Start Session → Focus Mode → Complete → Overview
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { WorkoutExercise } from '../../../types/workout';
 

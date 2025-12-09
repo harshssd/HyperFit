@@ -1,3 +1,20 @@
+/**
+ * USE TODAY WORKOUT HOOK
+ * =====================
+ *
+ * Manages workout sessions for a specific date. Provides:
+ * - Exercise CRUD operations (add, edit, delete, reorder)
+ * - Set management within exercises
+ * - Session state management (start, finish, abort)
+ * - Workout data persistence
+ *
+ * KEY CONCEPTS:
+ * - todaysWorkout: All exercises for the date (archived + active)
+ * - visibleWorkout: Only non-archived exercises (currently active)
+ * - Archived exercises preserve history from previous sessions
+ * - Session states: planned → active → completed/aborted
+ */
+
 import { useMemo, useCallback } from 'react';
 import {
   renameExercise,
