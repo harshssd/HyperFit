@@ -4,7 +4,7 @@ import { Dumbbell, Calendar, ChevronLeft, ChevronRight, Play, Settings, CheckCir
 import NeonButton from '../../../components/NeonButton';
 import GlassCard from '../../../components/GlassCard';
 import workoutStyles from '../../../styles/workout';
-import { homeStyles } from '../../../styles';
+import homeStyles from '../../../styles/home';
 import { colors, spacing, radii } from '../../../styles/theme';
 import { WorkoutPlan } from '../../../types/workout';
 import { getWorkoutForDate } from '../helpers';
@@ -109,30 +109,72 @@ const WorkoutPlanner = ({
               textTransform: 'uppercase',
               letterSpacing: 1,
             }}>
-              Next Workout Due
+              Workout Suggestion
             </Text>
           </View>
 
           <View style={{ marginBottom: spacing.md }}>
-            <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginBottom: 4 }}>
+            <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 2 }}>
               {nextScheduledWorkout.name}
             </Text>
-            <Text style={{ color: colors.muted, fontSize: 14 }}>
+            <Text style={{ color: colors.muted, fontSize: 12, marginBottom: spacing.sm }}>
               {nextScheduledWorkout.exercises} Exercises • {nextScheduledWorkout.dayName} • {
                 nextScheduledWorkout.daysUntil === 0 ? 'Today' :
                 nextScheduledWorkout.daysUntil === 1 ? 'Tomorrow' :
                 `In ${nextScheduledWorkout.daysUntil} days`
               }
             </Text>
+            <Text style={{ color: colors.muted, fontSize: 11 }}>
+              Start scheduled workout or choose alternative
+            </Text>
           </View>
 
-          <NeonButton
-            onPress={() => onStartScheduledWorkout?.(nextScheduledWorkout.date, nextScheduledWorkout)}
-            style={{ width: '100%' }}
-          >
-            <Play size={20} color="#0f172a" />
-            <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>START THIS WORKOUT</Text>
-          </NeonButton>
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <NeonButton
+              onPress={() => onStartScheduledWorkout?.(nextScheduledWorkout.date, nextScheduledWorkout)}
+              style={{ flex: 1 }}
+            >
+              <Play size={16} color="#0f172a" />
+              <Text style={{ marginLeft: 6, fontSize: 14, fontWeight: 'bold' }}>START</Text>
+            </NeonButton>
+
+            <TouchableOpacity
+              onPress={onLoadTemplate}
+              style={{
+                flex: 1,
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: radii.md,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <Layout size={16} color={colors.primary} />
+              <Text style={{ marginTop: 4, color: colors.primary, fontSize: 12, fontWeight: 'bold' }}>
+                ALTERNATE
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={onCustomInput}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: radii.md,
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <PlusCircle size={16} color={colors.primary} />
+              <Text style={{ marginTop: 4, color: colors.primary, fontSize: 12, fontWeight: 'bold' }}>
+                MANUAL
+              </Text>
+            </TouchableOpacity>
+          </View>
         </GlassCard>
       )}
 
@@ -365,23 +407,6 @@ const WorkoutPlanner = ({
           })()}
         </View>
       </GlassCard>
-
-      {/* Quick Options */}
-      <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: spacing.md, marginLeft: spacing.sm }}>
-        QUICK OPTIONS
-      </Text>
-      
-      <View style={{ gap: spacing.md }}>
-        <TouchableOpacity onPress={onLoadTemplate} style={homeStyles.homeQuickAction}>
-          <Layout size={20} color={colors.primary} />
-          <Text style={homeStyles.homeQuickActionText}>BROWSE TEMPLATES</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity onPress={onCustomInput} style={homeStyles.homeQuickAction}>
-          <PlusCircle size={20} color={colors.primary} />
-          <Text style={homeStyles.homeQuickActionText}>CUSTOM WORKOUT</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Plan Management Menu */}
       {activePlan && (
