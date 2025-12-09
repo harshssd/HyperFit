@@ -825,12 +825,26 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     );
   };
 
+  const handleCloseFinished = () => {
+    // Archive all exercises and reset the finished status to exit the finished view and return to main GymView
+    const todaysWorkout = data.workouts?.[today] || [];
+    const archivedWorkout = todaysWorkout.map((ex: any) => ({ ...ex, archived: true }));
+
+    const updatedStatus = { ...data.workoutStatus, [today]: { ...data.workoutStatus?.[today], finished: false } };
+    updateData({
+      ...data,
+      workouts: { ...data.workouts, [today]: archivedWorkout },
+      workoutStatus: updatedStatus
+    });
+  };
+
   const renderFinished = () => (
     <FinishedSessionView
       visibleWorkout={visibleWorkout}
       calculateTotalVolume={calculateTotalVolumeLocal}
       onStartNewSession={startNewSession}
       onUndo={undoFinish}
+      onClose={handleCloseFinished}
     />
   );
 

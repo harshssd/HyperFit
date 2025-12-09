@@ -1,6 +1,6 @@
 import React from 'react';
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
-import { Medal, RotateCcw, PlusCircle } from 'lucide-react-native';
+import { Medal, RotateCcw, PlusCircle, X } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import workoutStyles from '../../../styles/workout';
@@ -10,6 +10,7 @@ type FinishedSessionViewProps = {
   calculateTotalVolume: () => number;
   onStartNewSession: () => void;
   onUndo: () => void;
+  onClose: () => void;
 };
 
 const FinishedSessionView = ({
@@ -17,9 +18,24 @@ const FinishedSessionView = ({
   calculateTotalVolume,
   onStartNewSession,
   onUndo,
+  onClose,
 }: FinishedSessionViewProps) => {
   return (
     <ScrollView contentContainerStyle={workoutStyles.finishedContainer}>
+      <View style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
+        <TouchableOpacity
+          onPress={onClose}
+          style={{
+            padding: 8,
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: 20,
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+          }}
+        >
+          <X size={16} color="#fff" />
+        </TouchableOpacity>
+      </View>
       <View style={workoutStyles.finishedIcon}>
         <Medal size={48} color="#22d3ee" />
       </View>
