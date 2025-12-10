@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { Dumbbell, Calendar, ChevronLeft, ChevronRight, Play, Settings, CheckCircle, Brain, Layout, PlusCircle } from 'lucide-react-native';
+import { Dumbbell, Calendar, ChevronLeft, ChevronRight, Play, Settings, CheckCircle, Brain, Layout, PlusCircle, List } from 'lucide-react-native';
 import NeonButton from '../../../components/NeonButton';
 import GlassCard from '../../../components/GlassCard';
 import workoutStyles from '../../../styles/workout';
@@ -25,17 +25,19 @@ type WorkoutPlannerProps = {
   onAISuggestion: () => void;
   onCreatePlan: (suggestedType?: WorkoutPlan['equipment']) => void;
   onBrowsePlans: () => void;
-  onEditPlan: () => void;
   onChangePlan: () => void;
   onCreateFromExisting: () => void;
   onEndPlan: () => void;
+  onCleanupPlans?: () => void;
   onSelectWorkout: (workoutType: string, planId?: string) => void;
   onStartScheduledWorkout?: (date: Date, workout: any) => void;
   onStartCalendarWorkout?: (date: Date, workout: any) => void;
   recentWorkouts?: any[];
   workoutPlans?: WorkoutPlan[];
+  userWorkoutPlans?: any[]; // UserWorkoutPlan[]
   activePlan?: any; // UserWorkoutPlan
   onActivatePlan: (planId: string) => void;
+  onDeleteUserPlan?: (planId: string) => void;
   userEquipment?: WorkoutPlan['equipment'];
   userFrequency?: number;
   nextScheduledWorkout?: any;
@@ -48,17 +50,19 @@ const WorkoutPlanner = ({
   onAISuggestion,
   onCreatePlan,
   onBrowsePlans,
-  onEditPlan,
   onChangePlan,
   onCreateFromExisting,
   onEndPlan,
+  onCleanupPlans,
   onSelectWorkout,
   onStartScheduledWorkout,
   onStartCalendarWorkout,
   recentWorkouts = [],
   workoutPlans = [],
+  userWorkoutPlans = [],
   activePlan,
   onActivatePlan,
+  onDeleteUserPlan,
   userEquipment = 'gym',
   userFrequency = 3,
   nextScheduledWorkout
@@ -110,8 +114,8 @@ const WorkoutPlanner = ({
               letterSpacing: 1,
             }}>
               Workout Suggestion
-            </Text>
-          </View>
+          </Text>
+        </View>
 
           <View style={{ marginBottom: spacing.md }}>
             <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 2 }}>
@@ -123,20 +127,20 @@ const WorkoutPlanner = ({
                 nextScheduledWorkout.daysUntil === 1 ? 'Tomorrow' :
                 `In ${nextScheduledWorkout.daysUntil} days`
               }
-            </Text>
+          </Text>
             <Text style={{ color: colors.muted, fontSize: 11 }}>
               Start scheduled workout or choose alternative
             </Text>
           </View>
 
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <NeonButton
+        <NeonButton
               onPress={() => onStartScheduledWorkout?.(nextScheduledWorkout.date, nextScheduledWorkout)}
               style={{ flex: 1 }}
             >
               <Play size={16} color="#0f172a" />
               <Text style={{ marginLeft: 6, fontSize: 14, fontWeight: 'bold' }}>START</Text>
-            </NeonButton>
+        </NeonButton>
 
             <TouchableOpacity
               onPress={onLoadTemplate}
@@ -174,7 +178,7 @@ const WorkoutPlanner = ({
                 MANUAL
               </Text>
             </TouchableOpacity>
-          </View>
+        </View>
         </GlassCard>
       )}
 
@@ -193,12 +197,12 @@ const WorkoutPlanner = ({
             }}>
               Active Plan
             </Text>
-          </View>
+      </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{
-              fontSize: 18,
-              fontWeight: 'bold',
+          <Text style={{
+            fontSize: 18,
+            fontWeight: 'bold',
               color: '#fff',
               flex: 1,
               flexShrink: 1,
@@ -244,12 +248,12 @@ const WorkoutPlanner = ({
           <View style={{ marginTop: spacing.sm }}>
             <Text style={{ color: colors.muted, fontSize: 14, marginBottom: spacing.lg }}>
               Create a plan to get structured workout recommendations and track your progress effectively.
-            </Text>
+          </Text>
             <NeonButton onPress={() => onCreatePlan()} style={{ width: '100%' }}>
               <PlusCircle size={20} color="#0f172a" />
               <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>CREATE NEW PLAN</Text>
             </NeonButton>
-            
+
             <TouchableOpacity
               onPress={onBrowsePlans}
               style={{
@@ -272,7 +276,7 @@ const WorkoutPlanner = ({
       {/* Weekly Schedule */}
       <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Calendar size={20} color={colors.primary} />
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: spacing.sm }}>
               WEEKLY SCHEDULE
@@ -349,15 +353,15 @@ const WorkoutPlanner = ({
                     <View style={{ marginBottom: spacing.md }}>
                       <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: 4 }}>
                         {todaysWorkout.name.toUpperCase()}
-                      </Text>
+        </Text>
                       <Text style={{ color: colors.muted, fontSize: 14 }}>
                         {todaysWorkout.exercises} Exercises • {todaysWorkout.dayName}
-                      </Text>
+            </Text>
                     </View>
                     <NeonButton onPress={() => onStartCalendarWorkout?.(selectedDate, todaysWorkout)} style={{ width: '100%' }}>
                       <Play size={20} color="#0f172a" />
                       <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>START SESSION</Text>
-                    </NeonButton>
+          </NeonButton>
                   </View>
                 );
               }
@@ -369,15 +373,15 @@ const WorkoutPlanner = ({
                   No workout scheduled for this day.
                 </Text>
                 <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  <TouchableOpacity
-                    onPress={onCustomInput}
-                    style={{
+          <TouchableOpacity
+            onPress={onCustomInput}
+            style={{
                       flexDirection: 'row',
                       alignItems: 'center',
                       paddingHorizontal: spacing.md,
                       paddingVertical: spacing.sm,
                       backgroundColor: 'rgba(249, 115, 22, 0.1)',
-                      borderRadius: radii.md,
+              borderRadius: radii.md,
                       borderWidth: 1,
                       borderColor: 'rgba(249, 115, 22, 0.3)'
                     }}
@@ -388,8 +392,8 @@ const WorkoutPlanner = ({
                   <TouchableOpacity
                     onPress={onAISuggestion}
                     style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
+              flexDirection: 'row',
+              alignItems: 'center',
                       paddingHorizontal: spacing.md,
                       paddingVertical: spacing.sm,
                       backgroundColor: 'rgba(139, 92, 246, 0.1)',
@@ -408,16 +412,97 @@ const WorkoutPlanner = ({
         </View>
       </GlassCard>
 
+      {/* My Plans Management - Show when user has multiple plan instances */}
+      {userWorkoutPlans.length > 1 && (
+        <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
+            <List size={20} color={colors.primary} />
+            <Text style={{
+              fontSize: 16,
+              fontWeight: 'bold',
+              color: '#fff',
+              marginLeft: spacing.sm,
+            }}>
+              MY PLANS ({userWorkoutPlans.length})
+            </Text>
+          </View>
+
+          <Text style={{ color: colors.muted, fontSize: 12, marginBottom: spacing.md }}>
+            Manage your plan instances individually
+          </Text>
+
+          {userWorkoutPlans.map((userPlan: any) => (
+            <View key={userPlan.id} style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: spacing.sm,
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              borderRadius: radii.sm,
+              marginBottom: spacing.sm,
+            }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
+                  {userPlan.planData?.name || 'Unknown Plan'}
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 12 }}>
+                  Started {new Date(userPlan.startedAt).toLocaleDateString()}
+                  {userPlan.isActive ? ' • Active' : ''}
+                </Text>
+              </View>
+
+              <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+                {!userPlan.isActive && (
+                  <TouchableOpacity
+                    onPress={() => onActivatePlan(userPlan.planId)}
+                    style={{
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: spacing.xs,
+                      backgroundColor: colors.primary,
+                      borderRadius: radii.sm,
+                    }}
+                  >
+                    <Text style={{ color: '#0f172a', fontSize: 12, fontWeight: 'bold' }}>
+                      ACTIVATE
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={() => {
+                    // For now, just show a confirmation to delete
+                    // In a real app, you'd want a proper confirmation dialog
+                    if (onDeleteUserPlan) {
+                      onDeleteUserPlan(userPlan.id);
+                    }
+                  }}
+                  style={{
+                    paddingHorizontal: spacing.sm,
+                    paddingVertical: spacing.xs,
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderRadius: radii.sm,
+                  }}
+                >
+                  <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: 'bold' }}>
+                    DELETE
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+          ))}
+        </GlassCard>
+      )}
+
       {/* Plan Management Menu */}
       {activePlan && (
         <PlanManagementMenu
           visible={showPlanMenu}
           activePlan={activePlan}
           onClose={() => setShowPlanMenu(false)}
-          onEditPlan={onEditPlan}
           onChangePlan={onChangePlan}
           onCreateFromExisting={onCreateFromExisting}
           onEndPlan={onEndPlan}
+          onCleanupPlans={onCleanupPlans}
         />
       )}
     </ScrollView>

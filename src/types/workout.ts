@@ -116,6 +116,7 @@ export type WorkoutPlan = {
   createdAt: string;               // ISO timestamp of creation
   updatedAt?: string;              // ISO timestamp of last update
   isTemplate?: boolean;            // True if this is a library template
+  is_public?: boolean;             // True if this is a public system plan
 };
 
 // ---------------------------------------

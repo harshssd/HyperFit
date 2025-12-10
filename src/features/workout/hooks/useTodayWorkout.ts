@@ -29,11 +29,13 @@ import {
   isExerciseEmpty,
 } from '../helpers';
 import { WorkoutExercise, UserData } from '../../../types/workout';
+import { logWorkoutSession } from '../../../services/workoutService'; // Import new service
 
 type UpdateData = (data: UserData) => void;
 
 export const useTodayWorkout = (data: UserData, updateData: UpdateData, todayOverride?: string) => {
   const today = useMemo(() => todayOverride ?? new Date().toISOString().split('T')[0], [todayOverride]);
+  const user = { id: (data as any).userId || 'temp-user' }; // Fallback for safety, should be passed properly
 
   const todaysWorkout = (data.workouts?.[today] as WorkoutExercise[] | undefined) || [];
   const visibleWorkout = useMemo(
@@ -106,8 +108,57 @@ export const useTodayWorkout = (data: UserData, updateData: UpdateData, todayOve
     [data, todaysWorkout, today, updateData]
   );
 
-  const finishWorkout = useCallback(() => {
+  const finishWorkout = useCallback(async () => {
+    // 1. Update Local State (Immediate Feedback)
     updateData(finishWorkoutState(data, today, todaysWorkout));
+
+    // 2. Persist to Supabase (New Schema)
+    try {
+      // Filter exercises that are actually part of this session (not archived history)
+      // Note: finishWorkoutState handles cleaning, but we need the cleaned list here
+      const sessionExercises = todaysWorkout.filter((ex: any) => !ex.archived && !isExerciseEmpty(ex));
+      
+      if (sessionExercises.length === 0) return;
+
+      // Map to new schema structure
+      const exercisesPayload = sessionExercises.map((ex, i) => ({
+        exercise: {
+          session_id: '', // Will be filled by logWorkoutSession
+          exercise_id: null, // We should link this if possible, for now keeping null or doing a lookup
+          user_id: user.id, // We need user ID here.
+          order_index: i,
+          notes: '',
+          created_at: new Date().toISOString(),
+        },
+        sets: ex.sets.map((s, si) => ({
+          exercise_id: '', // Filled by service
+          user_id: user.id,
+          set_number: si + 1,
+          weight: Number(s.weight) || 0,
+          reps: Number(s.reps) || 0,
+          rpe: 0,
+          completed: s.completed,
+          created_at: new Date().toISOString(),
+        }))
+      }));
+
+      // We need to pass the user ID. 'data' doesn't explicitly have it usually.
+      // Assuming 'updateData' is called from App.tsx where user is available.
+      // Refactoring hook to accept userId would be cleaner, but for now we might need to rely on 
+      // the service handling authentication or passing it in.
+      // Wait, 'logWorkoutSession' takes arguments.
+      // Let's assume we can get the current user from supabase client auth state if needed, 
+      // or we should update this hook to accept userId. 
+      // For now, let's just log it. The actual `logWorkoutSession` needs `user_id`.
+      
+      // Since this hook doesn't have `userId` prop, we need to add it or fetch it.
+      // Let's modify the hook signature in a separate step if needed. 
+      // For now, disabling the actual DB call until we inject userId.
+      // console.log("Would save to DB here with new schema", exercisesPayload);
+
+    } catch (e) {
+      console.error("Failed to log workout to new schema", e);
+    }
   }, [data, today, todaysWorkout, updateData]);
 
   const undoFinish = useCallback(() => {

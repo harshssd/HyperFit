@@ -10,20 +10,22 @@ type PlanManagementMenuProps = {
   visible: boolean;
   activePlan: WorkoutPlan | undefined;
   onClose: () => void;
-  onEditPlan: () => void;
+  onEditPlan?: () => void;
   onChangePlan: () => void;
   onEndPlan: () => void;
   onCreateFromExisting: () => void;
+  onCleanupPlans?: () => void;
 };
 
 const PlanManagementMenu = ({
   visible,
   activePlan,
   onClose,
-  onEditPlan,
+  onEditPlan = () => {},
   onChangePlan,
   onEndPlan,
   onCreateFromExisting,
+  onCleanupPlans,
 }: PlanManagementMenuProps) => {
   if (!visible || !activePlan) return null;
 
@@ -56,6 +58,13 @@ const PlanManagementMenu = ({
       action: onEndPlan,
       color: colors.danger,
     },
+    ...(onCleanupPlans ? [{
+      icon: RotateCcw,
+      label: 'Clean Up Plans',
+      description: 'Reset to standard templates only',
+      action: onCleanupPlans,
+      color: '#f59e0b',
+    }] : []),
   ];
 
   return (

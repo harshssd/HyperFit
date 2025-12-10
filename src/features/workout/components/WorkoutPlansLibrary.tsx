@@ -5,7 +5,7 @@ import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import { colors, spacing, radii } from '../../../styles/theme';
 import { homeStyles } from '../../../styles';
-import { DEFAULT_PLANS } from '../data/defaultPlans';
+// Removed: DEFAULT_PLANS import - plans now come from database
 import { WorkoutPlan } from '../../../types/workout';
 
 type WorkoutPlansLibraryProps = {
@@ -13,8 +13,12 @@ type WorkoutPlansLibraryProps = {
   onClose: () => void;
   onSelectPlan: (plan: WorkoutPlan) => void;
   onManagePlan: (plan: WorkoutPlan) => void; // For user's plans
+  onEditPlan?: (plan: WorkoutPlan) => void; // Edit user-created plans
+  onSyncPlan?: (plan: WorkoutPlan) => void; // Sync with latest version
   onCreateNew?: () => void; // Function to create a new plan
-  userPlans?: WorkoutPlan[]; // Pass user's custom plans here
+  userPlans?: WorkoutPlan[]; // User's activated plan instances
+  publicPlans?: WorkoutPlan[]; // Public/system plans from DB
+  userCreatedPlans?: WorkoutPlan[]; // Plans created by user
   userEquipment?: 'gym' | 'bodyweight' | 'dumbbells' | 'mixed';
   userFrequency?: number;
 };
@@ -24,19 +28,25 @@ const WorkoutPlansLibrary = ({
   onClose,
   onSelectPlan,
   onManagePlan,
+  onEditPlan,
+  onSyncPlan,
   onCreateNew,
   userPlans = [],
+  publicPlans = [],
+  userCreatedPlans = [],
   userEquipment = 'gym',
   userFrequency = 3
 }: WorkoutPlansLibraryProps) => {
-  const [activeTab, setActiveTab] = useState<'public' | 'private'>('public');
+  const [activeTab, setActiveTab] = useState<'templates' | 'myPlans'>('templates');
+  const [templateFilter, setTemplateFilter] = useState<'all' | 'public' | 'local'>('all');
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
 
   // Reset selected plan when modal opens
   React.useEffect(() => {
     if (visible) {
       setSelectedPlan(null);
-      setActiveTab('public');
+      setActiveTab('templates');
+      setTemplateFilter('all');
     }
   }, [visible]);
 
@@ -67,7 +77,7 @@ const WorkoutPlansLibrary = ({
     return plan.equipment === userEquipment && plan.frequency === userFrequency;
   };
 
-  const renderPlanCard = (plan: WorkoutPlan, isUserPlan: boolean) => (
+  const renderPlanCard = (plan: WorkoutPlan, isUserPlan: boolean, isUserCreated: boolean = false) => (
     <GlassCard key={plan.id} style={{ marginBottom: spacing.md, padding: spacing.md }}>
       <TouchableOpacity
         onPress={() => setSelectedPlan(plan)}
@@ -146,22 +156,43 @@ const WorkoutPlansLibrary = ({
           </Text>
         </TouchableOpacity>
 
-        {isUserPlan && (
+        {isUserCreated && onEditPlan && (
           <TouchableOpacity
-            onPress={() => onManagePlan(plan)}
+            onPress={() => onEditPlan(plan)}
             style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
               paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
               borderRadius: radii.sm,
               alignItems: 'center'
             }}
           >
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
+            <Text style={{ color: '#3b82f6', fontSize: 12, fontWeight: 'bold' }}>
               EDIT
             </Text>
           </TouchableOpacity>
         )}
+
+        {isUserCreated && onSyncPlan && (() => {
+          // Only show SYNC for plans that have a corresponding template in publicPlans
+          const hasTemplate = publicPlans.some(template => template.name === plan.name);
+          return hasTemplate ? (
+            <TouchableOpacity
+              onPress={() => onSyncPlan(plan)}
+              style={{
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                paddingVertical: spacing.sm,
+                paddingHorizontal: spacing.md,
+                borderRadius: radii.sm,
+                alignItems: 'center'
+              }}
+            >
+              <Text style={{ color: '#10b981', fontSize: 12, fontWeight: 'bold' }}>
+                SYNC
+              </Text>
+            </TouchableOpacity>
+          ) : null;
+        })()}
       </View>
     </GlassCard>
   );
@@ -214,10 +245,11 @@ const WorkoutPlansLibrary = ({
           </Text>
 
           <View style={{ gap: spacing.md, marginBottom: spacing.xl }}>
-            {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
-              const schedule = selectedPlan.schedule[day as keyof typeof selectedPlan.schedule];
-              const hasWorkout = schedule && schedule.length > 0;
-              const session = hasWorkout ? selectedPlan.sessions.find(s => s.id === schedule[0].sessionId) : null;
+            {selectedPlan.schedule && selectedPlan.sessions ? (
+              ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
+                const schedule = selectedPlan.schedule[day as keyof typeof selectedPlan.schedule];
+                const hasWorkout = schedule && schedule.length > 0;
+                const session = hasWorkout ? selectedPlan.sessions.find(s => s.id === schedule[0].sessionId) : null;
 
               return (
                 <GlassCard key={day} style={{ padding: spacing.md }}>
@@ -261,7 +293,19 @@ const WorkoutPlansLibrary = ({
                   </View>
                 </GlassCard>
               );
-            })}
+            })
+            ) : (
+              <GlassCard style={{ padding: spacing.md }}>
+                <View style={{ alignItems: 'center', padding: spacing.md }}>
+                  <Text style={{ color: colors.muted, fontSize: 14, textAlign: 'center' }}>
+                    This plan doesn't have detailed session information yet.
+                  </Text>
+                  <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', marginTop: spacing.sm }}>
+                    You can still start this plan, but the weekly schedule details are not available.
+                  </Text>
+                </View>
+              </GlassCard>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -288,43 +332,93 @@ const WorkoutPlansLibrary = ({
             {/* Tabs */}
             <View style={{ flexDirection: 'row', marginBottom: spacing.lg, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: radii.md, padding: 4 }}>
               <TouchableOpacity
-                onPress={() => setActiveTab('public')}
+                onPress={() => setActiveTab('templates')}
                 style={{
                   flex: 1,
                   paddingVertical: spacing.sm,
                   alignItems: 'center',
-                  backgroundColor: activeTab === 'public' ? colors.primary : 'transparent',
+                  backgroundColor: activeTab === 'templates' ? colors.primary : 'transparent',
                   borderRadius: radii.sm
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Layout size={16} color={activeTab === 'public' ? '#0f172a' : colors.muted} />
-                  <Text style={{ color: activeTab === 'public' ? '#0f172a' : colors.muted, fontWeight: 'bold' }}>TEMPLATES</Text>
+                  <Layout size={16} color={activeTab === 'templates' ? '#0f172a' : colors.muted} />
+                  <Text style={{ color: activeTab === 'templates' ? '#0f172a' : colors.muted, fontWeight: 'bold' }}>TEMPLATES</Text>
                 </View>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
-                onPress={() => setActiveTab('private')}
+                onPress={() => setActiveTab('myPlans')}
                 style={{
                   flex: 1,
                   paddingVertical: spacing.sm,
                   alignItems: 'center',
-                  backgroundColor: activeTab === 'private' ? colors.primary : 'transparent',
+                  backgroundColor: activeTab === 'myPlans' ? colors.primary : 'transparent',
                   borderRadius: radii.sm
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <User size={16} color={activeTab === 'private' ? '#0f172a' : colors.muted} />
-                  <Text style={{ color: activeTab === 'private' ? '#0f172a' : colors.muted, fontWeight: 'bold' }}>MY PLANS</Text>
+                  <User size={16} color={activeTab === 'myPlans' ? '#0f172a' : colors.muted} />
+                  <Text style={{ color: activeTab === 'myPlans' ? '#0f172a' : colors.muted, fontWeight: 'bold' }}>MY PLANS</Text>
                 </View>
               </TouchableOpacity>
             </View>
 
+            {/* Template Filter - Only show in templates tab */}
+            {activeTab === 'templates' && (
+              <View style={{ flexDirection: 'row', marginBottom: spacing.lg, gap: spacing.sm }}>
+                {[
+                  { key: 'all', label: 'All' },
+                  { key: 'public', label: 'Public' },
+                  { key: 'local', label: 'My Templates' }
+                ].map(filter => (
+                  <TouchableOpacity
+                    key={filter.key}
+                    onPress={() => setTemplateFilter(filter.key as 'all' | 'public' | 'local')}
+                    style={{
+                      flex: 1,
+                      paddingVertical: spacing.xs,
+                      paddingHorizontal: spacing.sm,
+                      backgroundColor: templateFilter === filter.key ? colors.primary : 'rgba(255,255,255,0.1)',
+                      borderRadius: radii.sm,
+                      alignItems: 'center'
+                    }}
+                  >
+                    <Text style={{
+                      color: templateFilter === filter.key ? '#0f172a' : colors.muted,
+                      fontSize: 12,
+                      fontWeight: 'bold'
+                    }}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+
             {/* List */}
             <ScrollView showsVerticalScrollIndicator={false}>
-              {activeTab === 'public' ? (
+              {activeTab === 'templates' ? (
                 <View>
-                  {sortPlansByRelevance(DEFAULT_PLANS).map(plan => renderPlanCard(plan, false))}
+                  {(() => {
+                    let plansToShow: WorkoutPlan[] = [];
+
+                    if (templateFilter === 'all') {
+                      // Show unique plans from both sources
+                      const allPlans = [...publicPlans, ...userCreatedPlans];
+                      // Filter duplicates based on ID
+                      plansToShow = Array.from(new Map(allPlans.map(p => [p.id, p])).values());
+                    } else if (templateFilter === 'public') {
+                      plansToShow = publicPlans;
+                    } else if (templateFilter === 'local') {
+                      plansToShow = userCreatedPlans;
+                    }
+
+                    return sortPlansByRelevance(plansToShow).map(plan => {
+                      const isUserCreated = userCreatedPlans.some(p => p.id === plan.id);
+                      return renderPlanCard(plan, false, isUserCreated);
+                    });
+                  })()}
                 </View>
               ) : (
                 <View>

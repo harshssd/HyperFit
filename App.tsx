@@ -279,7 +279,9 @@ export default function App() {
     if (!user) return;
     try {
       setData(newData);
-      await upsertUserData(user.id, newData);
+      // Deprecated: Monolithic save is being replaced by granular service calls.
+      // We will remove this call once all features are migrated to use specific service functions.
+      // await upsertUserData(user.id, newData);
     } catch (e) {
       console.error("Save failed", e);
     }

@@ -55,6 +55,7 @@ import GlassCard from '../../components/GlassCard';
 import workoutStyles from '../../styles/workout';
 import { getAllExerciseNames } from './workoutConfig';
 import { calculateTotalVolume, getExerciseConfig, calculateXP, getNextScheduledWorkout, planToWorkout } from './helpers';
+// Removed: DEFAULT_PLANS import - plans come from database via data.workoutPlans
 import { WorkoutPlan } from '../../types/workout';
 import { ABORT_SESSION_MESSAGE, ABORT_SESSION_TITLE } from '../../constants/text';
 import { confirmAction, showError, showSuccess } from '../../utils/alerts';
@@ -476,9 +477,29 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     }
   };
 
-  const handleEditPlan = () => {
-    // TODO: Open plan editor for active plan
-    showSuccess('Plan editor coming soon!');
+  const handleEditPlan = (plan: WorkoutPlan) => {
+    // For now, just show a message. In the future, this would open the plan editor
+    // with the existing plan data pre-populated
+    showSuccess(`Edit plan: ${plan.name} - Coming soon!`);
+  };
+
+  const handleSyncPlan = (plan: WorkoutPlan) => {
+    // Determine the source of truth for public plans
+    // Since we removed DEFAULT_PLANS, we should look for a public plan with the same name
+    // in the fetched plans list.
+    const publicPlans = (data.workoutPlans || []).filter((p: WorkoutPlan) => p.is_public);
+    const originalTemplate = publicPlans.find((p: WorkoutPlan) => p.name === plan.name);
+
+    if (originalTemplate) {
+      // Update the user's plan with the latest version from the original template
+      const updatedPlans = (data.workoutPlans || []).map((p: WorkoutPlan) =>
+        p.id === plan.id ? { ...originalTemplate, id: plan.id } : p
+      );
+      updateData({ ...data, workoutPlans: updatedPlans });
+      showSuccess(`Synced ${plan.name} with latest template!`);
+    } else {
+      showSuccess('No updates available for this plan.');
+    }
   };
 
   const handleChangePlan = () => {
@@ -504,6 +525,101 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
       showSuccess(`${activeUserPlan.customName || activeUserPlan.planData?.name} ended.`);
     }
+  };
+
+  const cleanupDuplicatePlans = () => {
+    if (!data.userWorkoutPlans || data.userWorkoutPlans.length === 0) {
+      showSuccess('No plans to clean up!');
+      return;
+    }
+
+    // Group plans by planId to find duplicates
+    const planGroups: { [planId: string]: any[] } = {};
+    data.userWorkoutPlans.forEach((plan: any) => {
+      const planId = plan.planId;
+      if (!planGroups[planId]) {
+        planGroups[planId] = [];
+      }
+      planGroups[planId].push(plan);
+    });
+
+    // For each group with duplicates, keep only the most recent one
+    const cleanedPlans: any[] = [];
+    let duplicatesRemoved = 0;
+
+    Object.values(planGroups).forEach((plans: any[]) => {
+      if (plans.length === 1) {
+        // No duplicates, keep as is
+        cleanedPlans.push(plans[0]);
+      } else {
+        // Has duplicates - sort by startedAt (most recent first) and keep the first one
+        const sortedPlans = plans.sort((a, b) =>
+          new Date(b.startedAt || 0).getTime() - new Date(a.startedAt || 0).getTime()
+        );
+
+        // Keep the most recent one (first in sorted array)
+        cleanedPlans.push(sortedPlans[0]);
+        duplicatesRemoved += plans.length - 1;
+      }
+    });
+
+    // Preserve the active plan status
+    const currentActiveId = data.activePlanId;
+    const updatedPlans = cleanedPlans.map((plan: any) => ({
+      ...plan,
+      isActive: plan.planId === currentActiveId
+    }));
+
+    updateData({
+      ...data,
+      userWorkoutPlans: updatedPlans
+    });
+
+    showSuccess(`Cleaned up ${duplicatesRemoved} duplicate plan(s)!`);
+  };
+
+  const handleDeleteUserPlan = (userPlanId: string) => {
+    const planToDelete = (data.userWorkoutPlans || []).find((p: any) => p.id === userPlanId);
+    const planName = planToDelete?.planData?.name || 'this plan';
+
+    confirmAction(
+      'Delete Plan Instance',
+      `Are you sure you want to delete your instance of "${planName}"? This will remove all progress tracking for this plan but keep your workout history.`,
+      () => {
+        // Remove the user plan instance
+        const updatedUserPlans = (data.userWorkoutPlans || []).filter((p: any) => p.id !== userPlanId);
+
+        // If we deleted the active plan, clear the active plan
+        const deletedPlan = (data.userWorkoutPlans || []).find((p: any) => p.id === userPlanId);
+        const newActivePlanId = deletedPlan?.isActive ? undefined : data.activePlanId;
+
+        updateData({
+          ...data,
+          userWorkoutPlans: updatedUserPlans,
+          activePlanId: newActivePlanId
+        });
+
+        showSuccess('Plan instance deleted!');
+      },
+      'Delete'
+    );
+  };
+
+  const cleanupWorkoutPlans = () => {
+    // Keep only plans that are public/standard templates
+    const publicPlans = (data.workoutPlans || []).filter((plan: WorkoutPlan) => plan.is_public);
+    // OR keep plans that match a known list of standard plan names/IDs if we had a constant source
+    // For now, let's rely on the is_public flag which should be set on system plans
+
+    // If we want to strictly enforce only "official" plans, we'd need a way to identify them.
+    // Assuming data.workoutPlans contains both system and user plans.
+    // The previous logic relied on DEFAULT_PLANS IDs.
+
+    // New logic: Keep plans where is_public is true.
+    const cleanedPlans = (data.workoutPlans || []).filter((plan: WorkoutPlan) => plan.is_public);
+
+    updateData({ ...data, workoutPlans: cleanedPlans });
+    showSuccess(`Cleaned up workout plans! Kept ${cleanedPlans.length} standard plans.`);
   };
 
   const updateSet = (exId: number, setIndex: number, field: string, value: any) => {
@@ -745,7 +861,6 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             setShowPlanCreator(true);
           }}
           onBrowsePlans={handleChangePlan}
-          onEditPlan={handleEditPlan}
           onChangePlan={handleChangePlan}
           onCreateFromExisting={handleCreateFromExisting}
           onEndPlan={handleEndPlan}
@@ -754,8 +869,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
           onStartCalendarWorkout={handleStartScheduledWorkout}
           recentWorkouts={recentWorkouts}
           workoutPlans={workoutPlans}
+          userWorkoutPlans={data.userWorkoutPlans}
           activePlan={activePlanForDisplay}
           onActivatePlan={handleActivatePlan}
+          onDeleteUserPlan={handleDeleteUserPlan}
+          onCleanupPlans={cleanupWorkoutPlans}
           userEquipment="gym" // TODO: Get from user preferences
           userFrequency={3} // TODO: Get from user preferences
           nextScheduledWorkout={nextScheduledWorkout}
@@ -765,21 +883,35 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             visible={showPlanLibrary}
             onClose={() => setShowPlanLibrary(false)}
             onSelectPlan={(plan) => {
-              // Convert template to UserWorkoutPlan
-              const userPlan = {
-                id: `plan_${Date.now()}`,
-                userId: user?.id,
-                planId: plan.id,
-                planData: plan,
-                startedAt: new Date().toISOString(),
-                isActive: true,
-                createdAt: new Date().toISOString()
-              };
-              // Add to user plans and activate
-              const updatedUserPlans = [...(data.userWorkoutPlans || []).map((p: any) => ({...p, isActive: false})), userPlan];
-              updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: userPlan.planId });
-              setShowPlanLibrary(false);
-              showSuccess(`Started ${plan.name}!`);
+              // Check if user already has a UserWorkoutPlan for this WorkoutPlan
+              const existingUserPlan = (data.userWorkoutPlans || []).find((p: any) => p.planId === plan.id);
+
+              if (existingUserPlan) {
+                // User already has this plan - just activate it
+                const updatedUserPlans = (data.userWorkoutPlans || []).map((p: any) => ({
+                  ...p,
+                  isActive: p.planId === plan.id
+                }));
+                updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: plan.id });
+                setShowPlanLibrary(false);
+                showSuccess(`Activated ${plan.name}!`);
+              } else {
+                // User doesn't have this plan - create new UserWorkoutPlan
+                const userPlan = {
+                  id: `plan_${Date.now()}`,
+                  userId: user?.id,
+                  planId: plan.id,
+                  planData: plan,
+                  startedAt: new Date().toISOString(),
+                  isActive: true,
+                  createdAt: new Date().toISOString()
+                };
+                // Add to user plans and activate
+                const updatedUserPlans = [...(data.userWorkoutPlans || []).map((p: any) => ({...p, isActive: false})), userPlan];
+                updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: userPlan.planId });
+                setShowPlanLibrary(false);
+                showSuccess(`Started ${plan.name}!`);
+              }
             }}
             onManagePlan={(plan) => {
               // TODO: Open plan editor
@@ -788,7 +920,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             onCreateNew={() => {
               setShowPlanCreator(true);
             }}
-            userPlans={data.workoutPlans || []}
+            onEditPlan={handleEditPlan}
+            onSyncPlan={handleSyncPlan}
+            userPlans={(data.userWorkoutPlans || []).map((p: any) => p.planData).filter(Boolean)}
+            userCreatedPlans={(data.workoutPlans || []).filter((p: WorkoutPlan) => !p.is_public)}
+            publicPlans={(data.workoutPlans || []).filter((p: WorkoutPlan) => p.is_public)}
             userEquipment="gym"
             userFrequency={3}
           />

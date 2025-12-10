@@ -428,7 +428,7 @@ export const getWorkoutForDate = (date: Date, recentWorkouts: any[], activePlan?
   const isFutureOrToday = dateStr >= todayStr;
 
   // 3. If active plan exists and date is future/today, show planned workout
-  if (activePlan && activePlan.planData && activePlan.planData.schedule && isFutureOrToday) {
+  if (activePlan && activePlan.planData && activePlan.planData.schedule && activePlan.planData.sessions && isFutureOrToday) {
     const dayOfWeek = date.getDay();
     const dayNames: (keyof WorkoutPlan['schedule'])[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const dayName = dayNames[dayOfWeek];
