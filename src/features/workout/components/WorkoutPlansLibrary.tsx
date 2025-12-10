@@ -7,6 +7,8 @@ import { colors, spacing, radii } from '../../../styles/theme';
 import { homeStyles } from '../../../styles';
 // Removed: DEFAULT_PLANS import - plans now come from database
 import { WorkoutPlan } from '../../../types/workout';
+import { fetchWorkoutPlanDetails } from '../../../services/workoutService';
+import { supabase } from '../../../services/supabase';
 
 type WorkoutPlansLibraryProps = {
   visible: boolean;
@@ -40,15 +42,66 @@ const WorkoutPlansLibrary = ({
   const [activeTab, setActiveTab] = useState<'templates' | 'myPlans'>('templates');
   const [templateFilter, setTemplateFilter] = useState<'all' | 'public' | 'local'>('all');
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
+  const [selectedPlanDetails, setSelectedPlanDetails] = useState<WorkoutPlan | null>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   // Reset selected plan when modal opens
   React.useEffect(() => {
     if (visible) {
       setSelectedPlan(null);
+      setSelectedPlanDetails(null);
       setActiveTab('templates');
       setTemplateFilter('all');
     }
   }, [visible]);
+
+  // Fetch detailed plan data when a plan is selected for details view
+  React.useEffect(() => {
+    const fetchPlanDetails = async () => {
+      if (selectedPlan && !selectedPlan.sessions) {
+        setLoadingDetails(true);
+        try {
+          // First verify the plan exists in the database
+          const { data: planExists } = await supabase
+            .from('workout_plans')
+            .select('id')
+            .eq('id', selectedPlan.id)
+            .single();
+
+          if (!planExists) {
+            throw new Error(`Plan with ID ${selectedPlan.id} not found in database`);
+          }
+
+          const detailedPlan = await fetchWorkoutPlanDetails(selectedPlan.id);
+          setSelectedPlanDetails(detailedPlan);
+        } catch (error: any) {
+          console.error('Error fetching plan details:', error);
+
+          // Handle specific error cases
+          if (error.message && error.message.includes('not found in database')) {
+            console.warn(`Plan "${selectedPlan?.name}" not found in database, using basic data`);
+            // For missing plans, still show basic info but mark as unavailable
+            setSelectedPlanDetails({
+              ...selectedPlan,
+              description: `${selectedPlan.description}\n\n⚠️ This plan may no longer be available or has been modified.`,
+              sessions: [],
+              schedule: {}
+            });
+          } else {
+            // For other errors, fallback to basic plan data
+            setSelectedPlanDetails(selectedPlan);
+          }
+        } finally {
+          setLoadingDetails(false);
+        }
+      } else if (selectedPlan) {
+        // Plan already has details
+        setSelectedPlanDetails(selectedPlan);
+      }
+    };
+
+    fetchPlanDetails();
+  }, [selectedPlan]);
 
   // Sort plans by relevance based on user preferences
   const sortPlansByRelevance = (plans: WorkoutPlan[]) => {
@@ -198,12 +251,15 @@ const WorkoutPlansLibrary = ({
   );
 
   const renderPlanDetails = () => {
-    if (!selectedPlan) return null;
+    if (!selectedPlan || !selectedPlanDetails) return null;
 
     return (
       <View style={{ flex: 1 }}>
-        <TouchableOpacity 
-          onPress={() => setSelectedPlan(null)} 
+        <TouchableOpacity
+          onPress={() => {
+            setSelectedPlan(null);
+            setSelectedPlanDetails(null);
+          }}
           style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}
         >
           <ChevronLeft size={20} color={colors.primary} />
@@ -211,45 +267,51 @@ const WorkoutPlansLibrary = ({
         </TouchableOpacity>
 
         <ScrollView showsVerticalScrollIndicator={false}>
-          <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.lg }}>
-            <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: spacing.sm }}>
-              {selectedPlan.name}
-            </Text>
-            <Text style={{ color: colors.muted, fontSize: 14, marginBottom: spacing.lg, lineHeight: 20 }}>
-              {selectedPlan.description}
-            </Text>
+          {loadingDetails ? (
+            <GlassCard style={{ padding: spacing.xl, alignItems: 'center' }}>
+              <Text style={{ color: colors.muted, fontSize: 16 }}>Loading plan details...</Text>
+            </GlassCard>
+          ) : (
+            <View>
+              <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.lg }}>
+                <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: spacing.sm }}>
+                  {selectedPlanDetails.name}
+                </Text>
+                <Text style={{ color: colors.muted, fontSize: 14, marginBottom: spacing.lg, lineHeight: 20 }}>
+                  {selectedPlanDetails.description}
+                </Text>
 
-            <View style={{ flexDirection: 'row', gap: spacing.lg, marginBottom: spacing.xl }}>
-              <View>
-                <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 2 }}>FREQUENCY</Text>
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedPlan.frequency}x / week</Text>
-              </View>
-              <View>
-                <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 2 }}>DURATION</Text>
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedPlan.duration} weeks</Text>
-              </View>
-              <View>
-                <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 2 }}>LEVEL</Text>
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedPlan.difficulty || 'All'}</Text>
-              </View>
-            </View>
+                <View style={{ flexDirection: 'row', gap: spacing.lg, marginBottom: spacing.xl }}>
+                  <View>
+                    <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 2 }}>FREQUENCY</Text>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedPlanDetails.frequency}x / week</Text>
+                  </View>
+                  <View>
+                    <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 2 }}>DURATION</Text>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedPlanDetails.duration || 8} weeks</Text>
+                  </View>
+                  <View>
+                    <Text style={{ color: colors.muted, fontSize: 12, marginBottom: 2 }}>LEVEL</Text>
+                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{selectedPlanDetails.difficulty || 'All'}</Text>
+                  </View>
+                </View>
 
-            <NeonButton onPress={() => onSelectPlan(selectedPlan)} style={{ width: '100%' }}>
-              <Calendar size={20} color="#0f172a" />
-              <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>START THIS PLAN</Text>
-            </NeonButton>
-          </GlassCard>
+                <NeonButton onPress={() => onSelectPlan(selectedPlanDetails)} style={{ width: '100%' }}>
+                  <Calendar size={20} color="#0f172a" />
+                  <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>START THIS PLAN</Text>
+                </NeonButton>
+              </GlassCard>
 
-          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: spacing.md }}>
-            WEEKLY SCHEDULE
-          </Text>
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: spacing.md }}>
+                WEEKLY SCHEDULE
+              </Text>
 
-          <View style={{ gap: spacing.md, marginBottom: spacing.xl }}>
-            {selectedPlan.schedule && selectedPlan.sessions ? (
+              <View style={{ gap: spacing.md, marginBottom: spacing.xl }}>
+            {selectedPlanDetails.schedule && selectedPlanDetails.sessions ? (
               ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => {
-                const schedule = selectedPlan.schedule[day as keyof typeof selectedPlan.schedule];
+                const schedule = selectedPlanDetails.schedule[day as keyof typeof selectedPlanDetails.schedule];
                 const hasWorkout = schedule && schedule.length > 0;
-                const session = hasWorkout ? selectedPlan.sessions.find(s => s.id === schedule[0].sessionId) : null;
+                const session = hasWorkout ? selectedPlanDetails.sessions.find(s => s.id === schedule[0].sessionId) : null;
 
               return (
                 <GlassCard key={day} style={{ padding: spacing.md }}>
@@ -305,8 +367,10 @@ const WorkoutPlansLibrary = ({
                   </Text>
                 </View>
               </GlassCard>
-            )}
-          </View>
+              )}
+              </View>
+            </View>
+          )}
         </ScrollView>
       </View>
     );
@@ -327,7 +391,7 @@ const WorkoutPlansLibrary = ({
           </TouchableOpacity>
         </View>
 
-        {!selectedPlan ? (
+        {!selectedPlanDetails ? (
           <>
             {/* Tabs */}
             <View style={{ flexDirection: 'row', marginBottom: spacing.lg, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: radii.md, padding: 4 }}>

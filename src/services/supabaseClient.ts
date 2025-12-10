@@ -1,22 +1,7 @@
-import 'react-native-url-polyfill/auto';
-import { createClient, Session, User } from '@supabase/supabase-js';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabaseConfig } from '../../supabase.config';
+import { Session, User } from '@supabase/supabase-js';
+import { supabase } from './supabase';
 import { UserData } from '../types/workout';
 import { fetchWorkoutPlans, fetchWorkoutSessions, fetchUserWorkoutPlans, createWorkoutPlan, createUserWorkoutPlan, logWorkoutSession } from './workoutService';
-
-export const supabase = createClient(
-  supabaseConfig.supabaseUrl,
-  supabaseConfig.supabaseAnonKey,
-  {
-    auth: {
-      storage: AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
-    },
-  }
-);
 
 export const getInitialSession = () => supabase.auth.getSession();
 
@@ -73,19 +58,20 @@ export const loadUserData = async (userId: string, defaultData: UserData) => {
     // 2. Fetch User Plans
     const userPlans = await fetchUserWorkoutPlans(userId);
     
-    // 3. Fetch User Templates (Plans created by user)
+    // 3. Fetch All Templates (User + Public)
     // The workout_plans table contains both system and user plans.
-    // We filter in the service layer or here.
+    // We should return ALL plans so the UI can filter between public/private.
     const allPlans = await fetchWorkoutPlans();
-    const myTemplates = allPlans.filter((p: any) => p.user_id === userId);
-
+    // Previously we filtered by user_id, but now we need public plans too.
+    // The service 'fetchWorkoutPlans' already respects RLS (own + public).
+    
     return {
       ...defaultData,
       gymLogs,
       workouts,
       workoutStatus,
-      userWorkoutPlans: userPlans, // Now using the real table data
-      workoutPlans: myTemplates,   // Now using real user templates
+      userWorkoutPlans: userPlans, // Active instances
+      workoutPlans: allPlans,      // Templates (Public + User created)
       // Add other mapped fields as we migrate them
     };
   } catch (error) {

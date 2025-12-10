@@ -9,3 +9,4 @@ export const getAllExerciseNames = (data: UserData) => {
   return uniqueNames.sort();
 };
 
+

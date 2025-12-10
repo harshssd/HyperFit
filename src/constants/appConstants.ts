@@ -32,3 +32,4 @@ export const DEFAULT_DATA = {
   pushupsCompleted: []
 };
 
+

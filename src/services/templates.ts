@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase';
 import type { Template, TemplateFolder } from '../types/workout';
 
 export const fetchTemplatesForUser = async (userId: string | undefined) => {

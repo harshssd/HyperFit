@@ -1,6 +1,6 @@
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase';
 import { Database } from '../types/supabase';
-import { WorkoutPlan, UserWorkoutPlan, ActiveWorkoutSession, WorkoutExercise } from '../types/workout';
+import { WorkoutPlan, UserWorkoutPlan, ActiveWorkoutSession, WorkoutExercise, DayOfWeek, ScheduledSession } from '../types/workout';
 
 // TypedSupabaseClient
 type SupabaseClient = typeof supabase;
@@ -50,17 +50,24 @@ export const fetchWorkoutPlans = async () => {
 
 export const fetchWorkoutPlanDetails = async (planId: string) => {
   // Fetch plan with nested sessions, exercises, and schedule
-  // Note: Supabase JS doesn't support deep nested joins easily in one query for this structure 
-  // without precise foreign key hints or views. 
+  // Note: Supabase JS doesn't support deep nested joins easily in one query for this structure
+  // without precise foreign key hints or views.
   // We'll fetch related data in parallel or sequence for now to ensure correctness.
-  
+
   const planPromise = supabase.from('workout_plans').select('*').eq('id', planId).single();
   const sessionsPromise = supabase.from('plan_sessions').select('*').eq('plan_id', planId).order('order_index');
   const schedulePromise = supabase.from('plan_schedule').select('*').eq('plan_id', planId);
-  
+
   const [planRes, sessionsRes, scheduleRes] = await Promise.all([planPromise, sessionsPromise, schedulePromise]);
-  
-  if (planRes.error) throw planRes.error;
+
+  // Handle case where plan doesn't exist
+  if (planRes.error) {
+    if (planRes.error.code === 'PGRST116') {
+      throw new Error(`Plan with ID ${planId} not found in database. This plan may have been deleted or never existed.`);
+    }
+    throw planRes.error;
+  }
+
   if (sessionsRes.error) throw sessionsRes.error;
   if (scheduleRes.error) throw scheduleRes.error;
   
@@ -83,15 +90,45 @@ export const fetchWorkoutPlanDetails = async (planId: string) => {
     planExercises = exercises;
   }
   
-  // Assemble the full plan object structure matching internal types if needed
-  // For now returning raw normalized data might be better for the service
+  // Transform schedule data to match TypeScript interface
+  // Group schedule entries by day and convert to expected format
+  const transformedSchedule: { [K in DayOfWeek]?: ScheduledSession[] } = {};
+  schedule.forEach(entry => {
+    const day = entry.day_of_week as DayOfWeek;
+    if (!transformedSchedule[day]) {
+      transformedSchedule[day] = [];
+    }
+    transformedSchedule[day]!.push({
+      sessionId: entry.session_id,
+      order: transformedSchedule[day]!.length + 1,
+      isOptional: false // Default to required for now
+    });
+  });
+
+  // Transform exercises to match expected format
+  const transformedSessions = sessions.map(session => {
+    const sessionExercises = planExercises.filter(e => e.session_id === session.id);
+    const transformedExercises = sessionExercises.map(ex => ({
+      id: ex.exercise.id,
+      name: ex.exercise.name,
+      primaryMuscleGroup: ex.exercise.muscle_group as any, // Map to expected type
+      secondaryMuscleGroups: [], // Could be extended later
+      sets: ex.sets,
+      repRange: { min: ex.reps_min, max: ex.reps_max },
+      restSeconds: ex.rest_seconds || 60,
+      order: ex.order_index
+    }));
+
+    return {
+      ...session,
+      exercises: transformedExercises
+    };
+  });
+
   return {
     ...plan,
-    sessions: sessions.map(session => ({
-      ...session,
-      exercises: planExercises.filter(e => e.session_id === session.id)
-    })),
-    schedule: schedule
+    sessions: transformedSessions,
+    schedule: transformedSchedule
   };
 };
 
@@ -239,4 +276,5 @@ export const logWorkoutSession = async (
   
   return newSession;
 };
+
 

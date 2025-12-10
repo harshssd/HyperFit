@@ -62,6 +62,8 @@ import { confirmAction, showError, showSuccess } from '../../utils/alerts';
 import { useTodayWorkout } from './hooks/useTodayWorkout';
 import { useSessionView } from './hooks/useSessionView';
 import { useTemplates } from './hooks/useTemplates';
+import { fetchWorkoutPlanDetails, createWorkoutPlan } from '../../services/workoutService';
+import { supabase } from '../../services/supabase';
 
 type GymViewProps = {
   data: any;
@@ -414,16 +416,74 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     showSuccess('AI workout generated based on your progress!');
   };
 
-  const handleCreatePlan = (plan: Omit<WorkoutPlan, 'id' | 'createdAt' | 'isTemplate'>) => {
-    const newPlan: WorkoutPlan = {
-      ...plan,
-      id: `plan_${Date.now()}`,
-      createdAt: new Date().toISOString()
-    };
+  const handleCreatePlan = async (planData: Omit<WorkoutPlan, 'id' | 'createdAt' | 'isTemplate'>) => {
+    if (!user?.id) {
+      showError('You must be signed in to create a plan.');
+      return;
+    }
 
-    const updatedPlans = [...(data.workoutPlans || []), newPlan];
-    updateData({ ...data, workoutPlans: updatedPlans });
-    showSuccess(`Plan "${newPlan.name}" created successfully!`);
+    try {
+      // Transform the plan data to database format
+      const planForDb = {
+        name: planData.name,
+        description: planData.description,
+        frequency: planData.frequency,
+        equipment: planData.equipment,
+        duration: planData.duration,
+        difficulty: planData.difficulty,
+        tags: planData.tags || [],
+        is_public: false, // User-created plans are private by default
+        user_id: user.id,
+      };
+
+      // Transform sessions to database format
+      const sessionsForDb = planData.sessions.map((session, index) => ({
+        session: {
+          id: session.id, // preserve client session id so schedule can reference it
+          name: session.name,
+          description: session.description || '',
+          focus: session.focus as string,
+          order_index: index + 1, // Use array index as order
+        } as any, // Type assertion to bypass strict typing
+        exercises: session.exercises.map(exercise => ({
+          exercise_id: exercise.id,
+          sets: exercise.sets,
+          reps_min: exercise.repRange.min,
+          reps_max: exercise.repRange.max,
+          rest_seconds: exercise.restSeconds || 60,
+          order_index: exercise.order,
+        } as any)) // Type assertion to bypass strict typing
+      })) as any; // Type assertion for the whole array
+
+      // Transform schedule to database format
+      const scheduleForDb = Object.entries(planData.schedule || {}).flatMap(([day, sessions]) =>
+        (sessions || []).map(session => ({
+          session_id: session.sessionId,
+          day_of_week: day,
+        } as any))
+      );
+
+      // Save to database
+      const savedPlan = await createWorkoutPlan(planForDb, sessionsForDb, scheduleForDb);
+
+      // Create the full plan object for local state
+      const fullPlan: WorkoutPlan = {
+        ...planData,
+        id: savedPlan.id,
+        createdAt: savedPlan.created_at,
+        isTemplate: false,
+        is_public: false,
+      };
+
+      // Update local state
+      const updatedPlans = [...(data.workoutPlans || []), fullPlan];
+      updateData({ ...data, workoutPlans: updatedPlans });
+
+      showSuccess(`Plan "${fullPlan.name}" created successfully!`);
+    } catch (error) {
+      console.error('Error creating plan:', error);
+      showError('Failed to create plan. Please try again.');
+    }
   };
 
   const handleActivatePlan = (planId: string) => {
@@ -882,35 +942,69 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
           <WorkoutPlansLibrary
             visible={showPlanLibrary}
             onClose={() => setShowPlanLibrary(false)}
-            onSelectPlan={(plan) => {
-              // Check if user already has a UserWorkoutPlan for this WorkoutPlan
-              const existingUserPlan = (data.userWorkoutPlans || []).find((p: any) => p.planId === plan.id);
+            onSelectPlan={async (plan) => {
+              try {
+                // Check if user already has a UserWorkoutPlan for this WorkoutPlan
+                const existingUserPlan = (data.userWorkoutPlans || []).find((p: any) => p.planId === plan.id);
 
-              if (existingUserPlan) {
-                // User already has this plan - just activate it
-                const updatedUserPlans = (data.userWorkoutPlans || []).map((p: any) => ({
-                  ...p,
-                  isActive: p.planId === plan.id
-                }));
-                updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: plan.id });
-                setShowPlanLibrary(false);
-                showSuccess(`Activated ${plan.name}!`);
-              } else {
-                // User doesn't have this plan - create new UserWorkoutPlan
-                const userPlan = {
-                  id: `plan_${Date.now()}`,
-                  userId: user?.id,
-                  planId: plan.id,
-                  planData: plan,
-                  startedAt: new Date().toISOString(),
-                  isActive: true,
-                  createdAt: new Date().toISOString()
-                };
-                // Add to user plans and activate
-                const updatedUserPlans = [...(data.userWorkoutPlans || []).map((p: any) => ({...p, isActive: false})), userPlan];
-                updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: userPlan.planId });
-                setShowPlanLibrary(false);
-                showSuccess(`Started ${plan.name}!`);
+                if (existingUserPlan) {
+                  // User already has this plan - just activate it
+                  const updatedUserPlans = (data.userWorkoutPlans || []).map((p: any) => ({
+                    ...p,
+                    isActive: p.planId === plan.id
+                  }));
+                  updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: plan.id });
+                  setShowPlanLibrary(false);
+                  showSuccess(`Activated ${plan.name}!`);
+                } else {
+                  // User doesn't have this plan - fetch detailed plan data and create new UserWorkoutPlan
+                  // First verify the plan exists in the database
+                  try {
+                    const { data: planExists } = await supabase
+                      .from('workout_plans')
+                      .select('id')
+                      .eq('id', plan.id)
+                      .single();
+
+                    if (!planExists) {
+                      throw new Error(`Plan with ID ${plan.id} not found in database`);
+                    }
+                  } catch (verifyError) {
+                    console.error('Plan verification failed:', verifyError);
+                    showError(`Plan "${plan.name}" is not available in the database. Please refresh the app or contact support.`);
+                    return;
+                  }
+
+                  const detailedPlan = await fetchWorkoutPlanDetails(plan.id);
+
+                  const userPlan = {
+                    id: `plan_${Date.now()}`,
+                    userId: user?.id,
+                    planId: plan.id,
+                    planData: detailedPlan,
+                    startedAt: new Date().toISOString(),
+                    isActive: true,
+                    createdAt: new Date().toISOString()
+                  };
+                  // Add to user plans and activate
+                  const updatedUserPlans = [...(data.userWorkoutPlans || []).map((p: any) => ({...p, isActive: false})), userPlan];
+                  updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: userPlan.planId });
+                  setShowPlanLibrary(false);
+                  showSuccess(`Started ${plan.name}!`);
+                }
+              } catch (error: any) {
+                console.error('Error selecting plan:', error);
+
+                // Handle specific error cases
+                if (error.message && error.message.includes('not found in database')) {
+                  showError(`Plan "${plan.name}" is no longer available. It may have been deleted or the database needs to be refreshed.`);
+                  // Optionally refresh the data to remove stale plans
+                  // For now, just show the error
+                } else if (error.code === 'PGRST116') {
+                  showError(`Plan "${plan.name}" could not be loaded. The database may need to be refreshed with seed data.`);
+                } else {
+                  showError('Failed to load plan details. Please try again.');
+                }
               }
             }}
             onManagePlan={(plan) => {
