@@ -699,20 +699,44 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       // Save to database
       const savedPlan = await createWorkoutPlan(planForDb, sessionsForDb, scheduleForDb);
 
-      // Create the full plan object for local state
-      const fullPlan: WorkoutPlan = {
-        ...planData,
-        id: savedPlan.id,
-        createdAt: savedPlan.created_at,
-        isTemplate: false,
-        is_public: false,
-      };
+      // Fetch the complete plan with all details from the database
+      const completePlan = await fetchWorkoutPlanDetails(savedPlan.id);
 
-      // Update local state
-      const updatedPlans = [...(data.workoutPlans || []), fullPlan];
+      // Update local state with the complete plan data
+      const updatedPlans = [...(data.workoutPlans || []), completePlan];
       updateData({ ...data, workoutPlans: updatedPlans });
 
-      showSuccess(`Plan "${fullPlan.name}" created successfully!`);
+      // Close the plan creator
+      setShowPlanCreator(false);
+      
+      showSuccess(`Plan "${completePlan.name}" created successfully!`);
+
+      // Prompt to activate the newly created plan
+      setTimeout(() => {
+        Alert.alert(
+          "Plan Created",
+          "Would you like to activate this plan now?",
+          [
+            { 
+              text: "Not Now", 
+              style: "cancel",
+              onPress: () => {
+                // Refresh to show the new plan in the library
+                setShowPlanLibrary(true);
+              }
+            },
+            { 
+              text: "Activate", 
+              onPress: async () => {
+                await handleActivatePlan(savedPlan.id);
+                // Force a refresh by toggling plan library visibility
+                setShowPlanLibrary(false);
+              }
+            }
+          ]
+        );
+      }, 500);
+
     } catch (error) {
       console.error('Error creating plan:', error);
       showError('Failed to create plan. Please try again.');
@@ -729,6 +753,12 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     const targetPlan = userPlans.find((p: any) => p.planId === planId);
 
     try {
+      // Fetch complete plan details from database to ensure we have all data
+      let planDetails = targetPlan?.planData;
+      if (!planDetails || !planDetails.sessions) {
+        planDetails = await fetchWorkoutPlanDetails(planId);
+      }
+
       // Deactivate other plans in DB
       await Promise.all(
         userPlans
@@ -736,7 +766,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
           .map((p: any) => updateUserWorkoutPlan(p.id, { is_active: false }))
       );
 
-      // Activate selected plan in DB (create it if it somehow doesn't exist locally)
+      // Activate selected plan in DB (create it if it doesn't exist locally)
       let activePlanRecordId = targetPlan?.id;
       if (targetPlan?.id) {
         await updateUserWorkoutPlan(targetPlan.id, { is_active: true });
@@ -755,12 +785,28 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
         .map((p: any) => ({
           ...p,
           isActive: p.planId === planId,
+          // Update plan data if it's the active plan
+          planData: p.planId === planId ? planDetails : p.planData,
         }))
         .map((p: any) =>
           p.planId === planId && activePlanRecordId
             ? { ...p, id: activePlanRecordId, isActive: true }
             : { ...p, isActive: false }
         );
+
+      // If the plan wasn't in userPlans, add it now
+      if (!targetPlan && activePlanRecordId && planDetails) {
+        updatedUserPlans.push({
+          id: activePlanRecordId,
+          userId: user.id,
+          planId: planId,
+          planData: planDetails, // Use complete plan details
+          startedAt: new Date().toISOString(),
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          customName: planDetails.name,
+        });
+      }
 
       updateData({
         ...data,

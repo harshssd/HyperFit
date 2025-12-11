@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal } from 'react-native';
-import { Dumbbell, Layout, PlusCircle, Calendar, ChevronRight, CheckCircle, Globe, Lock, ChevronLeft, Search, Plus, Trash2, X } from 'lucide-react-native';
+import { Dumbbell, Layout, PlusCircle, Calendar, ChevronRight, CheckCircle, Globe, Lock, ChevronLeft, Search, Plus, Trash2, X, Edit3 } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import { colors, spacing, radii } from '../../../styles/theme';
@@ -538,40 +538,22 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
 
           {/* STEP 2: SESSIONS DEFINITION */}
           {step === 'sessions' && (
-            <View style={{ gap: spacing.xl }}>
-              <GlassCard style={{ padding: spacing.xl, alignItems: 'center' }}>
-                <Dumbbell size={48} color={colors.primary} />
-                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: spacing.md }}>
-                  Define Your Sessions
+            <View style={{ gap: spacing.lg }}>
+              {/* Header Actions */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>
+                  SESSIONS ({sessions.length})
                 </Text>
-                <Text style={{ color: colors.muted, textAlign: 'center', marginTop: spacing.sm, marginBottom: spacing.lg }}>
-                  Create the different workouts that make up your plan (e.g., "Push A", "Legs", "Full Body").
-                </Text>
-
-                <View style={{ flexDirection: 'row', gap: spacing.md }}>
-                  <NeonButton onPress={openNewSession} style={{ paddingHorizontal: spacing.xl }}>
-                    <PlusCircle size={20} color="#0f172a" />
-                    <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: 'bold' }}>NEW SESSION</Text>
-                  </NeonButton>
-                  
-                  <TouchableOpacity
-                    onPress={() => setShowImportModal(true)}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingHorizontal: spacing.lg,
-                      paddingVertical: spacing.md,
-                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                      borderRadius: radii.sm,
-                      borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.2)'
-                    }}
-                  >
-                    <Layout size={20} color="#fff" />
-                    <Text style={{ marginLeft: 8, color: '#fff', fontSize: 14, fontWeight: 'bold' }}>IMPORT TEMPLATE</Text>
-                  </TouchableOpacity>
-                </View>
-              </GlassCard>
+                <TouchableOpacity 
+                  onPress={() => setShowImportModal(true)}
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                >
+                  <Layout size={16} color={colors.primary} />
+                  <Text style={{ color: colors.primary, fontWeight: 'bold', marginLeft: 4, fontSize: 12 }}>
+                    IMPORT
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               {/* Sessions List */}
               {sessions.length > 0 ? (
@@ -579,18 +561,34 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                   {sessions.map((session, index) => (
                     <GlassCard key={session.id} style={{ padding: spacing.md }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View>
-                          <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>{session.name}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 2 }}>
+                            {session.name}
+                          </Text>
                           <Text style={{ color: colors.muted, fontSize: 12 }}>
                             {session.focus.toUpperCase()} • {session.exercises.length} Exercises
                           </Text>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                          <TouchableOpacity onPress={() => editSession(session)} style={{ padding: spacing.xs }}>
-                            <Text style={{ color: colors.primary, fontWeight: 'bold' }}>EDIT</Text>
+                        <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
+                          <TouchableOpacity 
+                            onPress={() => editSession(session)} 
+                            style={{ 
+                              padding: spacing.xs,
+                              backgroundColor: 'rgba(255,255,255,0.1)',
+                              borderRadius: radii.sm
+                            }}
+                          >
+                            <Edit3 size={16} color="#fff" />
                           </TouchableOpacity>
-                          <TouchableOpacity onPress={() => deleteSession(session.id)} style={{ padding: spacing.xs }}>
-                            <Trash2 size={18} color={colors.danger} />
+                          <TouchableOpacity 
+                            onPress={() => deleteSession(session.id)} 
+                            style={{ 
+                              padding: spacing.xs,
+                              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                              borderRadius: radii.sm
+                            }}
+                          >
+                            <Trash2 size={16} color={colors.danger} />
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -598,10 +596,28 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                   ))}
                 </View>
               ) : (
-                <Text style={{ color: colors.muted, textAlign: 'center', marginTop: spacing.lg }}>
-                  No sessions added yet. Start by adding a session above.
-                </Text>
+                <View style={{ 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: spacing.xl,
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  borderRadius: radii.md,
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.1)',
+                  borderStyle: 'dashed'
+                }}>
+                  <Dumbbell size={48} color={colors.muted} style={{ opacity: 0.5, marginBottom: spacing.md }} />
+                  <Text style={{ color: colors.muted, textAlign: 'center' }}>
+                    No sessions yet. Create a session to start building your plan.
+                  </Text>
+                </View>
               )}
+
+              {/* Add Session Button */}
+              <NeonButton onPress={openNewSession} style={{ width: '100%', marginTop: spacing.sm }}>
+                <PlusCircle size={20} color="#0f172a" />
+                <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>ADD NEW SESSION</Text>
+              </NeonButton>
             </View>
           )}
 
@@ -956,11 +972,65 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                   Add sessions to {editingDay}. Sessions will be ordered by the sequence you add them.
                 </Text>
 
-                {/* Current Sessions for this Day */}
+                {/* Available Sessions to Add */}
+                <View style={{ gap: spacing.sm }}>
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+                    Available Sessions
+                  </Text>
+                  {sessions.length > 0 ? (
+                    sessions.map((session) => {
+                      const isAssigned = editingDay && schedule[editingDay]?.some(s => s.sessionId === session.id);
+                      
+                      return (
+                        <TouchableOpacity
+                          key={session.id}
+                          onPress={() => {
+                            if (!editingDay) return;
+                            if (isAssigned) {
+                              removeSessionFromDay(editingDay, session.id);
+                            } else {
+                              assignSessionToDay(session.id, editingDay);
+                            }
+                          }}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            backgroundColor: isAssigned ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255,255,255,0.05)',
+                            padding: spacing.md,
+                            borderRadius: radii.sm,
+                            borderWidth: 1,
+                            borderColor: isAssigned ? colors.primary : 'transparent',
+                          }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: isAssigned ? colors.primary : '#fff', fontSize: 14, fontWeight: 'bold' }}>
+                              {session.name}
+                            </Text>
+                            <Text style={{ color: isAssigned ? colors.primary : colors.muted, fontSize: 12 }}>
+                              {session.focus.toUpperCase()} • {session.exercises.length} exercises
+                            </Text>
+                          </View>
+                          {isAssigned ? (
+                            <CheckCircle size={20} color={colors.primary} />
+                          ) : (
+                            <PlusCircle size={20} color={colors.muted} />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })
+                  ) : (
+                    <Text style={{ color: colors.muted, fontStyle: 'italic', textAlign: 'center', padding: spacing.xl }}>
+                      No sessions available. Create sessions first in the previous step.
+                    </Text>
+                  )}
+                </View>
+
+                {/* Optional Toggle for Assigned Sessions */}
                 {editingDay && (schedule[editingDay] || []).length > 0 && (
-                  <View style={{ gap: spacing.sm }}>
+                  <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
                     <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                      Current Sessions ({schedule[editingDay]?.length})
+                      Session Options
                     </Text>
                     {schedule[editingDay]
                       ?.sort((a, b) => a.order - b.order)
@@ -977,99 +1047,30 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                             padding: spacing.md,
                             borderRadius: radii.sm,
                           }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                              <Text style={{ color: colors.primary, fontSize: 12, marginRight: spacing.sm }}>
-                                #{scheduledSession.order}
+                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
+                              {session.name}
+                            </Text>
+                            <TouchableOpacity
+                              onPress={() => toggleSessionOptional(editingDay, scheduledSession.sessionId)}
+                              style={{
+                                backgroundColor: scheduledSession.isOptional ? colors.primaryBright : 'rgba(255,255,255,0.1)',
+                                paddingHorizontal: spacing.sm,
+                                paddingVertical: spacing.xs,
+                                borderRadius: radii.full,
+                              }}
+                            >
+                              <Text style={{
+                                color: scheduledSession.isOptional ? '#0f172a' : colors.muted,
+                                fontSize: 10,
+                                fontWeight: 'bold'
+                              }}>
+                                {scheduledSession.isOptional ? 'OPTIONAL' : 'REQUIRED'}
                               </Text>
-                              <View style={{ flex: 1 }}>
-                                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
-                                  {session.name}
-                                </Text>
-                                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                                  {session.focus.toUpperCase()} • {session.exercises.length} exercises
-                                </Text>
-                              </View>
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                              <TouchableOpacity
-                                onPress={() => toggleSessionOptional(editingDay, scheduledSession.sessionId)}
-                                style={{
-                                  backgroundColor: scheduledSession.isOptional ? colors.primaryBright : 'rgba(255,255,255,0.1)',
-                                  paddingHorizontal: spacing.sm,
-                                  paddingVertical: spacing.xs,
-                                  borderRadius: radii.sm,
-                                }}
-                              >
-                                <Text style={{
-                                  color: scheduledSession.isOptional ? '#0f172a' : colors.muted,
-                                  fontSize: 10,
-                                  fontWeight: 'bold'
-                                }}>
-                                  OPTIONAL
-                                </Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                onPress={() => removeSessionFromDay(editingDay, scheduledSession.sessionId)}
-                                style={{ padding: spacing.xs }}
-                              >
-                                <X size={16} color={colors.danger} />
-                              </TouchableOpacity>
-                            </View>
+                            </TouchableOpacity>
                           </View>
                         );
                       })}
                   </View>
-                )}
-
-                {/* Available Sessions to Add */}
-                <View style={{ gap: spacing.sm }}>
-                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                    Add Sessions
-                  </Text>
-                  {sessions.length > 0 ? (
-                    sessions.map((session) => {
-                      const isAssigned = editingDay && schedule[editingDay]?.some(s => s.sessionId === session.id);
-                      if (isAssigned) return null;
-
-                      return (
-                        <TouchableOpacity
-                          key={session.id}
-                          onPress={() => editingDay && assignSessionToDay(session.id, editingDay)}
-                          style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            padding: spacing.md,
-                            borderRadius: radii.sm,
-                            borderWidth: 1,
-                            borderColor: 'rgba(249, 115, 22, 0.3)',
-                          }}
-                        >
-                          <View style={{ flex: 1 }}>
-                            <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
-                              {session.name}
-                            </Text>
-                            <Text style={{ color: colors.muted, fontSize: 12 }}>
-                              {session.focus.toUpperCase()} • {session.exercises.length} exercises
-                            </Text>
-                          </View>
-                          <PlusCircle size={20} color={colors.primary} />
-                        </TouchableOpacity>
-                      );
-                    })
-                  ) : (
-                    <Text style={{ color: colors.muted, fontStyle: 'italic', textAlign: 'center', padding: spacing.xl }}>
-                      No sessions available. Create sessions first in the previous step.
-                    </Text>
-                  )}
-                </View>
-
-                {/* Show assigned sessions that are already added */}
-                {editingDay && schedule[editingDay]?.length === sessions.length && (
-                  <Text style={{ color: colors.muted, fontStyle: 'italic', textAlign: 'center', padding: spacing.md }}>
-                    All available sessions have been assigned to {editingDay}.
-                  </Text>
                 )}
               </View>
             </ScrollView>
