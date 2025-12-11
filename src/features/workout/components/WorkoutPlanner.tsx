@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { Dumbbell, Calendar, ChevronLeft, ChevronRight, Play, Settings, CheckCircle, Brain, Layout, PlusCircle, List } from 'lucide-react-native';
+import { Dumbbell, Calendar, ChevronLeft, ChevronRight, Play, Settings, CheckCircle, Brain, Layout, PlusCircle } from 'lucide-react-native';
 import NeonButton from '../../../components/NeonButton';
 import GlassCard from '../../../components/GlassCard';
 import workoutStyles from '../../../styles/workout';
@@ -34,10 +34,7 @@ type WorkoutPlannerProps = {
   onStartCalendarWorkout?: (date: Date, workout: any) => void;
   recentWorkouts?: any[];
   workoutPlans?: WorkoutPlan[];
-  userWorkoutPlans?: any[]; // UserWorkoutPlan[]
   activePlan?: any; // UserWorkoutPlan
-  onActivatePlan: (planId: string) => void;
-  onDeleteUserPlan?: (planId: string) => void;
   userEquipment?: WorkoutPlan['equipment'];
   userFrequency?: number;
   nextScheduledWorkout?: any;
@@ -59,10 +56,7 @@ const WorkoutPlanner = ({
   onStartCalendarWorkout,
   recentWorkouts = [],
   workoutPlans = [],
-  userWorkoutPlans = [],
   activePlan,
-  onActivatePlan,
-  onDeleteUserPlan,
   userEquipment = 'gym',
   userFrequency = 3,
   nextScheduledWorkout
@@ -412,86 +406,6 @@ const WorkoutPlanner = ({
         </View>
       </GlassCard>
 
-      {/* My Plans Management - Show when user has multiple plan instances */}
-      {userWorkoutPlans.length > 1 && (
-        <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
-            <List size={20} color={colors.primary} />
-            <Text style={{
-              fontSize: 16,
-              fontWeight: 'bold',
-              color: '#fff',
-              marginLeft: spacing.sm,
-            }}>
-              MY PLANS ({userWorkoutPlans.length})
-            </Text>
-          </View>
-
-          <Text style={{ color: colors.muted, fontSize: 12, marginBottom: spacing.md }}>
-            Manage your plan instances individually
-          </Text>
-
-          {userWorkoutPlans.map((userPlan: any) => (
-            <View key={userPlan.id} style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: spacing.sm,
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              borderRadius: radii.sm,
-              marginBottom: spacing.sm,
-            }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
-                  {userPlan.planData?.name || 'Unknown Plan'}
-                </Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>
-                  Started {new Date(userPlan.startedAt).toLocaleDateString()}
-                  {userPlan.isActive ? ' • Active' : ''}
-                </Text>
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: spacing.xs }}>
-                {!userPlan.isActive && (
-                  <TouchableOpacity
-                    onPress={() => onActivatePlan(userPlan.planId)}
-                    style={{
-                      paddingHorizontal: spacing.sm,
-                      paddingVertical: spacing.xs,
-                      backgroundColor: colors.primary,
-                      borderRadius: radii.sm,
-                    }}
-                  >
-                    <Text style={{ color: '#0f172a', fontSize: 12, fontWeight: 'bold' }}>
-                      ACTIVATE
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  onPress={() => {
-                    // For now, just show a confirmation to delete
-                    // In a real app, you'd want a proper confirmation dialog
-                    if (onDeleteUserPlan) {
-                      onDeleteUserPlan(userPlan.id);
-                    }
-                  }}
-                  style={{
-                    paddingHorizontal: spacing.sm,
-                    paddingVertical: spacing.xs,
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    borderRadius: radii.sm,
-                  }}
-                >
-                  <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: 'bold' }}>
-                    DELETE
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-          ))}
-        </GlassCard>
-      )}
 
       {/* Plan Management Menu */}
       {activePlan && (

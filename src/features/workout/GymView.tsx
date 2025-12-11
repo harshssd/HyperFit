@@ -1201,10 +1201,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
           onStartCalendarWorkout={handleStartScheduledWorkout}
           recentWorkouts={recentWorkouts}
           workoutPlans={workoutPlans}
-          userWorkoutPlans={data.userWorkoutPlans}
           activePlan={activePlanForDisplay}
-          onActivatePlan={handleActivatePlan}
-          onDeleteUserPlan={handleDeleteUserPlan}
           onCleanupPlans={cleanupWorkoutPlans}
           userEquipment="gym" // TODO: Get from user preferences
           userFrequency={3} // TODO: Get from user preferences
