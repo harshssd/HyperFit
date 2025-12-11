@@ -65,7 +65,7 @@ const HistoryView = ({ data, updateData }: HistoryViewProps) => {
     const timeLabel = selectedSession.finishedAt
       ? new Date(selectedSession.finishedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
       : null;
-
+    
     // Calculate session analytics
     const totalSets = selectedSession.exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
     const completedSets = selectedSession.exercises.reduce((acc, ex) =>

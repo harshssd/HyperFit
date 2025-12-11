@@ -76,18 +76,36 @@ export const fetchWorkoutPlanDetails = async (planId: string) => {
   const schedule = scheduleRes.data;
   
   // Fetch exercises for all sessions
+  // Need to handle both regular sessions and library-referenced sessions
   const sessionIds = sessions.map(s => s.id);
-  let planExercises: any[] = [];
+  const librarySessionIds = sessions.filter(s => s.library_session_id).map(s => s.library_session_id);
   
-  if (sessionIds.length > 0) {
+  let planExercises: any[] = [];
+  let libraryExercises: any[] = [];
+  
+  // Fetch exercises for custom (non-library) sessions
+  const customSessionIds = sessions.filter(s => !s.library_session_id).map(s => s.id);
+  if (customSessionIds.length > 0) {
     const { data: exercises, error: exError } = await supabase
       .from('plan_exercises')
       .select('*, exercise:exercises(*)') // Join with master exercises
-      .in('session_id', sessionIds)
+      .in('session_id', customSessionIds)
       .order('order_index');
       
     if (exError) throw exError;
-    planExercises = exercises;
+    planExercises = exercises || [];
+  }
+  
+  // Fetch exercises for library-referenced sessions
+  if (librarySessionIds.length > 0) {
+    const { data: exercises, error: exError } = await supabase
+      .from('library_exercises')
+      .select('*, exercise:exercises(*)') // Join with master exercises
+      .in('library_session_id', librarySessionIds as string[])
+      .order('order_index');
+      
+    if (exError) throw exError;
+    libraryExercises = exercises || [];
   }
   
   // Transform schedule data to match TypeScript interface
@@ -107,13 +125,24 @@ export const fetchWorkoutPlanDetails = async (planId: string) => {
 
   // Transform exercises to match expected format
   const transformedSessions = sessions.map(session => {
-    const sessionExercises = planExercises.filter(e => e.session_id === session.id);
+    let sessionExercises: any[] = [];
+    
+    if (session.library_session_id) {
+      // Use library exercises for referenced sessions
+      sessionExercises = libraryExercises.filter(e => e.library_session_id === session.library_session_id);
+    } else {
+      // Use plan exercises for custom sessions
+      sessionExercises = planExercises.filter(e => e.session_id === session.id);
+    }
+    
     const transformedExercises = sessionExercises.map(ex => ({
       id: ex.exercise.id,
       name: ex.exercise.name,
       primaryMuscleGroup: ex.exercise.muscle_group as any, // Map to expected type
       secondaryMuscleGroups: [], // Could be extended later
       sets: ex.sets,
+      reps_min: ex.reps_min,
+      reps_max: ex.reps_max,
       repRange: { min: ex.reps_min, max: ex.reps_max },
       restSeconds: ex.rest_seconds || 60,
       order: ex.order_index
@@ -121,7 +150,8 @@ export const fetchWorkoutPlanDetails = async (planId: string) => {
 
     return {
       ...session,
-      exercises: transformedExercises
+      exercises: transformedExercises,
+      isLibraryReference: !!session.library_session_id // Flag to indicate this is a library reference
     };
   });
 
@@ -132,10 +162,73 @@ export const fetchWorkoutPlanDetails = async (planId: string) => {
   };
 };
 
+// --- Session Library Functions ---
+
+export const fetchLibrarySessions = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('session_library')
+    .select(`
+      *,
+      exercises:library_exercises(
+        *,
+        exercise:exercises(*)
+      )
+    `)
+    .or(`created_by.eq.${userId},is_public.eq.true`)
+    .order('created_at', { ascending: false });
+    
+  if (error) throw error;
+  return data;
+};
+
+export const createLibrarySession = async (
+  session: Database['public']['Tables']['session_library']['Insert'],
+  exercises: Database['public']['Tables']['library_exercises']['Insert'][]
+) => {
+  // 1. Create library session
+  const { data: newSession, error: sessionError } = await supabase
+    .from('session_library')
+    .insert(session)
+    .select()
+    .single();
+    
+  if (sessionError) throw sessionError;
+  
+  // 2. Create exercises for the library session
+  if (exercises.length > 0) {
+    const exercisesWithIds = exercises.map(ex => ({
+      ...ex,
+      library_session_id: newSession.id
+    }));
+    
+    const { error: exError } = await supabase
+      .from('library_exercises')
+      .insert(exercisesWithIds);
+      
+    if (exError) throw exError;
+  }
+  
+  return newSession;
+};
+
+export const promoteSessionToLibrary = async (sessionId: string, isPublic: boolean = false) => {
+  const { data, error } = await supabase.rpc('promote_session_to_library', {
+    p_session_id: sessionId,
+    p_is_public: isPublic
+  });
+  
+  if (error) throw error;
+  return data;
+};
+
+// --- Workout Plans ---
+
 export const createWorkoutPlan = async (
   plan: Database['public']['Tables']['workout_plans']['Insert'],
   sessions: {
-    session: Database['public']['Tables']['plan_sessions']['Insert'],
+    session: Database['public']['Tables']['plan_sessions']['Insert'] & { 
+      library_session_id?: string  // Optional reference to library session
+    },
     exercises: Database['public']['Tables']['plan_exercises']['Insert'][]
   }[],
   schedule: Database['public']['Tables']['plan_schedule']['Insert'][]
@@ -150,32 +243,69 @@ export const createWorkoutPlan = async (
   if (planError) throw planError;
   
   // 2. Create Sessions and Exercises
+  const sessionIdMap = new Map<string, string>(); // Map old IDs to new IDs
+  
   for (const sessionData of sessions) {
-    const { data: newSession, error: sessionError } = await supabase
-      .from('plan_sessions')
-      .insert({ ...sessionData.session, plan_id: newPlan.id })
-      .select()
-      .single();
-      
-    if (sessionError) throw sessionError;
+    const oldSessionId = sessionData.session.id;
     
-    if (sessionData.exercises.length > 0) {
-      const exercisesWithIds = sessionData.exercises.map(ex => ({
-        ...ex,
-        session_id: newSession.id
-      }));
-      
-      const { error: exError } = await supabase
-        .from('plan_exercises')
-        .insert(exercisesWithIds);
+    // Check if this is a reference to a library session
+    if (sessionData.session.library_session_id) {
+      // Create a reference session (no exercises needed, they're in the library)
+      const { data: newSession, error: sessionError } = await supabase
+        .from('plan_sessions')
+        .insert({
+          plan_id: newPlan.id,
+          library_session_id: sessionData.session.library_session_id,
+          name: sessionData.session.name,
+          description: sessionData.session.description,
+          focus: sessionData.session.focus,
+          order_index: sessionData.session.order_index
+        })
+        .select()
+        .single();
         
-      if (exError) throw exError;
+      if (sessionError) throw sessionError;
+      if (oldSessionId) {
+        sessionIdMap.set(oldSessionId, newSession.id);
+      }
+    } else {
+      // Create a custom session with exercises
+      const { data: newSession, error: sessionError } = await supabase
+        .from('plan_sessions')
+        .insert({ ...sessionData.session, plan_id: newPlan.id, library_session_id: null })
+        .select()
+        .single();
+        
+      if (sessionError) throw sessionError;
+      if (oldSessionId) {
+        sessionIdMap.set(oldSessionId, newSession.id);
+      }
+      
+      if (sessionData.exercises.length > 0) {
+        const exercisesWithIds = sessionData.exercises.map(ex => ({
+          ...ex,
+          session_id: newSession.id
+        }));
+        
+        const { error: exError } = await supabase
+          .from('plan_exercises')
+          .insert(exercisesWithIds);
+          
+        if (exError) throw exError;
+      }
     }
   }
   
-  // 3. Create Schedule
+  // 3. Create Schedule (map old session IDs to new ones)
   if (schedule.length > 0) {
-    const scheduleWithId = schedule.map(s => ({ ...s, plan_id: newPlan.id }));
+    const scheduleWithId = schedule.map(s => ({
+      plan_id: newPlan.id,
+      session_id: sessionIdMap.get(s.session_id) || s.session_id, // Use mapped ID if available
+      day_of_week: s.day_of_week,
+      order_index: s.order_index,
+      is_optional: s.is_optional
+    }));
+    
     const { error: schedError } = await supabase
       .from('plan_schedule')
       .insert(scheduleWithId);

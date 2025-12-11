@@ -94,7 +94,8 @@ export interface Database {
       plan_sessions: {
         Row: {
           id: string
-          plan_id: string
+          plan_id: string | null
+          library_session_id: string | null
           name: string
           description: string | null
           focus: string | null
@@ -103,7 +104,8 @@ export interface Database {
         }
         Insert: {
           id?: string
-          plan_id: string
+          plan_id?: string | null
+          library_session_id?: string | null
           name: string
           description?: string | null
           focus?: string | null
@@ -112,11 +114,85 @@ export interface Database {
         }
         Update: {
           id?: string
-          plan_id?: string
+          plan_id?: string | null
+          library_session_id?: string | null
           name?: string
           description?: string | null
           focus?: string | null
           order_index?: number
+          created_at?: string | null
+        }
+      }
+      session_library: {
+        Row: {
+          id: string
+          name: string
+          description: string | null
+          focus: string | null
+          created_by: string | null
+          source_plan_id: string | null
+          is_public: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          description?: string | null
+          focus?: string | null
+          created_by?: string | null
+          source_plan_id?: string | null
+          is_public?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          name?: string
+          description?: string | null
+          focus?: string | null
+          created_by?: string | null
+          source_plan_id?: string | null
+          is_public?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+      }
+      library_exercises: {
+        Row: {
+          id: string
+          library_session_id: string
+          exercise_id: string
+          sets: number | null
+          reps_min: number | null
+          reps_max: number | null
+          rest_seconds: number | null
+          order_index: number
+          notes: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          library_session_id: string
+          exercise_id: string
+          sets?: number | null
+          reps_min?: number | null
+          reps_max?: number | null
+          rest_seconds?: number | null
+          order_index?: number
+          notes?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          library_session_id?: string
+          exercise_id?: string
+          sets?: number | null
+          reps_min?: number | null
+          reps_max?: number | null
+          rest_seconds?: number | null
+          order_index?: number
+          notes?: string | null
           created_at?: string | null
         }
       }
