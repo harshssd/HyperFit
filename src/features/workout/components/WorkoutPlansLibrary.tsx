@@ -23,6 +23,7 @@ type WorkoutPlansLibraryProps = {
   userCreatedPlans?: WorkoutPlan[]; // Plans created by user
   userEquipment?: 'gym' | 'bodyweight' | 'dumbbells' | 'mixed';
   userFrequency?: number;
+  selectionMode?: 'activate' | 'session'; // New prop to determine button text
 };
 
 const WorkoutPlansLibrary = ({
@@ -37,7 +38,8 @@ const WorkoutPlansLibrary = ({
   publicPlans = [],
   userCreatedPlans = [],
   userEquipment = 'gym',
-  userFrequency = 3
+  userFrequency = 3,
+  selectionMode = 'activate'
 }: WorkoutPlansLibraryProps) => {
   const [activeTab, setActiveTab] = useState<'templates' | 'myPlans'>('templates');
   const [templateFilter, setTemplateFilter] = useState<'all' | 'public' | 'local'>('all');
@@ -205,7 +207,7 @@ const WorkoutPlansLibrary = ({
           }}
         >
           <Text style={{ color: '#0f172a', fontSize: 14, fontWeight: 'bold' }}>
-            SELECT PLAN
+            {selectionMode === 'activate' ? 'ACTIVATE' : 'SELECT PLAN'}
           </Text>
         </TouchableOpacity>
 
@@ -298,7 +300,9 @@ const WorkoutPlansLibrary = ({
 
                 <NeonButton onPress={() => onSelectPlan(selectedPlanDetails)} style={{ width: '100%' }}>
                   <Calendar size={20} color="#0f172a" />
-                  <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>START THIS PLAN</Text>
+                  <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>
+                    {selectionMode === 'activate' ? 'ACTIVATE THIS PLAN' : 'SELECT THIS PLAN'}
+                  </Text>
                 </NeonButton>
               </GlassCard>
 

@@ -152,6 +152,7 @@ import {
 } from './src/constants/text';
 import SimpleBarChart from './src/components/SimpleBarChart';
 import LoginView from './src/components/LoginView';
+import { UserProvider } from './src/contexts/UserContext';
 
 // --- Application Views ---
 // LoginView moved to src/components/LoginView.tsx
@@ -292,7 +293,7 @@ export default function App() {
       case 'home':
         return <HomeViewComponent data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
       case 'gym':
-        return <GymView data={data} updateData={saveData} user={user} />;
+        return <GymView data={data} updateData={saveData} />;
       case 'challenges':
         return <ChallengesViewComponent />;
       case 'history':
@@ -321,29 +322,31 @@ export default function App() {
   }
 
   return (
-    <ImageBackground
-      source={{ uri: ASSETS.background }}
-      style={layoutStyles.appContainer}
-      resizeMode="cover"
-    >
-      <View style={layoutStyles.appOverlay} />
-      <SafeAreaView style={layoutStyles.appContent} edges={['top']}>
-        <Header
-          streak={data.gymLogs.length}
-          xp={calculateXP(data)}
-          onLogout={handleLogout}
-          username={user.email?.split('@')[0] || user.user_metadata?.full_name || 'User'}
-        />
-        <ScrollView style={layoutStyles.mainContent} contentContainerStyle={layoutStyles.mainContentContainer}>
-          {renderContent()}
-        </ScrollView>
-        <NavBar
-          activeTab={activeTab}
-          onChange={setActiveTab}
-          items={NAV_ITEMS}
-        />
-      </SafeAreaView>
-      <StatusBar style="light" />
-    </ImageBackground>
+    <UserProvider user={user} setUser={setUser}>
+      <ImageBackground
+        source={{ uri: ASSETS.background }}
+        style={layoutStyles.appContainer}
+        resizeMode="cover"
+      >
+        <View style={layoutStyles.appOverlay} />
+        <SafeAreaView style={layoutStyles.appContent} edges={['top']}>
+          <Header
+            streak={data.gymLogs.length}
+            xp={calculateXP(data)}
+            onLogout={handleLogout}
+            username={user.email?.split('@')[0] || user.user_metadata?.full_name || 'User'}
+          />
+          <ScrollView style={layoutStyles.mainContent} contentContainerStyle={layoutStyles.mainContentContainer}>
+            {renderContent()}
+          </ScrollView>
+          <NavBar
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            items={NAV_ITEMS}
+          />
+        </SafeAreaView>
+        <StatusBar style="light" />
+      </ImageBackground>
+    </UserProvider>
   );
 }

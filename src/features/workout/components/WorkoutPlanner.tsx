@@ -138,8 +138,8 @@ const WorkoutPlanner = ({
               onPress={() => onStartScheduledWorkout?.(nextScheduledWorkout.date, nextScheduledWorkout)}
               style={{ flex: 1 }}
             >
-              <Play size={16} color="#0f172a" />
-              <Text style={{ marginLeft: 6, fontSize: 14, fontWeight: 'bold' }}>START</Text>
+              <Play color="#0f172a" />
+              <Text style={{ fontSize: 14, fontWeight: 'bold' }}>START</Text>
         </NeonButton>
 
             <TouchableOpacity

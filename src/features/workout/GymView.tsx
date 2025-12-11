@@ -18,7 +18,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Modal, Alert } from 'react-native';
 import {
   CheckCircle,
   ChevronLeft,
@@ -55,15 +55,26 @@ import GlassCard from '../../components/GlassCard';
 import workoutStyles from '../../styles/workout';
 import { colors, spacing, radii } from '../../styles/theme';
 import { getAllExerciseNames } from './workoutConfig';
-import { calculateTotalVolume, getExerciseConfig, calculateXP, getNextScheduledWorkout, planToWorkout } from './helpers';
-// Removed: DEFAULT_PLANS import - plans come from database via data.workoutPlans
-import { WorkoutPlan } from '../../types/workout';
-import { ABORT_SESSION_MESSAGE, ABORT_SESSION_TITLE } from '../../constants/text';
-import { confirmAction, showError, showSuccess } from '../../utils/alerts';
-import { useTodayWorkout } from './hooks/useTodayWorkout';
+import { useUser } from '../../contexts/UserContext';
+import { logWorkoutSession } from '../../services/workoutService';
+import { WorkoutExercise } from '../../types/workout';
+import { 
+  calculateTotalVolume, 
+  getExerciseConfig, 
+  renameExercise,
+  moveExerciseInWorkout,
+  deleteExerciseFromWorkout,
+  addSetToExercise,
+  updateSetValue,
+  isExerciseEmpty,
+  getNextScheduledWorkout
+} from './helpers';
+
 import { useSessionView } from './hooks/useSessionView';
 import { useTemplates } from './hooks/useTemplates';
 import { fetchWorkoutPlanDetails, createWorkoutPlan, createUserWorkoutPlan, updateUserWorkoutPlan, fetchExercises } from '../../services/workoutService';
+import { confirmAction, showError, showSuccess } from '../../utils/alerts';
+import { ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE } from '../../constants/text';
 
 type GymViewProps = {
   data: any;
@@ -85,24 +96,199 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     }
   })();
 
-  const {
-    today,
-    todaysWorkout,
-    visibleWorkout,
-    isCheckedIn,
-    isFinished,
-    toggleCheckIn,
-    addExercise: addExerciseHook,
-    rename: renameExerciseHook,
-    move: moveExerciseHook,
-    remove: deleteExerciseHook,
-    addSet: addSetHook,
-    updateSet: updateSetHook,
-    finishWorkout: finishWorkoutHook,
-    undoFinish: undoFinishHook,
-    startNewSession: startNewSessionHook,
-    abortSession: abortSessionHook,
-  } = useTodayWorkout(data, updateData);
+  const { user: contextUser } = useUser();
+  const userId = contextUser?.id || user?.id;
+
+  // Session State
+  const [sessionExercises, setSessionExercises] = useState<WorkoutExercise[]>([]);
+  const [sessionStartTime, setSessionStartTime] = useState<string | null>(null);
+  const [isSessionFinished, setIsSessionFinished] = useState(false);
+  const [sessionContext, setSessionContext] = useState<{
+    type: 'active_plan' | 'alternate_plan' | 'manual' | 'scheduled';
+    planName?: string;
+    sessionName?: string;
+    customName?: string;
+  }>({ type: 'manual' });
+
+  // Derived state
+  const visibleWorkout = sessionExercises; 
+  
+  // Helper to update session exercises
+  const updateSessionExercises = (exercises: WorkoutExercise[]) => {
+    setSessionExercises(exercises);
+    if (!sessionStartTime && exercises.length > 0) {
+      setSessionStartTime(new Date().toISOString());
+    }
+  };
+
+  // Actions
+  const addExerciseHook = (name: string, position: 'top' | 'bottom' = 'bottom') => {
+    const newExercise: WorkoutExercise = {
+      id: Date.now(),
+      name,
+      sets: [{ id: Date.now() + 1, weight: '', reps: '', completed: false }],
+    };
+    const updated = position === 'top'
+      ? [newExercise, ...sessionExercises]
+      : [...sessionExercises, newExercise];
+    updateSessionExercises(updated);
+
+    // If this is the first exercise and it's a manual workout, prompt for custom name
+    if (sessionExercises.length === 0 && sessionContext.type === 'manual') {
+      setTimeout(() => {
+        Alert.prompt(
+          'Name Your Workout',
+          'Enter a name for this workout session',
+          [
+            { text: 'Skip', style: 'cancel' },
+            {
+              text: 'Save',
+              onPress: (customName?: string) => {
+                if (customName?.trim()) {
+                  setSessionContext(prev => ({ ...prev, customName: customName.trim() }));
+                }
+              }
+            }
+          ],
+          'plain-text',
+          sessionContext.customName || 'Custom Workout'
+        );
+      }, 500); // Small delay to let the exercise render first
+    }
+  };
+
+  const renameExerciseHook = (id: number, name: string) => {
+    updateSessionExercises(renameExercise(sessionExercises, id, name));
+  };
+
+  const moveExerciseHook = (id: number, direction: 'up' | 'down') => {
+    updateSessionExercises(moveExerciseInWorkout(sessionExercises, id, direction));
+  };
+
+  const deleteExerciseHook = (id: number) => {
+    updateSessionExercises(deleteExerciseFromWorkout(sessionExercises, id));
+  };
+
+  const addSetHook = (id: number) => {
+    updateSessionExercises(addSetToExercise(sessionExercises, id));
+  };
+
+  const updateSetHook = (id: number, setIndex: number, field: string, value: any) => {
+    updateSessionExercises(updateSetValue(sessionExercises, id, setIndex, field, value));
+  };
+
+  const finishWorkoutHook = async () => {
+    if (sessionExercises.length === 0) return;
+    
+    try {
+      const activeUserPlan = (data.userWorkoutPlans || []).find((plan: any) => plan.isActive);
+      const userPlanId = activeUserPlan?.id || null;
+      const totalVolume = calculateTotalVolume(sessionExercises);
+
+      // Generate session name based on context
+      let sessionName: string;
+      switch (sessionContext.type) {
+        case 'active_plan':
+          sessionName = sessionContext.sessionName
+            ? `${sessionContext.planName} - ${sessionContext.sessionName}`
+            : `${sessionContext.planName || 'Workout'}`;
+          break;
+        case 'alternate_plan':
+          sessionName = sessionContext.sessionName
+            ? `${sessionContext.planName} - ${sessionContext.sessionName}`
+            : `${sessionContext.planName || 'Alternate Workout'}`;
+          break;
+        case 'scheduled':
+          sessionName = sessionContext.sessionName
+            ? `${sessionContext.planName} - ${sessionContext.sessionName}`
+            : `${sessionContext.planName || 'Scheduled Workout'}`;
+          break;
+        case 'manual':
+        default:
+          // For manual workouts, use custom name if provided, otherwise use timestamp for uniqueness
+          if (sessionContext.customName && sessionContext.customName !== 'Manual Workout') {
+            sessionName = sessionContext.customName;
+          } else {
+            // Format: "Manual Workout - Dec 10, 2025 2:30 PM"
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', {
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true
+            });
+            const dateString = now.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric'
+            });
+            sessionName = `Manual Workout - ${dateString} ${timeString}`;
+          }
+          break;
+      }
+
+      const sessionPayload = {
+        user_id: userId,
+        user_plan_id: userPlanId,
+        name: sessionName,
+        date: new Date().toISOString().split('T')[0],
+        start_time: sessionStartTime,
+        end_time: new Date().toISOString(),
+        duration_seconds: sessionStartTime ? Math.round((Date.now() - new Date(sessionStartTime).getTime()) / 1000) : 0,
+        volume_load: totalVolume,
+        status: 'completed',
+        notes: '',
+      };
+
+      const exercisesPayload = sessionExercises.map((ex, i) => ({
+        exercise: {
+          session_id: '', 
+          exercise_id: null,
+          user_id: userId,
+          order_index: i,
+          notes: '',
+          created_at: new Date().toISOString(),
+        },
+        sets: ex.sets.map((s, si) => ({
+          exercise_id: '',
+          user_id: userId,
+          set_number: si + 1,
+          weight: Number(s.weight) || 0,
+          reps: Number(s.reps) || 0,
+          rpe: 0,
+          completed: s.completed || false,
+          created_at: new Date().toISOString(),
+        }))
+      }));
+
+      await logWorkoutSession(sessionPayload, exercisesPayload);
+      setIsSessionFinished(true);
+      showSuccess('Workout saved!');
+    } catch (e: any) {
+      console.error(e);
+      showError('Failed to save workout');
+    }
+  };
+
+  const undoFinishHook = () => setIsSessionFinished(false);
+  
+  const startNewSessionHook = () => {
+    setSessionExercises([]);
+    setSessionStartTime(null);
+    setIsSessionFinished(false);
+  };
+  
+  const abortSessionHook = () => {
+    setSessionExercises([]);
+    setSessionStartTime(null);
+  };
+
+  // Legacy mappings
+  const today = new Date().toISOString().split('T')[0];
+  const todaysWorkout = sessionExercises;
+  const isCheckedIn = true;
+  const isFinished = isSessionFinished;
+  const toggleCheckIn = () => {};
+
   const [newExerciseName, setNewExerciseName] = useState('');
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -415,6 +601,12 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       }, index * 100); // Stagger adding exercises
     });
 
+    // Set session context for manual workout
+    setSessionContext({
+      type: 'manual',
+      customName: `${type.charAt(0).toUpperCase() + type.slice(1)} Workout`
+    });
+
     setShowOverview(true);
     showSuccess(`${type.toUpperCase()} workout loaded!`);
   };
@@ -564,7 +756,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     handleQuickWorkout(workoutType);
   };
 
-  const startSessionFromPlan = (planData: any, sessionId: string) => {
+  const startSessionFromPlan = (planData: any, sessionId: string, contextType: 'active_plan' | 'alternate_plan' | 'scheduled' = 'active_plan') => {
     const session = planData.sessions.find((s: any) => s.id === sessionId);
     if (!session) return;
 
@@ -574,9 +766,15 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }],
     }));
 
-    const updatedWorkouts = { ...data.workouts, [today]: [...todaysWorkout, ...newExercises] };
-    const newLogs = !isCheckedIn ? [...(data.gymLogs || []), today] : data.gymLogs || [];
-    updateData({ ...data, workouts: updatedWorkouts, gymLogs: newLogs });
+    // Update session exercises directly
+    updateSessionExercises(newExercises);
+
+    // Set session context for proper naming
+    setSessionContext({
+      type: contextType,
+      planName: planData.name,
+      sessionName: session.name,
+    });
 
     setShowOverview(true);
     showSuccess(`Started ${session.name}!`);
@@ -597,7 +795,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
       if (session) {
         // Convert the session exercises to workout format and start it
-        startSessionFromPlan(activeUserPlan.planData, session.id);
+        startSessionFromPlan(activeUserPlan.planData, session.id, 'scheduled');
       }
     }
   };
@@ -748,11 +946,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const updateSet = (exId: number, setIndex: number, field: string, value: any) => {
-    // Apply updates locally to avoid overwriting when multiple updates happen in one action
-    const workoutsCopy = [...todaysWorkout];
-    const exIdx = workoutsCopy.findIndex((ex) => ex.id === exId);
+    // Apply updates to session exercises
+    const sessionCopy = [...sessionExercises];
+    const exIdx = sessionCopy.findIndex((ex) => ex.id === exId);
     if (exIdx === -1) return;
-    const sets = [...workoutsCopy[exIdx].sets];
+    const sets = [...sessionCopy[exIdx].sets];
     if (!sets[setIndex]) return;
 
     const updatedSet: any = { ...sets[setIndex], [field]: value };
@@ -775,8 +973,8 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     }
 
     sets[setIndex] = updatedSet;
-    workoutsCopy[exIdx] = { ...workoutsCopy[exIdx], sets };
-    updateData({ ...data, workouts: { ...data.workouts, [today]: workoutsCopy } });
+    sessionCopy[exIdx] = { ...sessionCopy[exIdx], sets };
+    updateSessionExercises(sessionCopy);
   };
 
   const addSet = (exId: number) => {
@@ -1016,6 +1214,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
           <WorkoutPlansLibrary
             visible={showPlanLibrary}
             onClose={() => setShowPlanLibrary(false)}
+            selectionMode={planSelectionMode}
             onSelectPlan={async (plan) => {
               try {
                 // Always fetch the latest plan details
@@ -1030,7 +1229,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
                   return;
                 }
 
-                if (!user?.id) {
+                if (!user?.id && !userId) {
                   showError('You must be signed in to select a plan.');
                   return;
                 }
@@ -1053,7 +1252,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
                 } else {
                   // Create new record in DB
                   const newUserPlan = await createUserWorkoutPlan({
-                    user_id: user.id,
+                    user_id: user?.id || userId,
                     plan_id: plan.id,
                     is_active: true,
                     started_at: new Date().toISOString(),
@@ -1075,7 +1274,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
                 if (!existingUserPlan) {
                   updatedUserPlans.push({
                     id: userPlanId,
-                    userId: user.id,
+                    userId: user?.id || userId,
                     planId: plan.id,
                     planData: detailedPlan,
                     startedAt: new Date().toISOString(),
@@ -1139,7 +1338,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
                     <TouchableOpacity
                       key={session.id}
                       onPress={() => {
-                        startSessionFromPlan(sessionPickPlan.details, session.id);
+                        startSessionFromPlan(sessionPickPlan.details, session.id, 'alternate_plan');
                         setSessionPickVisible(false);
                         setSessionPickPlan(null);
                       }}
@@ -1205,16 +1404,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   };
 
   const handleCloseFinished = () => {
-    // Archive all exercises and reset the finished status to exit the finished view and return to main GymView
-    const todaysWorkout = data.workouts?.[today] || [];
-    const archivedWorkout = todaysWorkout.map((ex: any) => ({ ...ex, archived: true }));
-
-    const updatedStatus = { ...data.workoutStatus, [today]: { ...data.workoutStatus?.[today], finished: false } };
-    updateData({
-      ...data,
-      workouts: { ...data.workouts, [today]: archivedWorkout },
-      workoutStatus: updatedStatus
-    });
+    // Reset session state to exit the finished view and return to main GymView
+    setSessionExercises([]);
+    setSessionStartTime(null);
+    setIsSessionFinished(false);
+    setSessionContext({ type: 'manual' });
   };
 
   const renderFinished = () => (
