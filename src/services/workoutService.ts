@@ -225,55 +225,55 @@ export const updateUserWorkoutPlan = async (id: string, updates: Database['publi
 
 export const fetchWorkoutSessions = async (userId: string) => {
   const { data, error } = await supabase
-    .from('workout_sessions')
+    .from('session_log')
     .select('*')
     .eq('user_id', userId)
     .order('date', { ascending: false });
-    
+
   if (error) throw error;
   return data;
 };
 
 export const logWorkoutSession = async (
-  session: Database['public']['Tables']['workout_sessions']['Insert'],
+  session: Database['public']['Tables']['session_log']['Insert'],
   exercises: {
-    exercise: Database['public']['Tables']['workout_exercises']['Insert'],
-    sets: Database['public']['Tables']['workout_sets']['Insert'][]
+    exercise: Database['public']['Tables']['exercise_log']['Insert'],
+    sets: Database['public']['Tables']['set_log']['Insert'][]
   }[]
 ) => {
   // 1. Create Session
   const { data: newSession, error: sessionError } = await supabase
-    .from('workout_sessions')
+    .from('session_log')
     .insert(session)
     .select()
     .single();
-    
+
   if (sessionError) throw sessionError;
-  
+
   // 2. Create Exercises and Sets
   for (const exData of exercises) {
     const { data: newExercise, error: exError } = await supabase
-      .from('workout_exercises')
+      .from('exercise_log')
       .insert({ ...exData.exercise, session_id: newSession.id })
       .select()
       .single();
-      
+
     if (exError) throw exError;
-    
+
     if (exData.sets.length > 0) {
       const setsWithId = exData.sets.map(s => ({
         ...s,
         exercise_id: newExercise.id
       }));
-      
+
       const { error: setsError } = await supabase
-        .from('workout_sets')
+        .from('set_log')
         .insert(setsWithId);
-        
+
       if (setsError) throw setsError;
     }
   }
-  
+
   return newSession;
 };
 

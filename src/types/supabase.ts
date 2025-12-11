@@ -222,6 +222,120 @@ export interface Database {
           updated_at?: string | null
         }
       }
+      session_log: {
+        Row: {
+          id: string
+          user_id: string
+          user_plan_id: string | null
+          plan_session_id: string | null
+          name: string
+          date: string
+          start_time: string | null
+          end_time: string | null
+          duration_seconds: number | null
+          volume_load: number | null
+          status: string | null
+          notes: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          user_plan_id?: string | null
+          plan_session_id?: string | null
+          name: string
+          date: string
+          start_time?: string | null
+          end_time?: string | null
+          duration_seconds?: number | null
+          volume_load?: number | null
+          status?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          user_plan_id?: string | null
+          plan_session_id?: string | null
+          name?: string
+          date?: string
+          start_time?: string | null
+          end_time?: string | null
+          duration_seconds?: number | null
+          volume_load?: number | null
+          status?: string | null
+          notes?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+      }
+      exercise_log: {
+        Row: {
+          id: string
+          session_id: string
+          exercise_id: string | null
+          user_id: string
+          order_index: number
+          notes: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          session_id: string
+          exercise_id?: string | null
+          user_id: string
+          order_index?: number
+          notes?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          session_id?: string
+          exercise_id?: string | null
+          user_id?: string
+          order_index?: number
+          notes?: string | null
+          created_at?: string | null
+        }
+      }
+      set_log: {
+        Row: {
+          id: string
+          exercise_id: string
+          user_id: string
+          set_number: number
+          weight: number | null
+          reps: number | null
+          rpe: number | null
+          completed: boolean | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          exercise_id: string
+          user_id: string
+          set_number: number
+          weight?: number | null
+          reps?: number | null
+          rpe?: number | null
+          completed?: boolean | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          exercise_id?: string
+          user_id?: string
+          set_number?: number
+          weight?: number | null
+          reps?: number | null
+          rpe?: number | null
+          completed?: boolean | null
+          created_at?: string | null
+        }
+      }
       workout_sessions: {
         Row: {
           id: string
