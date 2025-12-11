@@ -98,8 +98,7 @@ import WorkoutFocusSets from './src/features/workout/components/WorkoutFocusSets
 import WorkoutFocusActions from './src/features/workout/components/WorkoutFocusActions';
 import EmptyWorkoutCard from './src/features/workout/components/EmptyWorkoutCard';
 import HomeViewComponent from './src/components/HomeView';
-import HistoryView from './src/features/history/HistoryView';
-import AnalyticsView from './src/features/analytics/AnalyticsView';
+import HistoryAnalyticsView from './src/features/history/HistoryAnalyticsView';
 import Header from './src/components/Header';
 import FinishedSessionView from './src/features/workout/components/FinishedSessionView';
 import ProgressRing from './src/components/ProgressRing';
@@ -297,9 +296,7 @@ export default function App() {
       case 'challenges':
         return <ChallengesViewComponent />;
       case 'history':
-        return <HistoryView data={data} updateData={saveData} />;
-      case 'stats':
-        return <AnalyticsView data={data} />;
+        return <HistoryAnalyticsView />;
       default:
         return <HomeViewComponent data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
     }

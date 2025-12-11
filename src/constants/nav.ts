@@ -1,9 +1,9 @@
 import type { ComponentType } from 'react';
-import { Home, Swords, Dumbbell, BarChart2, History } from 'lucide-react-native';
+import { Home, Swords, Dumbbell, History } from 'lucide-react-native';
 
 export type IconType = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 
-export type NavItemId = 'home' | 'challenges' | 'gym' | 'stats' | 'history';
+export type NavItemId = 'home' | 'challenges' | 'gym' | 'history';
 
 export type NavItemConfig = {
   id: NavItemId;
@@ -16,5 +16,4 @@ export const NAV_ITEMS: NavItemConfig[] = [
   { id: 'challenges', label: 'Challenges', icon: Swords },
   { id: 'gym', label: 'Gym', icon: Dumbbell },
   { id: 'history', label: 'History', icon: History },
-  { id: 'stats', label: 'Stats', icon: BarChart2 },
 ];
