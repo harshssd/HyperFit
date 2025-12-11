@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, TextInput, Modal } from 'react-native';
-import { Dumbbell, Layout, PlusCircle, Calendar, ChevronRight, CheckCircle, Globe, Lock, ChevronLeft, Search, Plus, Trash2, X, Edit3 } from 'lucide-react-native';
+import { Dumbbell, Layout, PlusCircle, Calendar, ChevronRight, CheckCircle, Globe, Lock, ChevronLeft, Search, Plus, Trash2, X, Edit3, Info } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import { colors, spacing, radii } from '../../../styles/theme';
@@ -268,7 +268,10 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
   };
 
   const deleteSession = (sessionId: string) => {
-    setSessions(prev => prev.filter(s => s.id !== sessionId));
+    setSessions(prev => prev.filter(s => {
+      const id = s.id || (s as any).localId;
+      return id !== sessionId;
+    }));
   };
 
   const saveSession = () => {
@@ -322,12 +325,29 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
     }));
   };
 
-  const importSession = (templateSession: PlanSession) => {
-    const newSession = {
-      ...templateSession,
-      id: `session_${Date.now()}_imported`, // New ID to avoid conflicts
-      name: `${templateSession.name} (Copy)`
-    };
+  const importSession = (templateSession: PlanSession, sourcePlan: WorkoutPlan) => {
+    // If importing from a public plan, reference the original session
+    // If importing from a custom plan, create a copy
+    const isPublicSource = sourcePlan.is_public;
+    
+    const newSession = isPublicSource 
+      ? {
+          // Reference the original session from public plan
+          ...templateSession,
+          isReference: true, // Mark as reference
+          sourcePlanId: sourcePlan.id, // Store source plan ID
+          sourceSessionId: templateSession.id, // Store original session ID
+          // Keep the original ID for referencing but add a local ID for React keys
+          localId: `session_${Date.now()}_ref`,
+        }
+      : {
+          // Create a copy for custom plans
+          ...templateSession,
+          id: `session_${Date.now()}_imported`,
+          name: `${templateSession.name} (Copy)`,
+          isReference: false,
+        };
+    
     setSessions(prev => [...prev, newSession]);
     setShowImportModal(false);
   };
@@ -583,6 +603,29 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                   {draft.isPublic && <View style={{ width: 12, height: 12, borderRadius: radii.full, backgroundColor: colors.success }} />}
                 </View>
               </TouchableOpacity>
+
+              {/* Informational Message for Public Plans */}
+              {draft.isPublic && (
+                <View style={{
+                  padding: spacing.md,
+                  backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                  borderRadius: radii.md,
+                  borderLeftWidth: 3,
+                  borderLeftColor: colors.success,
+                  gap: spacing.xs
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                    <Info size={16} color={colors.success} />
+                    <Text style={{ color: colors.success, fontWeight: 'bold', fontSize: 13 }}>
+                      Public Plans Are Final
+                    </Text>
+                  </View>
+                  <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+                    Once published, public plans become read-only templates. You won't be able to edit them later. 
+                    Only custom (private) plans can be edited or updated based on your preferences.
+                  </Text>
+                </View>
+              )}
             </View>
           )}
 
@@ -608,42 +651,61 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
               {/* Sessions List */}
               {sessions.length > 0 ? (
                 <View style={{ gap: spacing.md }}>
-                  {sessions.map((session, index) => (
-                    <GlassCard key={session.id} style={{ padding: spacing.md }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 2 }}>
-                            {session.name}
-                          </Text>
-                          <Text style={{ color: colors.muted, fontSize: 12 }}>
-                            {session.focus.toUpperCase()} • {session.exercises.length} Exercises
-                          </Text>
+                  {sessions.map((session, index) => {
+                    const isReference = (session as any).isReference;
+                    return (
+                      <GlassCard key={session.id || (session as any).localId} style={{ padding: spacing.md }}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: 2 }}>
+                              <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+                                {session.name}
+                              </Text>
+                              {isReference && (
+                                <View style={{
+                                  backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                                  paddingHorizontal: spacing.xs,
+                                  paddingVertical: 2,
+                                  borderRadius: radii.full
+                                }}>
+                                  <Text style={{ color: colors.success, fontSize: 9, fontWeight: 'bold' }}>
+                                    REFERENCED
+                                  </Text>
+                                </View>
+                              )}
+                            </View>
+                            <Text style={{ color: colors.muted, fontSize: 12 }}>
+                              {session.focus.toUpperCase()} • {session.exercises.length} Exercises
+                            </Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
+                            {!isReference && (
+                              <TouchableOpacity 
+                                onPress={() => editSession(session)} 
+                                style={{ 
+                                  padding: spacing.xs,
+                                  backgroundColor: 'rgba(255,255,255,0.1)',
+                                  borderRadius: radii.sm
+                                }}
+                              >
+                                <Edit3 size={16} color="#fff" />
+                              </TouchableOpacity>
+                            )}
+                            <TouchableOpacity 
+                              onPress={() => deleteSession((session as any).localId || session.id)} 
+                              style={{ 
+                                padding: spacing.xs,
+                                backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                                borderRadius: radii.sm
+                              }}
+                            >
+                              <Trash2 size={16} color={colors.danger} />
+                            </TouchableOpacity>
+                          </View>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
-                          <TouchableOpacity 
-                            onPress={() => editSession(session)} 
-                            style={{ 
-                              padding: spacing.xs,
-                              backgroundColor: 'rgba(255,255,255,0.1)',
-                              borderRadius: radii.sm
-                            }}
-                          >
-                            <Edit3 size={16} color="#fff" />
-                          </TouchableOpacity>
-                          <TouchableOpacity 
-                            onPress={() => deleteSession(session.id)} 
-                            style={{ 
-                              padding: spacing.xs,
-                              backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                              borderRadius: radii.sm
-                            }}
-                          >
-                            <Trash2 size={16} color={colors.danger} />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </GlassCard>
-                  ))}
+                      </GlassCard>
+                    );
+                  })}
                 </View>
               ) : (
                 <View style={{ 
@@ -1009,6 +1071,23 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                   </TouchableOpacity>
                 )}
               </View>
+
+              {/* Informational Message */}
+              <View style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                padding: spacing.md,
+                borderRadius: radii.md,
+                borderLeftWidth: 3,
+                borderLeftColor: '#3b82f6'
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
+                  <Info size={14} color="#3b82f6" style={{ marginTop: 1 }} />
+                  <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, flex: 1 }}>
+                    <Text style={{ fontWeight: 'bold', color: '#3b82f6' }}>Public plans</Text> will be referenced (not copied), 
+                    while <Text style={{ fontWeight: 'bold', color: colors.primary }}>custom plans</Text> will be copied and can be edited.
+                  </Text>
+                </View>
+              </View>
             </View>
 
             {/* Plans List */}
@@ -1150,7 +1229,7 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                             {plan.sessions.map((session, index) => (
                               <TouchableOpacity
                                 key={session.id}
-                                onPress={() => importSession(session)}
+                                onPress={() => importSession(session, plan)}
                                 style={{
                                   flexDirection: 'row',
                                   alignItems: 'center',
@@ -1245,17 +1324,19 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                   </Text>
                   {sessions.length > 0 ? (
                     sessions.map((session) => {
-                      const isAssigned = editingDay && schedule[editingDay]?.some(s => s.sessionId === session.id);
+                      // Use localId for referenced sessions, id for others
+                      const sessionId = (session as any).localId || session.id;
+                      const isAssigned = editingDay && schedule[editingDay]?.some(s => s.sessionId === sessionId);
                       
                       return (
                         <TouchableOpacity
-                          key={session.id}
+                          key={sessionId}
                           onPress={() => {
                             if (!editingDay) return;
                             if (isAssigned) {
-                              removeSessionFromDay(editingDay, session.id);
+                              removeSessionFromDay(editingDay, sessionId);
                             } else {
-                              assignSessionToDay(session.id, editingDay);
+                              assignSessionToDay(sessionId, editingDay);
                             }
                           }}
                           style={{

@@ -670,30 +670,43 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       };
 
       // Transform sessions to database format
-      const sessionsForDb = planData.sessions.map((session, index) => ({
-        session: {
-          id: session.id, // preserve client session id so schedule can reference it
-          name: session.name,
-          description: session.description || '',
-          focus: session.focus as string,
-          order_index: index + 1, // Use array index as order
-        } as any, // Type assertion to bypass strict typing
-        exercises: session.exercises.map(exercise => ({
-          exercise_id: exercise.id,
-          sets: exercise.sets,
-          reps_min: exercise.repRange.min,
-          reps_max: exercise.repRange.max,
-          rest_seconds: exercise.restSeconds || 60,
-          order_index: exercise.order,
-        } as any)) // Type assertion to bypass strict typing
-      })) as any; // Type assertion for the whole array
+      // Filter out referenced sessions (from public plans) - they shouldn't be duplicated
+      const sessionsForDb = planData.sessions
+        .filter((session: any) => !session.isReference) // Only include non-referenced sessions
+        .map((session, index) => ({
+          session: {
+            id: session.id, // preserve client session id so schedule can reference it
+            name: session.name,
+            description: session.description || '',
+            focus: session.focus as string,
+            order_index: index + 1, // Use array index as order
+          } as any,
+          exercises: session.exercises.map(exercise => ({
+            exercise_id: exercise.id,
+            sets: exercise.sets,
+            reps_min: exercise.repRange.min,
+            reps_max: exercise.repRange.max,
+            rest_seconds: exercise.restSeconds || 60,
+            order_index: exercise.order,
+          } as any))
+        })) as any;
 
       // Transform schedule to database format
+      // For referenced sessions, use the sourceSessionId; for new sessions, use their ID
       const scheduleForDb = Object.entries(planData.schedule || {}).flatMap(([day, sessions]) =>
-        (sessions || []).map(session => ({
-          session_id: session.sessionId,
-          day_of_week: day,
-        } as any))
+        (sessions || []).map(session => {
+          // Find the actual session to determine if it's referenced
+          const actualSession = planData.sessions.find((s: any) => 
+            (s.id === session.sessionId) || (s.localId === session.sessionId)
+          ) as any;
+          
+          return {
+            session_id: actualSession?.isReference 
+              ? actualSession.sourceSessionId  // Use original session ID for references
+              : session.sessionId,              // Use new session ID for copies
+            day_of_week: day,
+          } as any;
+        })
       );
 
       // Save to database
