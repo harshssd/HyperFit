@@ -206,7 +206,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
         case 'manual':
         default:
           // For manual workouts, use custom name if provided, otherwise use timestamp for uniqueness
-          if (sessionContext.customName && sessionContext.customName !== 'Manual Workout') {
+          if (sessionContext.customName && sessionContext.customName !== 'Custom Workout') {
             sessionName = sessionContext.customName;
           } else {
             // Format: "Manual Workout - Dec 10, 2025 2:30 PM"
@@ -221,7 +221,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
               day: 'numeric',
               year: 'numeric'
             });
-            sessionName = `Manual Workout - ${dateString} ${timeString}`;
+            sessionName = `Custom Workout - ${dateString} ${timeString}`;
           }
           break;
       }

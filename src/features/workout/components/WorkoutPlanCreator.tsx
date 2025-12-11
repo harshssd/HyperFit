@@ -145,10 +145,12 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
     const loadExercises = async () => {
       try {
         const exercises = await fetchExercises();
-        // Keep only id + name for suggestions
+        // Keep only id + name for suggestions, deduplicate by ID
         const mapped = exercises.map((e: any) => ({ id: e.id, name: e.name }));
-        setExerciseOptions(mapped);
-        setExerciseSuggestions(mapped.slice(0, 8));
+        // Remove duplicates by ID to prevent React key conflicts
+        const uniqueMapped = Array.from(new Map(mapped.map(item => [item.id, item])).values());
+        setExerciseOptions(uniqueMapped);
+        setExerciseSuggestions(uniqueMapped.slice(0, 8));
       } catch (e) {
         console.error('Failed to load exercises', e);
       }
@@ -248,6 +250,14 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
   const addExerciseToSession = (selected?: { id: string; name: string }) => {
     const chosen = selected || exerciseSuggestions.find((e) => e.name.toLowerCase() === sessionExerciseInput.toLowerCase());
     if (!chosen) return;
+
+    // Prevent adding the same exercise twice to a session
+    const existingExercise = editingSession.exercises?.find(ex => ex.id === chosen.id);
+    if (existingExercise) {
+      // Could show a message here, but for now just silently ignore
+      setSessionExerciseInput('');
+      return;
+    }
 
     const newExercise = {
       id: chosen.id,
@@ -855,7 +865,7 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                   {/* Exercise List */}
                   <View style={{ gap: spacing.sm }}>
                     {editingSession.exercises?.map((ex, i) => (
-                      <View key={ex.id} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', padding: spacing.sm, borderRadius: radii.sm }}>
+                      <View key={`${ex.id}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.05)', padding: spacing.sm, borderRadius: radii.sm }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                           <Text style={{ color: colors.muted, fontSize: 12, width: 20 }}>{i + 1}</Text>
                           <Text style={{ color: '#fff', fontSize: 14 }}>{ex.name}</Text>

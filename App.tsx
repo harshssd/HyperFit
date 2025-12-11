@@ -293,7 +293,7 @@ export default function App() {
       case 'home':
         return <HomeViewComponent data={data} onChangeView={setActiveTab} streak={data.gymLogs.length} xp={calculateXP(data)} />;
       case 'gym':
-        return <GymView data={data} updateData={saveData} />;
+        return <GymView data={data} updateData={saveData} user={user} />;
       case 'challenges':
         return <ChallengesViewComponent />;
       case 'history':
