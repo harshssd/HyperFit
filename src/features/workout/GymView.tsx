@@ -99,6 +99,26 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const { user: contextUser } = useUser();
   const userId = contextUser?.id || user?.id;
 
+  // Cache for master exercises to resolve IDs for manual workouts
+  const [exerciseCache, setExerciseCache] = useState<Map<string, string>>(new Map());
+
+  // Populate exercise cache on mount
+  React.useEffect(() => {
+    const loadExerciseCache = async () => {
+      try {
+        const exercises = await fetchExercises();
+        const cache = new Map<string, string>();
+        exercises.forEach((ex: any) => {
+          cache.set(ex.name.toLowerCase(), ex.id);
+        });
+        setExerciseCache(cache);
+      } catch (e) {
+        console.error('Failed to load exercise cache', e);
+      }
+    };
+    loadExerciseCache();
+  }, []);
+
   // Session State
   const [sessionExercises, setSessionExercises] = useState<WorkoutExercise[]>([]);
   const [sessionStartTime, setSessionStartTime] = useState<string | null>(null);
@@ -124,9 +144,13 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   // Actions
   const addExerciseHook = (name: string, position: 'top' | 'bottom' = 'bottom') => {
+    // Check if this exercise exists in master table
+    const exerciseId = exerciseCache.get(name.toLowerCase());
+
     const newExercise: WorkoutExercise = {
       id: Date.now(),
       name,
+      exerciseId, // Reference to master exercises table if it exists
       sets: [{ id: Date.now() + 1, weight: '', reps: '', completed: false }],
     };
     const updated = position === 'top'
