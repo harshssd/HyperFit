@@ -122,20 +122,58 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
   const [showScheduleEditor, setShowScheduleEditor] = useState(false);
   const [editingDay, setEditingDay] = useState<DayOfWeek | null>(null);
 
+  // Import Modal State
+  const [importSearchQuery, setImportSearchQuery] = useState('');
+  const [expandedPlanIds, setExpandedPlanIds] = useState<string[]>([]);
+  const [loadingImportPlans, setLoadingImportPlans] = useState(false);
+
   // Fetch plans when import modal opens
   React.useEffect(() => {
     if (showImportModal) {
       const loadPlans = async () => {
+        setLoadingImportPlans(true);
         try {
+          // Fetch all plans (RLS will automatically filter to show only public plans and user's private plans)
           const plans = await fetchWorkoutPlans();
-          // Filter for only public plans or user's own plans that have sessions
-          // Assuming fetchWorkoutPlans returns all relevant plans based on RLS
-          setImportablePlans(plans.filter((p: any) => p.sessions && p.sessions.length > 0));
+          
+          // Fetch complete details for each plan to ensure we have sessions
+          const plansWithDetails = await Promise.all(
+            plans.map(async (plan: any) => {
+              try {
+                // If plan already has sessions, use it as-is
+                if (plan.sessions && plan.sessions.length > 0) {
+                  return plan;
+                }
+                // Otherwise, fetch complete details
+                const { fetchWorkoutPlanDetails } = await import('../../../services/workoutService');
+                return await fetchWorkoutPlanDetails(plan.id);
+              } catch (e) {
+                console.warn(`Failed to fetch details for plan ${plan.id}`, e);
+                return plan; // Return basic plan if fetch fails
+              }
+            })
+          );
+          
+          // Filter for plans that have sessions
+          const validPlans = plansWithDetails.filter((p: any) => p.sessions && p.sessions.length > 0);
+          setImportablePlans(validPlans);
+          
+          // Auto-expand the first plan
+          if (validPlans.length > 0 && validPlans[0].sessions?.length > 0) {
+            setExpandedPlanIds([validPlans[0].id]);
+          }
         } catch (e) {
           console.error("Failed to load plans for import", e);
+        } finally {
+          setLoadingImportPlans(false);
         }
       };
       loadPlans();
+    } else {
+      // Reset state when modal closes
+      setImportSearchQuery('');
+      setExpandedPlanIds([]);
+      setImportablePlans([]);
     }
   }, [showImportModal]);
 
@@ -293,6 +331,18 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
     setSessions(prev => [...prev, newSession]);
     setShowImportModal(false);
   };
+
+  const togglePlanExpansion = (planId: string) => {
+    setExpandedPlanIds(prev => 
+      prev.includes(planId) 
+        ? prev.filter(id => id !== planId)
+        : [...prev, planId]
+    );
+  };
+
+  const filteredImportPlans = importablePlans.filter(plan => 
+    plan.name.toLowerCase().includes(importSearchQuery.toLowerCase())
+  );
 
   // Schedule Management
   const openScheduleEditor = (day: DayOfWeek) => {
@@ -908,49 +958,265 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
         </Modal>
 
         {/* Import Template Modal */}
-        <Modal visible={showImportModal} animationType="fade" transparent={true}>
-          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: spacing.xl }}>
-            <GlassCard style={{ padding: spacing.xl, maxHeight: '80%' }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg }}>
-                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>Import Session</Text>
-                <TouchableOpacity onPress={() => setShowImportModal(false)}>
-                  <X size={20} color={colors.muted} />
+        <Modal visible={showImportModal} animationType="slide" transparent={true}>
+          <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: 60 }}>
+            {/* Header */}
+            <View style={{ padding: spacing.xl, paddingBottom: spacing.md }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm }}>
+                <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', letterSpacing: 1 }}>
+                  IMPORT SESSION
+                </Text>
+                <TouchableOpacity onPress={() => {
+                  setShowImportModal(false);
+                  setImportSearchQuery('');
+                  setExpandedPlanIds([]);
+                }}>
+                  <Text style={{ color: colors.muted, fontSize: 14, fontWeight: 'bold' }}>CLOSE</Text>
                 </TouchableOpacity>
               </View>
-              <ScrollView showsVerticalScrollIndicator={false}>
-                {importablePlans.map(plan => (
-                  <View key={plan.id} style={{ marginBottom: spacing.lg }}>
-                    <Text style={{ color: colors.primary, fontSize: 12, fontWeight: 'bold', marginBottom: spacing.sm }}>
-                      {plan.name.toUpperCase()}
+
+              {/* Description */}
+              <Text style={{ color: colors.muted, fontSize: 12, marginBottom: spacing.lg }}>
+                Import sessions from public plans and your custom plans
+              </Text>
+
+              {/* Search Bar */}
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center',
+                backgroundColor: 'rgba(255,255,255,0.05)',
+                borderRadius: radii.md,
+                paddingHorizontal: spacing.md,
+                height: 44
+              }}>
+                <Search size={18} color={colors.muted} />
+                <TextInput
+                  value={importSearchQuery}
+                  onChangeText={setImportSearchQuery}
+                  placeholder="Search plans..."
+                  placeholderTextColor={colors.muted}
+                  style={{
+                    flex: 1,
+                    color: '#fff',
+                    fontSize: 16,
+                    marginLeft: spacing.sm,
+                    height: 44
+                  }}
+                />
+                {importSearchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setImportSearchQuery('')}>
+                    <X size={18} color={colors.muted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Plans List */}
+            <ScrollView style={{ flex: 1, paddingHorizontal: spacing.xl }} showsVerticalScrollIndicator={false}>
+              {loadingImportPlans ? (
+                /* Loading State */
+                <View style={{ gap: spacing.md, paddingBottom: spacing.xl }}>
+                  {[1, 2, 3].map(i => (
+                    <GlassCard key={i} style={{ padding: spacing.md }}>
+                      {/* Skeleton Plan Header */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+                        <View style={{ flex: 1 }}>
+                          <View style={{ 
+                            width: '60%', 
+                            height: 16, 
+                            backgroundColor: 'rgba(255,255,255,0.1)', 
+                            borderRadius: radii.sm,
+                            marginBottom: 6
+                          }} />
+                          <View style={{ 
+                            width: '40%', 
+                            height: 12, 
+                            backgroundColor: 'rgba(255,255,255,0.06)', 
+                            borderRadius: radii.sm
+                          }} />
+                        </View>
+                        <View style={{ 
+                          width: 50, 
+                          height: 20, 
+                          backgroundColor: 'rgba(255,255,255,0.06)', 
+                          borderRadius: radii.full
+                        }} />
+                      </View>
+                      
+                      {/* Skeleton Sessions */}
+                      {i === 1 && (
+                        <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: spacing.sm }}>
+                          {[1, 2].map(j => (
+                            <View key={j} style={{ 
+                              paddingVertical: spacing.sm,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between'
+                            }}>
+                              <View style={{ flex: 1 }}>
+                                <View style={{ 
+                                  width: '50%', 
+                                  height: 14, 
+                                  backgroundColor: 'rgba(255,255,255,0.1)', 
+                                  borderRadius: radii.sm,
+                                  marginBottom: 4
+                                }} />
+                                <View style={{ 
+                                  width: '35%', 
+                                  height: 11, 
+                                  backgroundColor: 'rgba(255,255,255,0.06)', 
+                                  borderRadius: radii.sm
+                                }} />
+                              </View>
+                              <View style={{ 
+                                width: 60, 
+                                height: 24, 
+                                backgroundColor: 'rgba(255,255,255,0.06)', 
+                                borderRadius: radii.sm
+                              }} />
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </GlassCard>
+                  ))}
+                  
+                  {/* Loading Text */}
+                  <View style={{ alignItems: 'center', marginTop: spacing.md }}>
+                    <Text style={{ color: colors.muted, fontSize: 14 }}>
+                      Loading plans...
                     </Text>
-                    <View style={{ gap: spacing.xs }}>
-                      {plan.sessions?.map(s => (
+                  </View>
+                </View>
+              ) : filteredImportPlans.length > 0 ? (
+                <View style={{ gap: spacing.md, paddingBottom: spacing.xl }}>
+                  {filteredImportPlans.map(plan => {
+                    const isExpanded = expandedPlanIds.includes(plan.id);
+                    const sessionCount = plan.sessions?.length || 0;
+
+                    return (
+                      <GlassCard key={plan.id} style={{ overflow: 'hidden' }}>
+                        {/* Plan Header (Collapsible) */}
                         <TouchableOpacity
-                          key={s.id}
-                          onPress={() => importSession(s)}
+                          onPress={() => togglePlanExpansion(plan.id)}
                           style={{
                             padding: spacing.md,
-                            backgroundColor: 'rgba(255,255,255,0.05)',
-                            borderRadius: radii.sm,
                             flexDirection: 'row',
+                            alignItems: 'center',
                             justifyContent: 'space-between',
-                            alignItems: 'center'
                           }}
                         >
-                          <Text style={{ color: '#fff' }}>{s.name}</Text>
-                          <PlusCircle size={16} color={colors.muted} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 4 }}>
+                              {plan.name}
+                            </Text>
+                            <Text style={{ color: colors.muted, fontSize: 12 }}>
+                              {sessionCount} session{sessionCount !== 1 ? 's' : ''} • {plan.frequency}x/week
+                            </Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                            <View style={{
+                              backgroundColor: plan.is_public ? 'rgba(34, 197, 94, 0.2)' : 'rgba(249, 115, 22, 0.2)',
+                              paddingHorizontal: spacing.xs,
+                              paddingVertical: 2,
+                              borderRadius: radii.full
+                            }}>
+                              <Text style={{
+                                color: plan.is_public ? colors.success : colors.primary,
+                                fontSize: 9,
+                                fontWeight: 'bold'
+                              }}>
+                                {plan.is_public ? 'PUBLIC' : 'CUSTOM'}
+                              </Text>
+                            </View>
+                            <ChevronRight 
+                              size={20} 
+                              color={colors.muted} 
+                              style={{ 
+                                transform: [{ rotate: isExpanded ? '90deg' : '0deg' }],
+                                transition: 'transform 0.2s'
+                              }} 
+                            />
+                          </View>
                         </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                ))}
-                {importablePlans.length === 0 && (
-                  <Text style={{ color: colors.muted, textAlign: 'center', marginTop: spacing.xl }}>
-                    No templates found to import from.
+
+                        {/* Sessions List (Expandable) */}
+                        {isExpanded && plan.sessions && plan.sessions.length > 0 && (
+                          <View style={{ 
+                            borderTopWidth: 1, 
+                            borderTopColor: 'rgba(255,255,255,0.08)',
+                            paddingTop: spacing.sm
+                          }}>
+                            {plan.sessions.map((session, index) => (
+                              <TouchableOpacity
+                                key={session.id}
+                                onPress={() => importSession(session)}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  paddingHorizontal: spacing.md,
+                                  paddingVertical: spacing.sm,
+                                  backgroundColor: index % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.02)',
+                                }}
+                              >
+                                <View style={{ flex: 1 }}>
+                                  <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600', marginBottom: 2 }}>
+                                    {session.name}
+                                  </Text>
+                                  <Text style={{ color: colors.muted, fontSize: 11 }}>
+                                    {session.focus?.toUpperCase() || 'GENERAL'} • {session.exercises?.length || 0} exercises
+                                  </Text>
+                                </View>
+                                <View style={{
+                                  backgroundColor: 'rgba(249, 115, 22, 0.2)',
+                                  paddingHorizontal: spacing.sm,
+                                  paddingVertical: spacing.xs,
+                                  borderRadius: radii.sm,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}>
+                                  <PlusCircle size={12} color={colors.primary} />
+                                  <Text style={{ color: colors.primary, fontSize: 10, fontWeight: 'bold' }}>
+                                    IMPORT
+                                  </Text>
+                                </View>
+                              </TouchableOpacity>
+                            ))}
+                          </View>
+                        )}
+
+                        {/* Empty State */}
+                        {isExpanded && (!plan.sessions || plan.sessions.length === 0) && (
+                          <View style={{ 
+                            padding: spacing.md,
+                            borderTopWidth: 1,
+                            borderTopColor: 'rgba(255,255,255,0.08)'
+                          }}>
+                            <Text style={{ color: colors.muted, fontSize: 12, textAlign: 'center', fontStyle: 'italic' }}>
+                              No sessions in this plan
+                            </Text>
+                          </View>
+                        )}
+                      </GlassCard>
+                    );
+                  })}
+                </View>
+              ) : (
+                <View style={{ 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  padding: spacing.xl,
+                  marginTop: spacing.xl
+                }}>
+                  <Layout size={48} color={colors.muted} style={{ opacity: 0.5, marginBottom: spacing.md }} />
+                  <Text style={{ color: colors.muted, textAlign: 'center', fontSize: 14 }}>
+                    {importSearchQuery ? 'No plans match your search' : 'No plans available to import from'}
                   </Text>
-                )}
-              </ScrollView>
-            </GlassCard>
+                </View>
+              )}
+            </ScrollView>
           </View>
         </Modal>
 
