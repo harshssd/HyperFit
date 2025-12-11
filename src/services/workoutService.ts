@@ -237,8 +237,8 @@ export const fetchWorkoutSessions = async (userId: string) => {
 export const logWorkoutSession = async (
   session: Database['public']['Tables']['session_log']['Insert'],
   exercises: {
-    exercise: Database['public']['Tables']['exercise_log']['Insert'],
-    sets: Database['public']['Tables']['set_log']['Insert'][]
+    exercise: Omit<Database['public']['Tables']['workout_log']['Insert'], 'session_id' | 'set_number' | 'weight' | 'reps' | 'rpe' | 'completed'>,
+    sets: Pick<Database['public']['Tables']['workout_log']['Insert'], 'set_number' | 'weight' | 'reps' | 'rpe' | 'completed'>[]
   }[]
 ) => {
   // 1. Create Session
@@ -250,28 +250,33 @@ export const logWorkoutSession = async (
 
   if (sessionError) throw sessionError;
 
-  // 2. Create Exercises and Sets
+  // 2. Create Workout Log entries (one per set)
+  const workoutLogEntries: Database['public']['Tables']['workout_log']['Insert'][] = [];
+
   for (const exData of exercises) {
-    const { data: newExercise, error: exError } = await supabase
-      .from('exercise_log')
-      .insert({ ...exData.exercise, session_id: newSession.id })
-      .select()
-      .single();
-
-    if (exError) throw exError;
-
-    if (exData.sets.length > 0) {
-      const setsWithId = exData.sets.map(s => ({
-        ...s,
-        exercise_id: newExercise.id
-      }));
-
-      const { error: setsError } = await supabase
-        .from('set_log')
-        .insert(setsWithId);
-
-      if (setsError) throw setsError;
+    for (const setData of exData.sets) {
+      workoutLogEntries.push({
+        session_id: newSession.id,
+        exercise_id: exData.exercise.exercise_id,
+        user_id: exData.exercise.user_id,
+        order_index: exData.exercise.order_index,
+        notes: exData.exercise.notes,
+        set_number: setData.set_number,
+        weight: setData.weight,
+        reps: setData.reps,
+        rpe: setData.rpe,
+        completed: setData.completed,
+        created_at: setData.created_at
+      });
     }
+  }
+
+  if (workoutLogEntries.length > 0) {
+    const { error: logError } = await supabase
+      .from('workout_log')
+      .insert(workoutLogEntries);
+
+    if (logError) throw logError;
   }
 
   return newSession;

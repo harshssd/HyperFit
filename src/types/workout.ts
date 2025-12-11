@@ -165,6 +165,7 @@ export type WorkoutSet = {
 export type WorkoutExercise = {
   id: number;
   name: string;                   // Exercise name (e.g., "Bench Press")
+  exerciseId?: string;            // Reference to master exercises table
   sets: WorkoutSet[];            // Array of sets for this exercise
   archived?: boolean;            // Whether this exercise is from a previous workout
   supersetGroupId?: string | number; // For superset grouping

@@ -108,6 +108,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     planName?: string;
     sessionName?: string;
     customName?: string;
+    planSessionId?: string;
   }>({ type: 'manual' });
 
   // Derived state
@@ -229,6 +230,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       const sessionPayload = {
         user_id: userId,
         user_plan_id: userPlanId,
+        plan_session_id: sessionContext.planSessionId || null,
         name: sessionName,
         date: new Date().toISOString().split('T')[0],
         start_time: sessionStartTime,
@@ -241,16 +243,14 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
       const exercisesPayload = sessionExercises.map((ex, i) => ({
         exercise: {
-          session_id: '', 
-          exercise_id: null,
+          session_id: '',
+          exercise_id: ex.exerciseId || null, // Use stored exercise ID if available
           user_id: userId,
           order_index: i,
           notes: '',
           created_at: new Date().toISOString(),
         },
         sets: ex.sets.map((s, si) => ({
-          exercise_id: '',
-          user_id: userId,
           set_number: si + 1,
           weight: Number(s.weight) || 0,
           reps: Number(s.reps) || 0,
@@ -763,6 +763,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     const newExercises = session.exercises.map((exercise: any, index: number) => ({
       id: `${Date.now()}-${index}-${Math.random()}`,
       name: exercise.name,
+      exerciseId: exercise.id, // Reference to master exercises table (from fetchWorkoutPlanDetails)
       sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }],
     }));
 
@@ -774,6 +775,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       type: contextType,
       planName: planData.name,
       sessionName: session.name,
+      planSessionId: sessionId,
     });
 
     setShowOverview(true);

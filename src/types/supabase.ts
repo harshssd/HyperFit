@@ -272,7 +272,7 @@ export interface Database {
           updated_at?: string | null
         }
       }
-      exercise_log: {
+      workout_log: {
         Row: {
           id: string
           session_id: string
@@ -280,32 +280,6 @@ export interface Database {
           user_id: string
           order_index: number
           notes: string | null
-          created_at: string | null
-        }
-        Insert: {
-          id?: string
-          session_id: string
-          exercise_id?: string | null
-          user_id: string
-          order_index?: number
-          notes?: string | null
-          created_at?: string | null
-        }
-        Update: {
-          id?: string
-          session_id?: string
-          exercise_id?: string | null
-          user_id?: string
-          order_index?: number
-          notes?: string | null
-          created_at?: string | null
-        }
-      }
-      set_log: {
-        Row: {
-          id: string
-          exercise_id: string
-          user_id: string
           set_number: number
           weight: number | null
           reps: number | null
@@ -315,8 +289,11 @@ export interface Database {
         }
         Insert: {
           id?: string
-          exercise_id: string
+          session_id: string
+          exercise_id?: string | null
           user_id: string
+          order_index?: number
+          notes?: string | null
           set_number: number
           weight?: number | null
           reps?: number | null
@@ -326,8 +303,11 @@ export interface Database {
         }
         Update: {
           id?: string
-          exercise_id?: string
+          session_id?: string
+          exercise_id?: string | null
           user_id?: string
+          order_index?: number
+          notes?: string | null
           set_number?: number
           weight?: number | null
           reps?: number | null
