@@ -18,7 +18,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Modal } from 'react-native';
 import {
   CheckCircle,
   ChevronLeft,
@@ -53,6 +53,7 @@ import FinishedSessionView from './components/FinishedSessionView';
 import NeonButton from '../../components/NeonButton';
 import GlassCard from '../../components/GlassCard';
 import workoutStyles from '../../styles/workout';
+import { colors, spacing, radii } from '../../styles/theme';
 import { getAllExerciseNames } from './workoutConfig';
 import { calculateTotalVolume, getExerciseConfig, calculateXP, getNextScheduledWorkout, planToWorkout } from './helpers';
 // Removed: DEFAULT_PLANS import - plans come from database via data.workoutPlans
@@ -62,8 +63,7 @@ import { confirmAction, showError, showSuccess } from '../../utils/alerts';
 import { useTodayWorkout } from './hooks/useTodayWorkout';
 import { useSessionView } from './hooks/useSessionView';
 import { useTemplates } from './hooks/useTemplates';
-import { fetchWorkoutPlanDetails, createWorkoutPlan } from '../../services/workoutService';
-import { supabase } from '../../services/supabase';
+import { fetchWorkoutPlanDetails, createWorkoutPlan, createUserWorkoutPlan, updateUserWorkoutPlan, fetchExercises } from '../../services/workoutService';
 
 type GymViewProps = {
   data: any;
@@ -106,6 +106,10 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const [newExerciseName, setNewExerciseName] = useState('');
   const [isAddingExercise, setIsAddingExercise] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [exerciseOptions, setExerciseOptions] = useState<string[]>([]);
+  const [planSelectionMode, setPlanSelectionMode] = useState<'activate' | 'session'>('activate');
+  const [sessionPickPlan, setSessionPickPlan] = useState<any | null>(null);
+  const [sessionPickVisible, setSessionPickVisible] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null);
   const [restSeconds, setRestSeconds] = useState<number | null>(null);
@@ -223,6 +227,19 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   }, [user, pickerOpen, fetchAll]);
 
   useEffect(() => {
+    const loadExercises = async () => {
+      try {
+        const exercises = await fetchExercises();
+        const names = exercises.map((e: any) => e.name).filter(Boolean);
+        setExerciseOptions(names);
+      } catch (err) {
+        console.warn('Failed to load exercises', err);
+      }
+    };
+    loadExercises();
+  }, []);
+
+  useEffect(() => {
     return () => {
       if (restTimerRef.current) {
         clearInterval(restTimerRef.current);
@@ -237,7 +254,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const handleNameChange = (val: string) => {
     setNewExerciseName(val);
     if (val.length > 0) {
-      const allNames = getAllExerciseNames(data);
+      const allNames = getAllExerciseNames(data, exerciseOptions);
       const filtered = allNames.filter(name => name.toLowerCase().includes(val.toLowerCase()));
       setSuggestions(filtered.slice(0, 5));
     } else {
@@ -486,24 +503,83 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     }
   };
 
-  const handleActivatePlan = (planId: string) => {
-    const updatedUserPlans = (data.userWorkoutPlans || []).map((plan: any) => ({
-      ...plan,
-      isActive: plan.planId === planId
-    }));
+  const handleActivatePlan = async (planId: string) => {
+    if (!user?.id) {
+      showError('You must be signed in to activate a plan.');
+      return;
+    }
 
-    updateData({
-      ...data,
-      userWorkoutPlans: updatedUserPlans,
-      activePlanId: planId
-    });
+    const userPlans = data.userWorkoutPlans || [];
+    const targetPlan = userPlans.find((p: any) => p.planId === planId);
 
-    const activePlan = updatedUserPlans.find((p: any) => p.isActive);
-    showSuccess(`${activePlan?.customName || activePlan?.planData?.name} activated!`);
+    try {
+      // Deactivate other plans in DB
+      await Promise.all(
+        userPlans
+          .filter((p: any) => p.isActive && p.planId !== planId && p.id)
+          .map((p: any) => updateUserWorkoutPlan(p.id, { is_active: false }))
+      );
+
+      // Activate selected plan in DB (create it if it somehow doesn't exist locally)
+      let activePlanRecordId = targetPlan?.id;
+      if (targetPlan?.id) {
+        await updateUserWorkoutPlan(targetPlan.id, { is_active: true });
+      } else {
+        const newUserPlan = await createUserWorkoutPlan({
+          user_id: user.id,
+          plan_id: planId,
+          is_active: true,
+          started_at: new Date().toISOString(),
+        });
+        activePlanRecordId = newUserPlan.id;
+      }
+
+      // Update local state
+      const updatedUserPlans = userPlans
+        .map((p: any) => ({
+          ...p,
+          isActive: p.planId === planId,
+        }))
+        .map((p: any) =>
+          p.planId === planId && activePlanRecordId
+            ? { ...p, id: activePlanRecordId, isActive: true }
+            : { ...p, isActive: false }
+        );
+
+      updateData({
+        ...data,
+        userWorkoutPlans: updatedUserPlans,
+        activePlanId: planId,
+      });
+
+      const activePlan = updatedUserPlans.find((p: any) => p.isActive);
+      showSuccess(`${activePlan?.customName || activePlan?.planData?.name || 'Plan'} activated!`);
+    } catch (error) {
+      console.error('Error activating plan:', error);
+      showError('Failed to activate plan. Please try again.');
+    }
   };
 
   const handleSelectWorkout = (workoutType: string, planId?: string) => {
     handleQuickWorkout(workoutType);
+  };
+
+  const startSessionFromPlan = (planData: any, sessionId: string) => {
+    const session = planData.sessions.find((s: any) => s.id === sessionId);
+    if (!session) return;
+
+    const newExercises = session.exercises.map((exercise: any, index: number) => ({
+      id: `${Date.now()}-${index}-${Math.random()}`,
+      name: exercise.name,
+      sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }],
+    }));
+
+    const updatedWorkouts = { ...data.workouts, [today]: [...todaysWorkout, ...newExercises] };
+    const newLogs = !isCheckedIn ? [...(data.gymLogs || []), today] : data.gymLogs || [];
+    updateData({ ...data, workouts: updatedWorkouts, gymLogs: newLogs });
+
+    setShowOverview(true);
+    showSuccess(`Started ${session.name}!`);
   };
 
   const handleStartScheduledWorkout = (date: Date, workout: any) => {
@@ -521,18 +597,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
       if (session) {
         // Convert the session exercises to workout format and start it
-        const newExercises = session.exercises.map((exercise: any, index: number) => ({
-          id: `${Date.now()}-${index}-${Math.random()}`,
-          name: exercise.name,
-          sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }],
-        }));
-
-        const updatedWorkouts = { ...data.workouts, [today]: [...todaysWorkout, ...newExercises] };
-        const newLogs = !isCheckedIn ? [...(data.gymLogs || []), today] : data.gymLogs || [];
-        updateData({ ...data, workouts: updatedWorkouts, gymLogs: newLogs });
-
-        setShowOverview(true);
-        showSuccess(`Started ${session.name}!`);
+        startSessionFromPlan(activeUserPlan.planData, session.id);
       }
     }
   };
@@ -909,7 +974,10 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       return (
         <>
         <WorkoutPlanner
-          onLoadTemplate={() => openPicker()}
+          onLoadTemplate={() => {
+            setPlanSelectionMode('session');
+            setShowPlanLibrary(true);
+          }}
           onCustomInput={() => {
             setIsAddingExercise(true);
             setShowOverview(true);
@@ -920,8 +988,14 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             setSuggestedPlanType(suggestedType);
             setShowPlanCreator(true);
           }}
-          onBrowsePlans={handleChangePlan}
-          onChangePlan={handleChangePlan}
+          onBrowsePlans={() => {
+            setPlanSelectionMode('activate');
+            handleChangePlan();
+          }}
+          onChangePlan={() => {
+            setPlanSelectionMode('activate');
+            handleChangePlan();
+          }}
           onCreateFromExisting={handleCreateFromExisting}
           onEndPlan={handleEndPlan}
           onSelectWorkout={handleSelectWorkout}
@@ -944,64 +1018,86 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             onClose={() => setShowPlanLibrary(false)}
             onSelectPlan={async (plan) => {
               try {
-                // Check if user already has a UserWorkoutPlan for this WorkoutPlan
-                const existingUserPlan = (data.userWorkoutPlans || []).find((p: any) => p.planId === plan.id);
+                // Always fetch the latest plan details
+                const detailedPlan = await fetchWorkoutPlanDetails(plan.id);
 
-                if (existingUserPlan) {
-                  // User already has this plan - just activate it
-                  const updatedUserPlans = (data.userWorkoutPlans || []).map((p: any) => ({
-                    ...p,
-                    isActive: p.planId === plan.id
-                  }));
-                  updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: plan.id });
+                if (planSelectionMode === 'session') {
+                  // Session pick mode: show sessions to choose and start
+                  setSessionPickPlan({ ...plan, details: detailedPlan });
+                  setSessionPickVisible(true);
                   setShowPlanLibrary(false);
-                  showSuccess(`Activated ${plan.name}!`);
+                  setPlanSelectionMode('activate');
+                  return;
+                }
+
+                if (!user?.id) {
+                  showError('You must be signed in to select a plan.');
+                  return;
+                }
+
+                const userPlans = data.userWorkoutPlans || [];
+                const existingUserPlan = userPlans.find((p: any) => p.planId === plan.id);
+
+                // Deactivate any currently active plans in DB
+                await Promise.all(
+                  userPlans
+                    .filter((p: any) => p.isActive && p.planId !== plan.id && p.id)
+                    .map((p: any) => updateUserWorkoutPlan(p.id, { is_active: false }))
+                );
+
+                let userPlanId = existingUserPlan?.id;
+
+                if (existingUserPlan?.id) {
+                  // Activate existing record in DB
+                  await updateUserWorkoutPlan(existingUserPlan.id, { is_active: true });
                 } else {
-                  // User doesn't have this plan - fetch detailed plan data and create new UserWorkoutPlan
-                  // First verify the plan exists in the database
-                  try {
-                    const { data: planExists } = await supabase
-                      .from('workout_plans')
-                      .select('id')
-                      .eq('id', plan.id)
-                      .single();
+                  // Create new record in DB
+                  const newUserPlan = await createUserWorkoutPlan({
+                    user_id: user.id,
+                    plan_id: plan.id,
+                    is_active: true,
+                    started_at: new Date().toISOString(),
+                    custom_name: plan.name,
+                  });
+                  userPlanId = newUserPlan.id;
+                }
 
-                    if (!planExists) {
-                      throw new Error(`Plan with ID ${plan.id} not found in database`);
-                    }
-                  } catch (verifyError) {
-                    console.error('Plan verification failed:', verifyError);
-                    showError(`Plan "${plan.name}" is not available in the database. Please refresh the app or contact support.`);
-                    return;
-                  }
+                // Update local state to reflect activation and store details
+                const updatedUserPlans = [
+                  ...(userPlans || []).map((p: any) => ({
+                    ...p,
+                    isActive: p.planId === plan.id,
+                    planData: p.planId === plan.id ? detailedPlan : p.planData,
+                  })),
+                ];
 
-                  const detailedPlan = await fetchWorkoutPlanDetails(plan.id);
-
-                  const userPlan = {
-                    id: `plan_${Date.now()}`,
-                    userId: user?.id,
+                // If we created a new plan record, add it locally
+                if (!existingUserPlan) {
+                  updatedUserPlans.push({
+                    id: userPlanId,
+                    userId: user.id,
                     planId: plan.id,
                     planData: detailedPlan,
                     startedAt: new Date().toISOString(),
                     isActive: true,
-                    createdAt: new Date().toISOString()
-                  };
-                  // Add to user plans and activate
-                  const updatedUserPlans = [...(data.userWorkoutPlans || []).map((p: any) => ({...p, isActive: false})), userPlan];
-                  updateData({ ...data, userWorkoutPlans: updatedUserPlans, activePlanId: userPlan.planId });
-                  setShowPlanLibrary(false);
-                  showSuccess(`Started ${plan.name}!`);
+                    createdAt: new Date().toISOString(),
+                    customName: plan.name,
+                  });
                 }
+
+                // Ensure only the selected plan is active locally
+                const normalizedPlans = updatedUserPlans.map((p: any) => ({
+                  ...p,
+                  isActive: p.planId === plan.id,
+                }));
+
+                updateData({ ...data, userWorkoutPlans: normalizedPlans, activePlanId: plan.id });
+                setShowPlanLibrary(false);
+                showSuccess(`Activated ${plan.name}!`);
               } catch (error: any) {
                 console.error('Error selecting plan:', error);
-
-                // Handle specific error cases
-                if (error.message && error.message.includes('not found in database')) {
-                  showError(`Plan "${plan.name}" is no longer available. It may have been deleted or the database needs to be refreshed.`);
-                  // Optionally refresh the data to remove stale plans
-                  // For now, just show the error
-                } else if (error.code === 'PGRST116') {
-                  showError(`Plan "${plan.name}" could not be loaded. The database may need to be refreshed with seed data.`);
+                if (error?.message?.includes('not found')) {
+                  showError(`Plan "${plan.name}" is not available. Please refresh.`);
                 } else {
                   showError('Failed to load plan details. Please try again.');
                 }
@@ -1022,6 +1118,59 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             userEquipment="gym"
             userFrequency={3}
           />
+
+          <Modal
+            visible={sessionPickVisible}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setSessionPickVisible(false)}
+          >
+            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: spacing.md }}>
+              <View style={{ backgroundColor: '#0f172a', borderRadius: spacing.md, padding: spacing.lg }}>
+                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: spacing.sm }}>
+                  {sessionPickPlan?.name || sessionPickPlan?.details?.name || 'Plan'}
+                </Text>
+                <Text style={{ color: colors.muted, marginBottom: spacing.md }}>
+                  Select a session to start
+                </Text>
+
+                <ScrollView style={{ maxHeight: 320 }}>
+                  {sessionPickPlan?.details?.sessions?.map((session: any) => (
+                    <TouchableOpacity
+                      key={session.id}
+                      onPress={() => {
+                        startSessionFromPlan(sessionPickPlan.details, session.id);
+                        setSessionPickVisible(false);
+                        setSessionPickPlan(null);
+                      }}
+                      style={{
+                        paddingVertical: spacing.md,
+                        borderBottomWidth: 1,
+                        borderBottomColor: 'rgba(255,255,255,0.08)',
+                      }}
+                    >
+                      <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
+                        {session.name}
+                      </Text>
+                      <Text style={{ color: colors.muted, fontSize: 12, marginTop: 4 }}>
+                        {session.focus?.toUpperCase() || 'GENERAL'} • {session.exercises?.length || 0} exercises
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setSessionPickVisible(false);
+                    setSessionPickPlan(null);
+                  }}
+                  style={{ marginTop: spacing.md, alignItems: 'center' }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: 'bold' }}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
           <WorkoutPlanCreator
             visible={showPlanCreator}

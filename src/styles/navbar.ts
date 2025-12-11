@@ -30,3 +30,4 @@ const navbarStyles = StyleSheet.create({
 export default navbarStyles;
 
 
+

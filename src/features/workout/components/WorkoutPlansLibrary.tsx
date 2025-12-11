@@ -205,7 +205,7 @@ const WorkoutPlansLibrary = ({
           }}
         >
           <Text style={{ color: '#0f172a', fontSize: 14, fontWeight: 'bold' }}>
-            START PLAN
+            SELECT PLAN
           </Text>
         </TouchableOpacity>
 

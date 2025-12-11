@@ -29,7 +29,6 @@ import {
   createTemplateFolder,
 } from '../../../services/templates';
 import { TemplateType, UserData, WorkoutExercise } from '../../../types/workout';
-import { WORKOUT_TEMPLATES } from '../../../constants/appConstants';
 
 type UseTemplatesArgs = {
   userId?: string;
@@ -48,7 +47,7 @@ export const useTemplates = ({
   todaysWorkout,
   isCheckedIn,
 }: UseTemplatesArgs) => {
-  const [templates, setTemplates] = useState<TemplateType[]>(WORKOUT_TEMPLATES);
+  const [templates, setTemplates] = useState<TemplateType[]>([]);
   const [folders, setFolders] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [allTags, setAllTags] = useState<string[]>([]);
@@ -62,7 +61,7 @@ export const useTemplates = ({
   const fetchTemplates = useCallback(async () => {
     if (!userId) return;
     const { templates: t, tags } = await fetchTemplatesForUser(userId);
-    setTemplates(t || WORKOUT_TEMPLATES);
+    setTemplates(t || []);
     setAllTags(tags || []);
   }, [userId]);
 
@@ -85,7 +84,7 @@ export const useTemplates = ({
       await Promise.all([fetchTemplates(), fetchFolders(), fetchFavorites()]);
     } catch (err) {
       // fallback: keep defaults
-      setTemplates((prev) => prev.length ? prev : WORKOUT_TEMPLATES);
+      setTemplates((prev = []) => (prev.length ? prev : []));
     } finally {
       setLoading(false);
     }
@@ -149,15 +148,18 @@ export const useTemplates = ({
     [userId]
   );
 
-  const duplicateTemplate = useCallback((template: TemplateType) => {
-    const duplicated = {
-      ...template,
-      id: `local-${Date.now()}`,
-      name: `${template.name} (Copy)`,
-      user_id: userId,
-    };
-    setTemplates((prev) => [duplicated, ...prev]);
-  }, [userId]);
+  const duplicateTemplate = useCallback(
+    (template: TemplateType) => {
+      const duplicated = {
+        ...template,
+        id: `local-${Date.now()}`,
+        name: `${template.name} (Copy)`,
+        user_id: userId,
+      };
+      setTemplates((prev = []) => [duplicated, ...prev]);
+    },
+    [userId]
+  );
 
   const createFolder = useCallback(
     async (name: string, color: string = '#f97316', icon: string = '📁') => {
