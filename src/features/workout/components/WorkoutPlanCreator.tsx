@@ -326,27 +326,17 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
   };
 
   const importSession = (templateSession: PlanSession, sourcePlan: WorkoutPlan) => {
-    // If importing from a public plan, reference the original session
-    // If importing from a custom plan, create a copy
-    const isPublicSource = sourcePlan.is_public;
-    
-    const newSession = isPublicSource 
-      ? {
-          // Reference the original session from public plan
-          ...templateSession,
-          isReference: true, // Mark as reference
-          sourcePlanId: sourcePlan.id, // Store source plan ID
-          sourceSessionId: templateSession.id, // Store original session ID
-          // Keep the original ID for referencing but add a local ID for React keys
-          localId: `session_${Date.now()}_ref`,
-        }
-      : {
-          // Create a copy for custom plans
-          ...templateSession,
-          id: `session_${Date.now()}_imported`,
-          name: `${templateSession.name} (Copy)`,
-          isReference: false,
-        };
+    // Unified Model: Always create a copy.
+    // We track the original session ID for analytics, but the user owns this new session instance.
+    const newSession = {
+      ...templateSession,
+      id: `session_${Date.now()}_imported`,
+      name: templateSession.name,
+      // Track lineage for analytics
+      originalSessionId: templateSession.id,
+      // Clear any previous lineage if we are copying a copy, or keep it? 
+      // Ideally point to the immediate parent or the root. Pointing to immediate parent (templateSession.id) is safest.
+    };
     
     setSessions(prev => [...prev, newSession]);
     setShowImportModal(false);
@@ -652,7 +642,6 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
               {sessions.length > 0 ? (
                 <View style={{ gap: spacing.md }}>
                   {sessions.map((session, index) => {
-                    const isReference = (session as any).isReference;
                     return (
                       <GlassCard key={session.id || (session as any).localId} style={{ padding: spacing.md }}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -661,36 +650,22 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
                                 {session.name}
                               </Text>
-                              {isReference && (
-                                <View style={{
-                                  backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                                  paddingHorizontal: spacing.xs,
-                                  paddingVertical: 2,
-                                  borderRadius: radii.full
-                                }}>
-                                  <Text style={{ color: colors.success, fontSize: 9, fontWeight: 'bold' }}>
-                                    REFERENCED
-                                  </Text>
-                                </View>
-                              )}
                             </View>
                             <Text style={{ color: colors.muted, fontSize: 12 }}>
                               {session.focus.toUpperCase()} • {session.exercises.length} Exercises
                             </Text>
                           </View>
                           <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
-                            {!isReference && (
-                              <TouchableOpacity 
-                                onPress={() => editSession(session)} 
-                                style={{ 
-                                  padding: spacing.xs,
-                                  backgroundColor: 'rgba(255,255,255,0.1)',
-                                  borderRadius: radii.sm
-                                }}
-                              >
-                                <Edit3 size={16} color="#fff" />
-                              </TouchableOpacity>
-                            )}
+                            <TouchableOpacity 
+                              onPress={() => editSession(session)} 
+                              style={{ 
+                                padding: spacing.xs,
+                                backgroundColor: 'rgba(255,255,255,0.1)',
+                                borderRadius: radii.sm
+                              }}
+                            >
+                              <Edit3 size={16} color="#fff" />
+                            </TouchableOpacity>
                             <TouchableOpacity 
                               onPress={() => deleteSession((session as any).localId || session.id)} 
                               style={{ 
@@ -1083,8 +1058,8 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                 <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
                   <Info size={14} color="#3b82f6" style={{ marginTop: 1 }} />
                   <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16, flex: 1 }}>
-                    <Text style={{ fontWeight: 'bold', color: '#3b82f6' }}>Public plans</Text> will be referenced (not copied), 
-                    while <Text style={{ fontWeight: 'bold', color: colors.primary }}>custom plans</Text> will be copied and can be edited.
+                    Importing a session creates a copy that you can fully customize. 
+                    The original template remains unchanged.
                   </Text>
                 </View>
               </View>

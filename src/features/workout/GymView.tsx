@@ -670,9 +670,8 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       };
 
       // Transform sessions to database format
-      // Filter out referenced sessions (from public plans) - they shouldn't be duplicated
+      // All sessions are copies in the unified model
       const sessionsForDb = planData.sessions
-        .filter((session: any) => !session.isReference) // Only include non-referenced sessions
         .map((session, index) => ({
           session: {
             id: session.id, // preserve client session id so schedule can reference it
@@ -680,6 +679,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             description: session.description || '',
             focus: session.focus as string,
             order_index: index + 1, // Use array index as order
+            original_session_id: session.originalSessionId || null, // Track lineage for analytics
           } as any,
           exercises: session.exercises.map(exercise => ({
             exercise_id: exercise.id,
@@ -692,18 +692,12 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
         })) as any;
 
       // Transform schedule to database format
-      // For referenced sessions, use the sourceSessionId; for new sessions, use their ID
       const scheduleForDb = Object.entries(planData.schedule || {}).flatMap(([day, sessions]) =>
         (sessions || []).map(session => {
-          // Find the actual session to determine if it's referenced
-          const actualSession = planData.sessions.find((s: any) => 
-            (s.id === session.sessionId) || (s.localId === session.sessionId)
-          ) as any;
-          
           return {
-            session_id: actualSession?.isReference 
-              ? actualSession.sourceSessionId  // Use original session ID for references
-              : session.sessionId,              // Use new session ID for copies
+            // In the unified model, we always reference the session ID from the sessions list
+            // The service layer maps this client ID to the newly created DB ID
+            session_id: session.sessionId,
             day_of_week: day,
           } as any;
         })
