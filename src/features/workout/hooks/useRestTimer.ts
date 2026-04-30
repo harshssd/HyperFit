@@ -29,43 +29,49 @@ export type UseRestTimerReturn = {
  * Decoupled from session state so it can drive multiple UIs (the docked
  * pill, a future full-screen rest view) and so the session reducer doesn't
  * have to deal with `setInterval` cleanup.
+ *
+ * All callback identities are stable across renders — `lastCompletedAt`
+ * lives in a ref instead of state for the part of the API that's used
+ * inside other hooks' closures, while a parallel piece of state powers UI.
  */
 export const useRestTimer = (): UseRestTimerReturn => {
   const [restSeconds, setRestSeconds] = useState<number | null>(null);
-  const [lastCompletedAt, setLastCompletedAt] = useState<number | null>(null);
+  const [lastCompletedAtState, setLastCompletedAtState] = useState<number | null>(null);
+  const lastCompletedAtRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const clear = useCallback(() => {
+  const clearInterval_ = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
+  };
+
+  const skipRest = useCallback(() => {
+    clearInterval_();
     setRestSeconds(null);
   }, []);
 
   const startRest = useCallback(
     (seconds: number = DEFAULT_REST_SECONDS) => {
       if (seconds <= 0) {
-        clear();
+        skipRest();
         return;
       }
-      clear();
+      clearInterval_();
       setRestSeconds(seconds);
       intervalRef.current = setInterval(() => {
         setRestSeconds(prev => {
           if (prev === null) return null;
           if (prev <= 1) {
-            if (intervalRef.current) {
-              clearInterval(intervalRef.current);
-              intervalRef.current = null;
-            }
+            clearInterval_();
             return null;
           }
           return prev - 1;
         });
       }, 1000);
     },
-    [clear]
+    [skipRest]
   );
 
   const extendRest = useCallback(
@@ -73,7 +79,6 @@ export const useRestTimer = (): UseRestTimerReturn => {
       setRestSeconds(prev => {
         const next = (prev ?? 0) + extra;
         if (!intervalRef.current) {
-          // Restart the interval at the new value.
           startRest(next);
           return next;
         }
@@ -85,29 +90,32 @@ export const useRestTimer = (): UseRestTimerReturn => {
 
   const onSetCompleted = useCallback(() => {
     const now = Date.now();
-    const elapsed = lastCompletedAt ? Math.max(0, Math.round((now - lastCompletedAt) / 1000)) : 0;
-    setLastCompletedAt(now);
+    const prev = lastCompletedAtRef.current;
+    const elapsed = prev ? Math.max(0, Math.round((now - prev) / 1000)) : 0;
+    lastCompletedAtRef.current = now;
+    setLastCompletedAtState(now);
     startRest();
     return elapsed;
-  }, [lastCompletedAt, startRest]);
+  }, [startRest]);
 
   const onSetUncompleted = useCallback(() => {
-    setLastCompletedAt(null);
-    clear();
-  }, [clear]);
+    lastCompletedAtRef.current = null;
+    setLastCompletedAtState(null);
+    skipRest();
+  }, [skipRest]);
 
   useEffect(
     () => () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      clearInterval_();
     },
     []
   );
 
   return {
     restSeconds,
-    lastCompletedAt,
+    lastCompletedAt: lastCompletedAtState,
     startRest,
-    skipRest: clear,
+    skipRest,
     extendRest,
     onSetCompleted,
     onSetUncompleted,

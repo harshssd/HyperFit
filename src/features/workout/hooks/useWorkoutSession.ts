@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
 import { fetchExercises, logWorkoutSession } from '../../../services/workoutService';
 import {
@@ -19,6 +19,15 @@ try {
 } catch {
   // Optional native module — gracefully degrade if missing in Expo Go etc.
 }
+
+// Module-scoped so we don't reallocate on every render.
+const QUICK_TEMPLATES: Record<string, string[]> = {
+  push: ['Bench Press', 'Overhead Press', 'Incline Dumbbell Press', 'Tricep Dips', 'Lateral Raises'],
+  pull: ['Deadlift', 'Pull-ups', 'Barbell Rows', 'Face Pulls', 'Bicep Curls'],
+  legs: ['Squats', 'Romanian Deadlift', 'Leg Press', 'Calf Raises', 'Leg Curls'],
+  fullbody: ['Bench Press', 'Squats', 'Pull-ups', 'Overhead Press', 'Barbell Rows'],
+};
+const AI_SEED = ['Bench Press', 'Squats', 'Pull-ups', 'Overhead Press', 'Plank'];
 
 export type SessionContext = {
   type: 'active_plan' | 'alternate_plan' | 'manual' | 'scheduled';
@@ -114,35 +123,40 @@ export const useWorkoutSession = ({
     };
   }, []);
 
-  const updateSessionExercises = useCallback(
-    (exercises: WorkoutExercise[]) => {
-      setSessionExercises(exercises);
-      // Auto-stamp a start time when the first exercise lands.
-      setSessionStartTime(prev => prev ?? (exercises.length > 0 ? new Date().toISOString() : null));
-    },
-    []
-  );
+  const updateSessionExercises = useCallback((exercises: WorkoutExercise[]) => {
+    setSessionExercises(exercises);
+    // Stamp on first add; clear when the board is emptied so a delete-to-zero
+    // followed by a fresh add restarts the clock.
+    setSessionStartTime(prev =>
+      exercises.length === 0 ? null : prev ?? new Date().toISOString()
+    );
+  }, []);
+
+  // Tracks whether we've already shown the manual-workout name prompt so
+  // delete-to-zero + readd doesn't re-fire it.
+  const namePromptedRef = useRef(false);
 
   const addExercise = useCallback(
     (name: string, position: 'top' | 'bottom' = 'bottom') => {
-      const exerciseId = exerciseCache.get(name.toLowerCase());
-      const newExercise: WorkoutExercise = {
-        id: Date.now(),
-        name,
-        exerciseId,
-        sets: [{ id: Date.now() + 1, weight: '', reps: '', completed: false }],
-      };
+      let didFirstAdd = false;
+      setSessionExercises(prev => {
+        const newExercise: WorkoutExercise = {
+          id: Date.now() + prev.length,
+          name,
+          exerciseId: exerciseCache.get(name.toLowerCase()),
+          sets: [{ id: Date.now() + prev.length + 1, weight: '', reps: '', completed: false }],
+        };
+        if (prev.length === 0) didFirstAdd = true;
+        const next =
+          position === 'top' ? [newExercise, ...prev] : [...prev, newExercise];
+        // Inline what updateSessionExercises does, since we need to react to the
+        // computed `next.length` rather than re-read state.
+        setSessionStartTime(t => (next.length === 0 ? null : t ?? new Date().toISOString()));
+        return next;
+      });
 
-      // Capture pre-update length so the "first exercise on a manual workout"
-      // prompt fires regardless of where setSessionExercises lands.
-      const wasEmpty = sessionExercises.length === 0;
-      const isManual = sessionContext.type === 'manual';
-
-      const updated =
-        position === 'top' ? [newExercise, ...sessionExercises] : [...sessionExercises, newExercise];
-      updateSessionExercises(updated);
-
-      if (wasEmpty && isManual) {
+      if (didFirstAdd && sessionContext.type === 'manual' && !namePromptedRef.current) {
+        namePromptedRef.current = true;
         setTimeout(() => {
           Alert.prompt(
             'Name Your Workout',
@@ -164,7 +178,7 @@ export const useWorkoutSession = ({
         }, 500);
       }
     },
-    [exerciseCache, sessionExercises, sessionContext, updateSessionExercises]
+    [exerciseCache, sessionContext.type, sessionContext.customName]
   );
 
   const renameExerciseById = useCallback(
@@ -291,12 +305,14 @@ export const useWorkoutSession = ({
     setSessionStartTime(null);
     setIsSessionFinished(false);
     setSessionContext({ type: 'manual' });
+    namePromptedRef.current = false;
   }, []);
 
   const abortSession = useCallback(() => {
     setSessionExercises([]);
     setSessionStartTime(null);
     setIsSessionFinished(false);
+    namePromptedRef.current = false;
   }, []);
 
   const startSessionFromPlan = useCallback(
@@ -308,11 +324,12 @@ export const useWorkoutSession = ({
       const session = planData?.sessions?.find((s: any) => s.id === sessionId);
       if (!session) return;
 
+      const baseId = Date.now();
       const newExercises: WorkoutExercise[] = session.exercises.map((exercise: any, index: number) => ({
-        id: Number(`${Date.now()}${index}`) || Date.now() + index,
+        id: baseId + index,
         name: exercise.name,
         exerciseId: exercise.id,
-        sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }],
+        sets: [{ id: baseId + index * 1000 + 1, weight: '', reps: '', completed: false }],
       }));
 
       updateSessionExercises(newExercises);
@@ -322,50 +339,44 @@ export const useWorkoutSession = ({
         sessionName: session.name,
         planSessionId: sessionId,
       });
+      namePromptedRef.current = true; // not a manual session
       showSuccess(`Started ${session.name}!`);
     },
     [updateSessionExercises]
   );
 
-  const QUICK_TEMPLATES: Record<string, string[]> = {
-    push: ['Bench Press', 'Overhead Press', 'Incline Dumbbell Press', 'Tricep Dips', 'Lateral Raises'],
-    pull: ['Deadlift', 'Pull-ups', 'Barbell Rows', 'Face Pulls', 'Bicep Curls'],
-    legs: ['Squats', 'Romanian Deadlift', 'Leg Press', 'Calf Raises', 'Leg Curls'],
-    fullbody: ['Bench Press', 'Squats', 'Pull-ups', 'Overhead Press', 'Barbell Rows'],
-  };
+  const buildExercises = useCallback(
+    (names: string[]): WorkoutExercise[] => {
+      const baseId = Date.now();
+      return names.map((name, i) => ({
+        id: baseId + i,
+        name,
+        exerciseId: exerciseCache.get(name.toLowerCase()),
+        sets: [{ id: baseId + i * 1000 + 1, weight: '', reps: '', completed: false }],
+      }));
+    },
+    [exerciseCache]
+  );
 
   const startQuickWorkout = useCallback(
     (type: 'push' | 'pull' | 'legs' | 'fullbody') => {
-      const exercises = QUICK_TEMPLATES[type] ?? [];
-      // Build the new array up-front so we don't fight setState batching.
-      const built: WorkoutExercise[] = exercises.map((name, i) => ({
-        id: Date.now() + i,
-        name,
-        exerciseId: exerciseCache.get(name.toLowerCase()),
-        sets: [{ id: Date.now() + i + 1000, weight: '', reps: '', completed: false }],
-      }));
-      updateSessionExercises(built);
+      updateSessionExercises(buildExercises(QUICK_TEMPLATES[type] ?? []));
       setSessionContext({
         type: 'manual',
         customName: `${type.charAt(0).toUpperCase() + type.slice(1)} Workout`,
       });
+      namePromptedRef.current = true; // we set the name; don't reprompt
       showSuccess(`${type.toUpperCase()} workout loaded!`);
     },
-    [exerciseCache, updateSessionExercises]
+    [buildExercises, updateSessionExercises]
   );
 
   const startAISuggestion = useCallback(() => {
-    const ai = ['Bench Press', 'Squats', 'Pull-ups', 'Overhead Press', 'Plank'];
-    const built: WorkoutExercise[] = ai.map((name, i) => ({
-      id: Date.now() + i,
-      name,
-      exerciseId: exerciseCache.get(name.toLowerCase()),
-      sets: [{ id: Date.now() + i + 1000, weight: '', reps: '', completed: false }],
-    }));
-    updateSessionExercises(built);
+    updateSessionExercises(buildExercises(AI_SEED));
     setSessionContext({ type: 'manual', customName: 'AI Suggested Workout' });
+    namePromptedRef.current = true;
     showSuccess('AI workout generated based on your progress!');
-  }, [exerciseCache, updateSessionExercises]);
+  }, [buildExercises, updateSessionExercises]);
 
   return {
     sessionExercises,
