@@ -30,7 +30,10 @@ export type RootStackParamList = {
   Main: NavigatorScreenParams<MainTabParamList>;
   ActiveWorkout: { sessionId?: string } | undefined;
   PlanBuilder: { planId?: string } | undefined;
-  ExercisePicker: { onPick: (exerciseId: string) => void } | undefined;
+  // ExercisePicker uses an event-bus pattern (TBD) instead of a callback
+  // route param — function params break deep-link serialization and
+  // navigation state persistence.
+  ExercisePicker: { context?: string } | undefined;
   SessionDetail: { sessionId: string };
 };
 

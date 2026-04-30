@@ -3,18 +3,19 @@ import type { LinkingOptions } from '@react-navigation/native';
 import type { RootStackParamList } from './types';
 
 /**
- * Deep-link configuration. Routes hyperfit://auth/callback (used by the
- * Google OAuth dance in useAuth) and other deep links into the navigator.
+ * Deep-link configuration.
+ *
+ * Note: hyperfit://auth/callback is intentionally NOT mapped here. The
+ * Google OAuth dance in useAuth.signInWithGoogle uses
+ * WebBrowser.openAuthSessionAsync, which intercepts the redirect inline
+ * and parses tokens directly. If the OS were to deliver that URL through
+ * the navigator (cold start, dismissed sheet) we'd want it to no-op
+ * rather than route to a screen and silently drop the tokens.
  */
 export const linking: LinkingOptions<RootStackParamList> = {
-  prefixes: [Linking.createURL('/'), 'hyperfit://'],
+  prefixes: [Linking.createURL('/')],
   config: {
     screens: {
-      Auth: {
-        screens: {
-          Login: 'auth/callback',
-        },
-      },
       Main: {
         screens: {
           Home: 'home',

@@ -16,15 +16,22 @@ const ROUTE_TO_ID: Record<string, string> = Object.fromEntries(
 
 export const CustomTabBar = ({ state, navigation }: BottomTabBarProps) => {
   const routeName = state.routes[state.index].name;
-  const activeId = ROUTE_TO_ID[routeName] ?? routeName.toLowerCase();
+  const activeId = ROUTE_TO_ID[routeName];
+  if (!activeId && __DEV__) {
+    console.warn(`CustomTabBar: unknown route "${routeName}" — add to ROUTE_TO_ID map`);
+  }
 
   return (
     <NavBar
-      activeTab={activeId}
+      activeTab={activeId ?? ''}
       items={NAV_ITEMS}
       onChange={id => {
         const target = ID_TO_ROUTE[id];
-        if (target) navigation.navigate(target as never);
+        if (!target) {
+          if (__DEV__) console.warn(`CustomTabBar: unknown nav id "${id}"`);
+          return;
+        }
+        navigation.navigate(target as never);
       }}
     />
   );

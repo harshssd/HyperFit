@@ -1,5 +1,5 @@
 import React, { ReactNode } from 'react';
-import { ImageBackground, ScrollView, View, StyleSheet, ViewStyle, StyleProp } from 'react-native';
+import { ImageBackground, ScrollView, View, ViewStyle, StyleProp } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Header from './Header';
 import { ErrorBoundary } from './ErrorBoundary';
@@ -37,11 +37,6 @@ export const ScreenLayout = ({
   const { data, signOut } = useAppData();
   const username = user?.email?.split('@')[0] || user?.user_metadata?.full_name || 'User';
 
-  const Body = scroll ? ScrollView : View;
-  const bodyProps = scroll
-    ? { style: layoutStyles.mainContent, contentContainerStyle: [layoutStyles.mainContentContainer, contentStyle] }
-    : { style: [styles.staticBody, contentStyle] };
-
   return (
     <ImageBackground
       source={{ uri: ASSETS.background }}
@@ -58,14 +53,19 @@ export const ScreenLayout = ({
             username={username}
           />
         )}
-        <Body {...(bodyProps as any)}>
-          <ErrorBoundary fallbackLabel={errorLabel}>{children}</ErrorBoundary>
-        </Body>
+        {scroll ? (
+          <ScrollView
+            style={layoutStyles.mainContent}
+            contentContainerStyle={[layoutStyles.mainContentContainer, contentStyle]}
+          >
+            <ErrorBoundary fallbackLabel={errorLabel}>{children}</ErrorBoundary>
+          </ScrollView>
+        ) : (
+          <View style={[layoutStyles.mainContent, { flex: 1 }, contentStyle]}>
+            <ErrorBoundary fallbackLabel={errorLabel}>{children}</ErrorBoundary>
+          </View>
+        )}
       </SafeAreaView>
     </ImageBackground>
   );
 };
-
-const styles = StyleSheet.create({
-  staticBody: { flex: 1 },
-});
