@@ -68,7 +68,7 @@ export default function App() {
   };
 
   return (
-    <UserProvider user={user} setUser={() => {}}>
+    <UserProvider user={user}>
       <ImageBackground
         source={{ uri: ASSETS.background }}
         style={layoutStyles.appContainer}

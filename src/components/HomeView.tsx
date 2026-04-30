@@ -19,7 +19,10 @@ import SimpleBarChart from './SimpleBarChart';
 
 const HomeView = ({ data, onChangeView, streak, xp }: HomeViewProps) => {
   const today = new Date();
-  const todaysWorkout = getWorkoutForDate(today, [], data.userWorkoutPlans?.find(p => p.isActive));
+  // FIXME(slice4): data uses two names for plan instances (`userWorkoutPlans`
+  // from useUserData; `workoutPlans` in the typed UserData). Slice 4 unifies.
+  const activePlan = (data as any).userWorkoutPlans?.find((p: { isActive?: boolean }) => p.isActive);
+  const todaysWorkout = getWorkoutForDate(today, [], activePlan);
 
   // Calculate Weekly Consistency
   const getWeeklyData = () => {

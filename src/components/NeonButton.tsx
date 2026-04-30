@@ -1,8 +1,15 @@
 import React from 'react';
-import { TouchableOpacity, View, Text, ViewStyle, StyleProp } from 'react-native';
+import {
+  TouchableOpacity,
+  View,
+  Text,
+  ViewStyle,
+  StyleProp,
+  AccessibilityProps,
+} from 'react-native';
 import { buttonStyles } from '../styles';
 
-type NeonButtonProps = {
+type NeonButtonProps = AccessibilityProps & {
   children: React.ReactNode;
   onPress?: () => void;
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -10,7 +17,14 @@ type NeonButtonProps = {
   disabled?: boolean;
 };
 
-const NeonButton = ({ children, onPress, variant = 'primary', style, disabled }: NeonButtonProps) => {
+const NeonButton = ({
+  children,
+  onPress,
+  variant = 'primary',
+  style,
+  disabled,
+  ...a11y
+}: NeonButtonProps) => {
   const baseStyle = [buttonStyles.neonButton, buttonStyles.neonButtonBase];
   const variants: Record<string, any> = {
     primary: buttonStyles.neonButtonPrimary,
@@ -25,6 +39,8 @@ const NeonButton = ({ children, onPress, variant = 'primary', style, disabled }:
       disabled={disabled}
       style={[baseStyle, variants[variant], disabled && buttonStyles.neonButtonDisabled, style]}
       activeOpacity={0.8}
+      accessibilityRole="button"
+      {...a11y}
     >
       <View style={buttonStyles.neonButtonContent}>
         {typeof children === 'string' ? (

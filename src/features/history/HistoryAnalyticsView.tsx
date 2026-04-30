@@ -6,6 +6,7 @@ import {
 } from 'lucide-react-native';
 import GlassCard from '../../components/GlassCard';
 import NeonButton from '../../components/NeonButton';
+import { LoadingState, EmptyState, ErrorState } from '../../components/StateView';
 import { colors, spacing, radii } from '../../styles/theme';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../services/supabase';
@@ -58,6 +59,7 @@ const HistoryAnalyticsView = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [filterStatus, setFilterStatus] = useState<string>('all'); // 'all', 'completed', 'incomplete'
   const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
 
@@ -170,8 +172,10 @@ const HistoryAnalyticsView = () => {
       console.log('Loaded sessions:', paginatedSessions.length, 'Total:', allSessions.length);
       setSessions(paginatedSessions);
       setTotalCount(allSessions.length);
+      setLoadError(null);
     } catch (error) {
       console.error('Error loading sessions:', error);
+      setLoadError(error instanceof Error ? error.message : 'Failed to load sessions');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -301,31 +305,21 @@ const HistoryAnalyticsView = () => {
   };
 
   const renderHistoryView = () => {
-    console.log('Rendering history view. Loading:', loading, 'Refreshing:', refreshing, 'Sessions:', sessions.length);
-    
     if (loading && !refreshing) {
-      return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl }}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={{ color: colors.muted, marginTop: spacing.md }}>Loading sessions...</Text>
-        </View>
-      );
+      return <LoadingState label="Loading your sessions…" />;
+    }
+
+    if (loadError) {
+      return <ErrorState message={loadError} onRetry={() => loadSessions()} />;
     }
 
     if (sessions.length === 0) {
       return (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: spacing.xl }}>
-          <Dumbbell size={64} color={colors.muted} style={{ opacity: 0.5 }} />
-          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: spacing.lg }}>
-            No Workout History
-          </Text>
-          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: spacing.sm }}>
-            Your completed workouts will appear here
-          </Text>
-          <Text style={{ color: colors.muted, fontSize: 12, marginTop: spacing.md }}>
-            User ID: {user?.id?.substring(0, 8)}... | Filter: {filterStatus}
-          </Text>
-        </View>
+        <EmptyState
+          icon={<Dumbbell size={48} color={colors.muted} style={{ opacity: 0.5 }} />}
+          title="No workout history yet"
+          message="Finish a workout in Gym and it'll show up here."
+        />
       );
     }
 

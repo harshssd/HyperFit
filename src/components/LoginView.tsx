@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
-import { View, Text, ScrollView, ImageBackground, TouchableOpacity, TextInput } from 'react-native';
-import { Zap, AlertTriangle, Loader } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  ImageBackground,
+  TouchableOpacity,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+} from 'react-native';
+import { Zap, AlertTriangle } from 'lucide-react-native';
 import NeonButton from './NeonButton';
 import { loginStyles } from '../styles';
 import { ASSETS } from '../constants/appConstants';
@@ -56,7 +66,11 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
       style={loginStyles.loginContainer}
       resizeMode="cover"
     >
-      <ScrollView 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+      <ScrollView
         contentContainerStyle={loginStyles.loginScrollContent}
         keyboardShouldPersistTaps="handled"
       >
@@ -106,13 +120,15 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
               onSubmitEditing={handleEmailAuth}
             />
 
-            <NeonButton 
-              onPress={handleEmailAuth} 
-              disabled={isLoading} 
+            <NeonButton
+              onPress={handleEmailAuth}
+              disabled={isLoading}
               style={loginStyles.loginButton}
+              accessibilityLabel={isSignUp ? 'Sign up' : 'Sign in'}
+              accessibilityState={{ disabled: isLoading, busy: isLoading }}
             >
               {isLoading ? (
-                <Loader size={20} color="#0f172a" />
+                <ActivityIndicator size="small" color="#0f172a" />
               ) : (
                 <Text>{isSignUp ? 'SIGN UP' : 'SIGN IN'}</Text>
               )}
@@ -121,6 +137,8 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
             <TouchableOpacity
               onPress={() => setIsSignUp(!isSignUp)}
               style={loginStyles.loginToggle}
+              accessibilityRole="button"
+              accessibilityLabel={isSignUp ? 'Switch to sign in' : 'Switch to sign up'}
             >
               <Text style={loginStyles.loginToggleText}>
                 {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
@@ -137,10 +155,19 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
               onPress={handleGoogleLogin}
               disabled={isLoading}
               style={[loginStyles.googleButton, isLoading && loginStyles.googleButtonDisabled]}
+              accessibilityRole="button"
+              accessibilityLabel="Continue with Google"
+              accessibilityState={{ disabled: isLoading, busy: isLoading }}
             >
               <View style={loginStyles.googleButtonContent}>
-                <Text style={loginStyles.googleIcon}>G</Text>
-                <Text style={loginStyles.googleButtonText}>Continue with Google</Text>
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#0f172a" />
+                ) : (
+                  <>
+                    <Text style={loginStyles.googleIcon}>G</Text>
+                    <Text style={loginStyles.googleButtonText}>Continue with Google</Text>
+                  </>
+                )}
               </View>
             </TouchableOpacity>
           </View>
@@ -148,6 +175,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
           <Text style={loginStyles.loginFooter}>V 2.1.0 // SECURE CONNECTION</Text>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </ImageBackground>
   );
 };
