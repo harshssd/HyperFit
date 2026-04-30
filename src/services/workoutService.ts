@@ -282,61 +282,38 @@ export const updateUserWorkoutPlan = async (
 // --- Workout logging ---
 
 /**
- * Reads workout_log and groups rows into per-session aggregates client-side.
- * For users with very long histories this should move to a Postgres view or
- * RPC; flagged for slice 4.
+ * Per-session rollups for the History list. Backed by the
+ * session_summary_view migration so the grouping happens in Postgres,
+ * not over a Map() in JS.
  */
 export const fetchWorkoutSessions = async (userId: string) => {
   const { data, error } = await supabase
-    .from('workout_log')
+    .from('session_summary_view')
     .select('*')
     .eq('user_id', userId)
-    .order('workout_date', { ascending: false });
+    .order('workout_date', { ascending: false })
+    .order('start_time', { ascending: false });
 
   if (error) throw error;
 
-  const sessionsMap = new Map<string, {
-    id: string;
-    user_id: string;
-    date: string;
-    name: string;
-    start_time: string | null;
-    end_time: string | null;
-    plan_id: string | null;
-    session_id: string | null;
-    total_sets: number;
-    volume_load: number;
-    status: 'completed';
-    notes: null;
-    created_at: string;
-  }>();
-
-  (data ?? []).forEach(row => {
-    const key = `${row.workout_date}-${row.session_name}`;
-    let session = sessionsMap.get(key);
-    if (!session) {
-      session = {
-        id: key,
-        user_id: userId,
-        date: row.workout_date,
-        name: row.session_name,
-        start_time: row.start_time,
-        end_time: row.end_time,
-        plan_id: row.plan_id,
-        session_id: row.session_id,
-        total_sets: 0,
-        volume_load: 0,
-        status: 'completed',
-        notes: null,
-        created_at: row.start_time ?? row.created_at ?? new Date().toISOString(),
-      };
-      sessionsMap.set(key, session);
-    }
-    session.total_sets += 1;
-    session.volume_load += (row.weight ?? 0) * (row.reps ?? 0);
-  });
-
-  return Array.from(sessionsMap.values());
+  return (data ?? []).map(row => ({
+    id: row.id,
+    user_id: row.user_id,
+    date: row.workout_date,
+    name: row.session_name,
+    start_time: row.start_time,
+    end_time: row.end_time,
+    plan_id: row.plan_id,
+    session_id: row.session_id,
+    total_sets: row.total_sets,
+    exercise_count: row.exercise_count,
+    volume_load: Number(row.volume_load) || 0,
+    average_rpe: row.average_rpe,
+    duration_seconds: row.duration_seconds,
+    status: row.status,
+    notes: null as string | null,
+    created_at: row.start_time ?? new Date().toISOString(),
+  }));
 };
 
 export type LoggedExerciseInput = {

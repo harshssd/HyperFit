@@ -325,6 +325,74 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['user_exercise_progress']['Insert']>;
       };
 
+      workout_templates: {
+        Row: {
+          id: string;
+          user_id: string;
+          folder_id: string | null;
+          name: string;
+          description: string | null;
+          icon: string | null;
+          exercises: string[] | null;
+          tags: string[] | null;
+          created_by_username: string | null;
+          is_standard: boolean | null;
+          is_public: boolean | null;
+          created_at: Timestamp | null;
+          updated_at: Timestamp | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          folder_id?: string | null;
+          name: string;
+          description?: string | null;
+          icon?: string | null;
+          exercises?: string[] | null;
+          tags?: string[] | null;
+          created_by_username?: string | null;
+          is_standard?: boolean | null;
+          is_public?: boolean | null;
+          created_at?: Timestamp | null;
+          updated_at?: Timestamp | null;
+        };
+        Update: Partial<Database['public']['Tables']['workout_templates']['Insert']>;
+      };
+
+      workout_template_folders: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          color: string | null;
+          icon: string | null;
+          created_at: Timestamp | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          color?: string | null;
+          icon?: string | null;
+          created_at?: Timestamp | null;
+        };
+        Update: Partial<Database['public']['Tables']['workout_template_folders']['Insert']>;
+      };
+
+      user_template_favorites: {
+        Row: {
+          user_id: string;
+          template_id: string;
+          created_at: Timestamp | null;
+        };
+        Insert: {
+          user_id: string;
+          template_id: string;
+          created_at?: Timestamp | null;
+        };
+        Update: Partial<Database['public']['Tables']['user_template_favorites']['Insert']>;
+      };
+
       workout_summaries: {
         Row: {
           id: string;
@@ -383,6 +451,25 @@ export interface Database {
       plan_complete_details: {
         Row: Database['public']['Tables']['workout_plans']['Row'] & {
           sessions: Json;
+        };
+      };
+      session_summary_view: {
+        Row: {
+          user_id: string;
+          workout_date: string;
+          session_name: string;
+          id: string;
+          plan_id: string | null;
+          session_id: string | null;
+          start_time: Timestamp | null;
+          end_time: Timestamp | null;
+          total_sets: number;
+          exercise_count: number;
+          volume_load: number;
+          average_rpe: number | null;
+          all_completed: boolean;
+          status: 'completed' | 'incomplete';
+          duration_seconds: number | null;
         };
       };
     };

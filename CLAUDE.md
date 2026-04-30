@@ -13,34 +13,58 @@ Production builds use EAS:
 - `eas submit --platform ios --profile production`
 - (same with `--platform android`)
 
-There is no test runner, linter, or type-check script wired into `package.json`. To type-check manually: `npx tsc --noEmit`.
+There is no test runner, linter, or type-check script wired into `package.json`. Type-check manually with `npx tsc --noEmit`.
 
 Database:
-- Migrations live in `supabase/migrations/` (currently consolidated into `20250101000000_clean_initial_schema.sql`). Apply via the Supabase SQL editor or CLI.
+- Migrations live in `supabase/migrations/` and are applied via the Supabase CLI or SQL editor.
 - Seed data: `supabase/seeds/initial_data.sql`.
-- Apply migrations via the Supabase CLI or SQL editor.
 
 ## Architecture
 
-Single-screen Expo app — there is no navigation library. `App.tsx` is the shell: it owns auth state, the loaded `UserData` blob, and a `activeTab` string (`home` | `gym` | `challenges` | `history`) that switches between top-level views. New top-level screens are added by extending the switch in `renderContent()` and the `NAV_ITEMS` constant.
+Single-screen Expo app — there is no navigation library. `App.tsx` is the shell: it composes hooks (`useAuth`, `useUserData`) and renders one of four feature views based on a local `activeTab` string. Feature content is wrapped in `<ErrorBoundary>` so a crash in one tab doesn't take down the rest of the app.
 
 Auth and data flow:
-1. `App.tsx` calls `getInitialSession()` / `onAuthStateChange()` from `src/services/supabaseClient.ts` to track the Supabase user.
-2. On user change, it calls `loadUserData(user.id, DEFAULT_DATA)` and subscribes via `subscribeToUserData()` for realtime updates.
-3. Google OAuth is handled inline in `App.tsx` using `expo-auth-session` + `expo-web-browser` with the `hyperfit://auth/callback` redirect, then `setSessionFromTokens()` finalizes the Supabase session.
-4. `UserProvider` (`src/contexts/UserContext.tsx`) wraps the authenticated tree so deeper components can read the current user without prop-drilling.
+1. `useAuth` (in `src/hooks/useAuth.ts`) owns user state, the Supabase auth listener, and the Google OAuth dance via `expo-auth-session` + `expo-web-browser`. It exposes `{ user, status, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut }`.
+2. `useUserData` (in `src/hooks/useUserData.ts`) loads the persisted slice of `UserData` for the signed-in user. Today it only hydrates plan-related fields (`userWorkoutPlans`, `workoutPlans`); the other `UserData` fields stay in memory.
+3. `UserProvider` (in `src/contexts/UserContext.tsx`) re-exposes the current `User` to deep components that don't get props (e.g. `HistoryAnalyticsView`).
 
-Two coexisting persistence models — be aware of this when editing:
-- **Legacy monolithic blob**: `App.tsx` holds a single `UserData` object (`DEFAULT_DATA` shape from `src/constants/appConstants.ts`) and originally `upsertUserData` wrote the whole thing back. That call is now commented out (`// Deprecated: Monolithic save…`). `saveData` only updates local state.
-- **Normalized tables (current direction)**: `src/services/workoutService.ts` talks to normalized Supabase tables (`exercises`, `workout_plans`, `plan_sessions`, `plan_schedule`, workout logs, etc.) typed via `src/types/supabase.ts`. New features should go through this service, not the monolithic blob. RLS policies do the user/public filtering — service queries rely on `auth.uid()`-based policies rather than explicit `.eq('user_id', …)` filters in many places.
+Realtime sync is intentionally **not** wired up — the previous `subscribeToUserData` was a no-op. When realtime is needed, subscribe per table (workout_log, user_workout_plans) rather than to a monolithic user blob.
 
-Feature folders under `src/features/` (`workout/`, `history/`, `analytics/`) are the unit of organization. The `workout` feature is the most developed: `GymView.tsx` is its entry, with `components/`, `hooks/`, `helpers.ts` (pure state transitions like `finishWorkoutState`, `startNewSessionState`, `updateSetValue`, plus XP/rank math), and `workoutConfig.ts`. Pure helpers live in `helpers.ts`; side-effectful Supabase calls live in `src/services/`. Keep that split.
+## Data model
 
-`src/components/` holds shared/cross-feature UI (`GlassCard`, `NeonButton`, `NavBar`, `Header`, `LoginView`, modals, charts). The visual language is a dark "neon/glass" aesthetic backed by `expo-blur` and `expo-linear-gradient`; styles are centralized in `src/styles/`.
+Two SQL migrations are canonical:
+- `20250101000000_clean_initial_schema.sql` — the workout-plan world.
+- `20250102000000_quick_templates_and_session_summary.sql` — quick-save templates + the `session_summary_view`.
 
-## Conventions specific to this repo
+There are **two distinct "template" concepts**, one in each migration:
+- `session_templates` / `template_exercises` — reusable session blueprints used inside a `workout_plan` (e.g., a "Push Day v2" definition referenced from multiple plans). Used by `fetchSessionTemplates` / `createSessionTemplate` and by `plan_sessions.template_id`.
+- `workout_templates` / `workout_template_folders` / `user_template_favorites` — quick-save bookmarks of an ad-hoc exercise list ("Hotel workout"). Used by `src/services/templates.ts` and the `useTemplates` hook in GymView.
 
-- Supabase URL and anon key are read from `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env` (see `.env.example`). `src/services/supabase.ts` throws at startup if either is missing.
-- `src/types/supabase.ts` is the generated DB type surface; regenerate after schema changes rather than hand-editing.
-- iOS bundle id and health-data usage strings are configured in `app.json` — keep those in sync with App Store Connect.
-- Expo SDK is pinned to 54 deliberately (per global preferences) for Expo Go compatibility; do not bump to a newer SDK without an explicit ask.
+The "log" world:
+- `workout_log` is the unified write surface — one row per set. Session metadata (`session_name`, `start_time`, `end_time`) is duplicated across set rows on purpose for analytics (see schema comments).
+- `session_summary_view` aggregates `workout_log` into one row per (user, date, session_name) with totals and status. **Use the view** for History and per-session reads — `workoutService.fetchWorkoutSessions` already does. Do not reintroduce client-side `Map()` aggregation over `workout_log`.
+- `workout_summaries` is a separate per-day aggregate table (currently underused; analyticsService writes to it).
+
+`UserData` (in `src/types/workout.ts`) is the in-memory shape held by `App.tsx`. Two plan fields live there with intentionally different meaning:
+- `userWorkoutPlans: UserWorkoutPlan[]` — the user's plan **instances** (which plan they're on, with `isActive`, `customName`, `startedAt`).
+- `workoutPlans: WorkoutPlan[]` — the **catalog** of plan blueprints they can pick from (own + public). RLS handles visibility.
+
+Other `UserData` fields (`gymLogs`, `workouts`, `customTemplates`, `currentSession`) are still in-memory only — they reset on reload. Migrate them to feature hooks as the relevant features get touched.
+
+## Feature layout
+
+Feature folders under `src/features/` (`workout/`, `history/`, `analytics/`) are the unit of organization. The `workout` feature is by far the largest: `GymView.tsx` is its entry (still ~1500 lines — split is queued), with `components/`, `hooks/`, and `helpers.ts` (pure state transitions like `finishWorkoutState`, `startNewSessionState`, `updateSetValue`, plus XP/rank math).
+
+Rules of thumb:
+- **Pure helpers** in `helpers.ts` (no Supabase, no React state).
+- **Side-effectful Supabase calls** in `src/services/`.
+- **Reusable visual states** (`LoadingState`, `EmptyState`, `ErrorState`) live in `src/components/StateView.tsx` — use them instead of rolling another inline placeholder.
+
+`src/components/` holds shared/cross-feature UI (`GlassCard`, `NeonButton`, `NavBar`, `Header`, `LoginView`, modals, charts). Visual language is a dark "neon/glass" aesthetic via `expo-blur` + `expo-linear-gradient`; design tokens in `src/styles/theme.ts`.
+
+## Conventions
+
+- Supabase URL and anon key come from `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env` (see `.env.example`). `src/services/supabase.ts` throws at startup if either is missing.
+- `src/types/supabase.ts` is hand-maintained against the migrations. Regenerate with `supabase gen types typescript` after schema changes.
+- iOS bundle id and health-data usage strings are configured in `app.json` — keep them in sync with App Store Connect.
+- Expo SDK is pinned to 54 (per global preferences) for Expo Go compatibility; do not bump without an explicit ask.

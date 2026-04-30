@@ -267,8 +267,13 @@ export type UserData = {
   // Template Management (Supabase-backed)
   customTemplates?: Template[];    // User's saved templates
 
-  // Plan Management (Local)
-  workoutPlans?: UserWorkoutPlan[];    // User's workout plans (Updated type)
+  // Plan Management
+  // userWorkoutPlans = the user's plan *instances* (which plan they're on,
+  //                    with isActive, custom_name, started_at, etc.)
+  // workoutPlans     = the catalog of plan blueprints they can pick from
+  //                    (own + public; RLS handles the visibility).
+  userWorkoutPlans?: UserWorkoutPlan[];
+  workoutPlans?: WorkoutPlan[];
   activePlanId?: string;           // Currently active plan ID
 
   // Session Management
@@ -277,7 +282,4 @@ export type UserData = {
   // Preferences (Future use)
   equipment?: EquipmentType;
   frequency?: number;
-
-  // Extensible for future features
-  [key: string]: any;
 };

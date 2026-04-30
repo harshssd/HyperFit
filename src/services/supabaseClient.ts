@@ -45,7 +45,7 @@ export const loadUserData = async (userId: string, defaultData: UserData) => {
       ...defaultData,
       userWorkoutPlans: userPlans,
       workoutPlans: allPlans,
-    };
+    } as UserData;
   } catch (error) {
     console.error('loadUserData failed:', error);
     return defaultData;
