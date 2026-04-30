@@ -57,7 +57,7 @@ import { colors, spacing, radii } from '../../styles/theme';
 import { getAllExerciseNames } from './workoutConfig';
 import { useUser } from '../../contexts/UserContext';
 import { logWorkoutSession } from '../../services/workoutService';
-import { WorkoutExercise } from '../../types/workout';
+import { WorkoutExercise, WorkoutPlan } from '../../types/workout';
 import { 
   calculateTotalVolume, 
   getExerciseConfig, 
