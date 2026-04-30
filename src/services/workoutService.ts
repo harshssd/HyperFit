@@ -341,7 +341,9 @@ export const fetchWorkoutSessions = async (userId: string) => {
 
 export type LoggedExerciseInput = {
   exercise: {
-    exercise_id: string;
+    // Nullable so callers can pass entries before exercises are matched to
+    // master records; rows missing exercise_id are dropped before insert.
+    exercise_id: string | null;
     user_id: string;
     order_index: number;
     notes?: string;
@@ -363,26 +365,31 @@ export const logWorkoutSession = async (
     user_id: string;
     date: string;
     name: string;
-    start_time?: string;
-    end_time?: string;
-    plan_id?: string;
-    session_id?: string;
+    start_time?: string | null;
+    end_time?: string | null;
+    plan_id?: string | null;
+    session_id?: string | null;
   },
   exercises: LoggedExerciseInput[]
 ) => {
   const rows: Tables['workout_log']['Insert'][] = [];
 
   for (const exData of exercises) {
+    if (!exData.exercise.exercise_id) {
+      console.warn('logWorkoutSession: dropping exercise without exercise_id');
+      continue;
+    }
+    const exerciseId = exData.exercise.exercise_id;
     for (const setData of exData.sets) {
       rows.push({
         user_id: session.user_id,
-        plan_id: session.plan_id,
-        session_id: session.session_id,
-        exercise_id: exData.exercise.exercise_id,
+        plan_id: session.plan_id ?? undefined,
+        session_id: session.session_id ?? undefined,
+        exercise_id: exerciseId,
         workout_date: session.date,
         session_name: session.name,
-        start_time: session.start_time,
-        end_time: session.end_time,
+        start_time: session.start_time ?? undefined,
+        end_time: session.end_time ?? undefined,
         set_number: setData.set_number,
         weight: setData.weight,
         reps: setData.reps,
