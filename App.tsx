@@ -129,8 +129,6 @@ import {
   getInitialSession,
   onAuthStateChange,
   loadUserData,
-  subscribeToUserData,
-  upsertUserData,
   signInWithEmail,
   signUpWithEmail,
   signInWithGoogle,
@@ -199,13 +197,7 @@ export default function App() {
     };
 
     fetchUserData();
-
-    // Set up real-time subscription
-    const unsubscribe = subscribeToUserData(user.id, (newData) => {
-      setData({ ...DEFAULT_DATA, ...newData });
-    });
-
-    return () => unsubscribe();
+    // Realtime sync is intentionally not wired up yet — see slice 2 in CLAUDE.md.
   }, [user]);
 
   const handleEmailLogin = async (email: string, password: string) => {
@@ -275,17 +267,10 @@ export default function App() {
     setData(DEFAULT_DATA);
   };
 
-  const saveData = async (newData: any) => {
-    if (!user) return;
-    try {
-      setData(newData);
-      // Deprecated: Monolithic save is being replaced by granular service calls.
-      // We will remove this call once all features are migrated to use specific service functions.
-      // await upsertUserData(user.id, newData);
-    } catch (e) {
-      console.error("Save failed", e);
-    }
-  };
+  // In-memory only. Persistence happens via per-feature service calls
+  // (e.g. logWorkoutSession, createWorkoutPlan); the legacy monolithic
+  // upsert was removed in slice 1.
+  const saveData = (newData: UserData) => setData(newData);
 
   const renderContent = () => {
     switch (activeTab) {

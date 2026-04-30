@@ -33,10 +33,10 @@ npm install
 
 1. Go to [Supabase](https://supabase.com/) and create a new project
 2. Get your project URL and anon key from Settings > API
-3. Update `supabase.config.ts` with your credentials
+3. Copy `.env.example` to `.env` and fill in `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 4. Run the database migration:
    - Go to Supabase SQL Editor
-   - Copy and paste contents of `supabase-migration.sql`
+   - Copy and paste contents of `supabase/migrations/20250101000000_clean_initial_schema.sql`
    - Execute the migration
 5. Enable Google OAuth (see `SUPABASE_SETUP.md` for detailed instructions)
 6. Configure email authentication in Supabase dashboard

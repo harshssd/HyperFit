@@ -1,7 +1,7 @@
-import { Session, User } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { UserData } from '../types/workout';
-import { fetchWorkoutPlans, fetchWorkoutSessions, fetchUserWorkoutPlans, createWorkoutPlan, createUserWorkoutPlan, logWorkoutSession } from './workoutService';
+import { fetchWorkoutPlans, fetchUserWorkoutPlans } from './workoutService';
 
 export const getInitialSession = () => supabase.auth.getSession();
 
@@ -21,10 +21,7 @@ export const signUpWithEmail = (email: string, password: string) =>
 export const signInWithGoogle = (redirectTo: string) =>
   supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: {
-      redirectTo,
-      skipBrowserRedirect: false,
-    },
+    options: { redirectTo, skipBrowserRedirect: false },
   });
 
 export const setSessionFromTokens = (access_token: string, refresh_token: string) =>
@@ -33,77 +30,24 @@ export const setSessionFromTokens = (access_token: string, refresh_token: string
 export const signOut = () => supabase.auth.signOut();
 
 /**
- * MIGRATION ADAPTER: loadUserData
- * ------------------------------
- * Loads data from the new normalized tables and reconstructs the UserData object
- * for backward compatibility with the frontend.
+ * Loads the slice of UserData that maps onto normalized tables. Fields not
+ * yet migrated (gymLogs, workouts, customTemplates, currentSession, etc.)
+ * remain on the in-memory DEFAULT_DATA blob; see slice 2.
  */
 export const loadUserData = async (userId: string, defaultData: UserData) => {
   try {
-    // 1. Fetch Logs (Workout Sessions)
-    const sessions = await fetchWorkoutSessions(userId);
-    
-    // Transform normalized sessions back to "workouts" map and "gymLogs" array
-    const workouts: Record<string, any[]> = {};
-    const gymLogs: string[] = [];
-    const workoutStatus: any = {};
+    const [userPlans, allPlans] = await Promise.all([
+      fetchUserWorkoutPlans(userId),
+      fetchWorkoutPlans(),
+    ]);
 
-    // We need to fetch exercises for each session to fully reconstruct 'workouts'
-    // For performance, in a real app we might lazy load this or have a view.
-    // Here we'll do a best effort reconstruction.
-    
-    // Note: This adapter is a temporary bridge. ideally the frontend should consume
-    // the normalized data directly via hooks.
-    
-    // 2. Fetch User Plans
-    const userPlans = await fetchUserWorkoutPlans(userId);
-    
-    // 3. Fetch All Templates (User + Public)
-    // The workout_plans table contains both system and user plans.
-    // We should return ALL plans so the UI can filter between public/private.
-    const allPlans = await fetchWorkoutPlans();
-    // Previously we filtered by user_id, but now we need public plans too.
-    // The service 'fetchWorkoutPlans' already respects RLS (own + public).
-    
     return {
       ...defaultData,
-      gymLogs,
-      workouts,
-      workoutStatus,
-      userWorkoutPlans: userPlans, // Active instances
-      workoutPlans: allPlans,      // Templates (Public + User created)
-      // Add other mapped fields as we migrate them
+      userWorkoutPlans: userPlans,
+      workoutPlans: allPlans,
     };
   } catch (error) {
-    console.error("Error loading user data from new schema:", error);
+    console.error('loadUserData failed:', error);
     return defaultData;
   }
-};
-
-/**
- * MIGRATION ADAPTER: upsertUserData
- * --------------------------------
- * This function previously saved the entire big JSON blob.
- * Now it should coordinate updates to the specific normalized tables.
- * 
- * NOTE: The frontend currently calls this with the WHOLE state.
- * We need to detect WHAT changed and update the corresponding table.
- * For now, we might log a warning or perform specific updates if critical.
- */
-export const upsertUserData = async (userId: string, newData: UserData) => {
-  // In the new architecture, specific actions (save log, create plan)
-  // call specific service functions (logWorkoutSession, createWorkoutPlan).
-  // This generic "save everything" function is deprecated.
-  
-  // We can leave it empty or implement partial updates if needed.
-  console.log("upsertUserData called - this is deprecated in favor of granular service calls.");
-};
-
-export const subscribeToUserData = (
-  userId: string,
-  handler: (data: any) => void
-) => {
-  // Realtime subscription logic needs to be updated to listen to multiple tables
-  // or specific events. For now, we'll disable the legacy monolithic subscription.
-  return () => {}; 
 };
