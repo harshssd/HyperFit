@@ -5,7 +5,6 @@ import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import { colors, spacing, radii } from '../../../styles/theme';
 import { WorkoutPlan, EquipmentType, DayOfWeek, PlanSession, SessionFocus, ScheduledSession } from '../../../types/workout';
-import { DEFAULT_EXERCISES } from '../../../constants/appConstants';
 // Removed: DEFAULT_PLANS import - plans come from database via props
 import { fetchWorkoutPlans, fetchExercises } from '../../../services/workoutService';
 
@@ -1186,10 +1185,9 @@ const WorkoutPlanCreator = ({ visible, onClose, onCreatePlan }: {
                             <ChevronRight 
                               size={20} 
                               color={colors.muted} 
-                              style={{ 
+                              style={{
                                 transform: [{ rotate: isExpanded ? '90deg' : '0deg' }],
-                                transition: 'transform 0.2s'
-                              }} 
+                              }}
                             />
                           </View>
                         </TouchableOpacity>

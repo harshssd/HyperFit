@@ -429,7 +429,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
             description: session.description || '',
             focus: session.focus as string,
             order_index: index + 1, // Use array index as order
-            original_session_id: session.originalSessionId || null, // Track lineage for analytics
+            original_session_id: (session as any).originalSessionId || null, // Track lineage for analytics
           } as any,
           exercises: session.exercises.map(exercise => ({
             exercise_id: exercise.id,
@@ -794,7 +794,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const abortSession = () => {
     confirmAction(ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE, () => {
-      abortSessionHook(true);
+      abortSessionHook();
       stopSession();
       setIsAddingExercise(false);
       closePicker();
