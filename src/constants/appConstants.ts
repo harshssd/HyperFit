@@ -8,7 +8,6 @@ export const DEFAULT_DATA = {
   stepsToday: 2500,
   gymLogs: [],
   workouts: {},
-  workoutStatus: {},
   activeChallenges: [],
   customChallenges: [],
   pushupsCompleted: []

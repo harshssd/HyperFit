@@ -172,18 +172,6 @@ export type WorkoutExercise = {
 };
 
 /**
- * WORKOUT STATUS
- * -------------
- * Completion status for workouts on specific dates.
- */
-export type WorkoutStatus = {
-  [date: string]: {
-    finished?: boolean;           // Whether workout was completed
-    finishedAt?: string;          // When workout was finished
-  };
-};
-
-/**
  * WORKOUT TEMPLATE (Legacy/Supabase)
  * ---------------
  * Reusable collection of exercises stored in Supabase.
@@ -259,8 +247,11 @@ export type CompletedWorkout = {
 export type UserData = {
   // Historical Records
   gymLogs: string[];              // Dates when user worked out (legacy)
-  workouts: Record<string, WorkoutExercise[]>; // Date -> workout exercises
-  workoutStatus?: WorkoutStatus;   // Completion status per date
+  workouts: Record<string, WorkoutExercise[]>; // Date -> in-memory workout
+                                  // mirror; not persisted. Used by
+                                  // applyTemplateToDay and the autocomplete
+                                  // history fold. Migration target — read
+                                  // path will move to session_summary_view.
 
   // Plan Management
   // userWorkoutPlans = the user's plan *instances* (which plan they're on,

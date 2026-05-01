@@ -367,44 +367,6 @@ export const calculateWorkoutProgress = (exercises: WorkoutExercise[]) => {
   };
 };
 
-export const finishWorkoutState = (data: any, today: string, workouts: WorkoutExercise[]) => {
-  const cleanedWorkout = workouts.filter((ex: any) => ex.archived || !isExerciseEmpty(ex));
-  return {
-    ...data,
-    workouts: { ...data.workouts, [today]: cleanedWorkout },
-    workoutStatus: { ...data.workoutStatus, [today]: { finished: true, finishedAt: new Date().toISOString() } },
-  };
-};
-
-export const undoFinishState = (data: any, today: string) => {
-  return {
-    ...data,
-    workoutStatus: { ...data.workoutStatus, [today]: { finished: false } },
-  };
-};
-
-export const startNewSessionState = (data: any, today: string, workouts: WorkoutExercise[]) => {
-  const cleanedAndArchived = workouts
-    .filter((ex: any) => ex.archived || !isExerciseEmpty(ex))
-    .map((ex: any) => ({ ...ex, archived: true }));
-
-  return {
-    ...data,
-    workouts: { ...data.workouts, [today]: cleanedAndArchived },
-    workoutStatus: { ...data.workoutStatus, [today]: { finished: false } },
-  };
-};
-
-export const abortSessionState = (data: any, today: string, preserveArchivedOnly = true) => {
-  const preservedWorkouts = preserveArchivedOnly
-    ? (data.workouts?.[today] || []).filter((ex: any) => ex.archived)
-    : [];
-  return {
-    ...data,
-    workouts: { ...data.workouts, [today]: preservedWorkouts },
-  };
-};
-
 // --- NEW HELPERS ---
 
 /**
