@@ -13,6 +13,7 @@ import {
 import { Zap, AlertTriangle } from 'lucide-react-native';
 import NeonButton from './NeonButton';
 import { loginStyles } from '../styles';
+import { palette, text, accent } from '../styles/theme';
 import { ASSETS } from '../constants/appConstants';
 
 type LoginViewProps = {
@@ -77,7 +78,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
         <View style={loginStyles.loginCard}>
           <View style={loginStyles.loginHeader}>
             <View style={loginStyles.loginLogo}>
-              <Zap size={32} color="#0f172a" />
+              <Zap size={28} color={palette.bg} strokeWidth={3} />
             </View>
             <Text style={loginStyles.loginTitle}>
               HYPER<Text style={loginStyles.loginTitleAccent}>FIT</Text>
@@ -88,7 +89,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
           <View style={loginStyles.loginForm}>
             {error ? (
               <View style={loginStyles.loginError}>
-                <AlertTriangle size={16} color="#f87171" />
+                <AlertTriangle size={16} color={accent.regression} />
                 <Text style={loginStyles.loginErrorText}>{error}</Text>
               </View>
             ) : null}
@@ -97,7 +98,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
             <TextInput
               style={loginStyles.loginInput}
               placeholder="your.email@example.com"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={text.disabled}
               value={email}
               onChangeText={setEmail}
               keyboardType="email-address"
@@ -106,11 +107,11 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
               textContentType="emailAddress"
             />
 
-            <Text style={[loginStyles.loginLabel, { marginTop: 16 }]}>PASSWORD</Text>
+            <Text style={loginStyles.loginLabel}>PASSWORD</Text>
             <TextInput
               style={loginStyles.loginInput}
               placeholder="Enter password"
-              placeholderTextColor="#64748b"
+              placeholderTextColor={text.disabled}
               value={password}
               onChangeText={setPassword}
               secureTextEntry
@@ -128,9 +129,9 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
               accessibilityState={{ disabled: isLoading, busy: isLoading }}
             >
               {isLoading ? (
-                <ActivityIndicator size="small" color="#0f172a" />
+                <ActivityIndicator size="small" color={palette.bg} />
               ) : (
-                <Text>{isSignUp ? 'SIGN UP' : 'SIGN IN'}</Text>
+                isSignUp ? 'SIGN UP' : 'SIGN IN'
               )}
             </NeonButton>
 
@@ -161,7 +162,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
             >
               <View style={loginStyles.googleButtonContent}>
                 {isLoading ? (
-                  <ActivityIndicator size="small" color="#0f172a" />
+                  <ActivityIndicator size="small" color={palette.bg} />
                 ) : (
                   <>
                     <Text style={loginStyles.googleIcon}>G</Text>

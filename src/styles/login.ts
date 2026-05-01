@@ -1,7 +1,10 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, radii } from './theme';
+import { palette, text, accent, spacing, radii } from './theme';
 
 const loginStyles = StyleSheet.create({
+  // Honest-mirror login. Surface card on the bg, hairline border, no shadow.
+  // Logo punches palette.bg out of accent.lift — same instrument-panel feel
+  // as the primary button.
   loginContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -10,23 +13,23 @@ const loginStyles = StyleSheet.create({
   },
   loginCard: {
     width: '100%',
-    maxWidth: 320,
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
+    maxWidth: 360,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 32,
+    borderColor: palette.borderStrong,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
     alignItems: 'center',
   },
   loginHeader: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: spacing.xl,
   },
   loginLogo: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
-    backgroundColor: colors.primary,
+    width: 56,
+    height: 56,
+    borderRadius: radii.sm,
+    backgroundColor: accent.lift,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.lg,
@@ -34,19 +37,19 @@ const loginStyles = StyleSheet.create({
   loginTitle: {
     fontSize: 28,
     fontWeight: '900',
-    color: '#fff',
-    fontStyle: 'italic',
+    color: text.primary,
+    letterSpacing: -0.4,
   },
   loginTitleAccent: {
-    color: colors.primary,
+    color: accent.lift,
   },
   loginSubtitle: {
-    fontSize: 12,
-    color: colors.muted,
+    fontSize: 11,
+    color: text.quaternary,
     fontFamily: 'monospace',
     marginTop: spacing.sm,
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 1.6,
   },
   loginForm: {
     width: '100%',
@@ -54,31 +57,32 @@ const loginStyles = StyleSheet.create({
   },
   loginLabel: {
     fontSize: 10,
-    fontWeight: 'bold',
-    color: colors.muted,
+    fontWeight: '800',
+    color: text.quaternary,
+    fontFamily: 'monospace',
     textTransform: 'uppercase',
-    letterSpacing: 2,
+    letterSpacing: 1.6,
     marginBottom: spacing.sm,
   },
   loginInput: {
     width: '100%',
-    padding: spacing.lg,
+    padding: spacing.md,
     borderRadius: radii.md,
-    backgroundColor: colors.background,
+    backgroundColor: palette.bg,
     borderWidth: 1,
-    borderColor: '#1e293b',
-    color: '#fff',
+    borderColor: palette.borderStrong,
+    color: text.primary,
     fontFamily: 'monospace',
     textAlign: 'center',
-    textTransform: 'uppercase',
   },
   loginButton: {
     width: '100%',
   },
   loginFooter: {
     fontSize: 10,
-    color: '#475569',
+    color: text.disabled,
     fontFamily: 'monospace',
+    letterSpacing: 1.6,
     marginTop: spacing.xl,
   },
   loginScrollContent: {
@@ -91,14 +95,14 @@ const loginStyles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.md,
-    backgroundColor: 'rgba(248, 113, 113, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(248, 113, 113, 0.3)',
+    borderColor: 'rgba(239, 68, 68, 0.30)',
     borderRadius: radii.md,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   loginErrorText: {
-    color: '#f87171',
+    color: accent.regression,
     fontSize: 12,
     flex: 1,
   },
@@ -107,39 +111,39 @@ const loginStyles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   loginToggleText: {
-    color: colors.muted,
+    color: text.tertiary,
     fontSize: 12,
     textAlign: 'center',
   },
   loginDivider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 24,
+    marginVertical: spacing.lg,
     gap: spacing.md,
   },
   loginDividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: palette.borderStrong,
   },
   loginDividerText: {
-    color: colors.muted,
-    fontSize: 12,
+    color: text.quaternary,
+    fontSize: 11,
     fontFamily: 'monospace',
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.6,
   },
   googleButton: {
     width: '100%',
-    paddingVertical: spacing.lg,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
-    backgroundColor: colors.surface,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: palette.borderStrong,
     borderRadius: radii.md,
   },
   googleButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   googleButtonContent: {
     flexDirection: 'row',
@@ -151,21 +155,20 @@ const loginStyles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#fff',
-    color: '#000',
+    backgroundColor: text.primary,
+    color: palette.bg,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
     textAlign: 'center',
     lineHeight: 24,
   },
   googleButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
+    color: text.primary,
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
 });
 
 export default loginStyles;
-
-
-
