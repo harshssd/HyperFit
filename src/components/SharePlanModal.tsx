@@ -66,7 +66,7 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
           gap: spacing.md,
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>Share plan</Text>
+            <Text style={{ color: text.primary, fontSize: 18, fontWeight: '700' }}>Share plan</Text>
             <TouchableOpacity onPress={onClose}>
               <Text style={{ color: text.tertiary, fontSize: 14 }}>Close</Text>
             </TouchableOpacity>
@@ -83,7 +83,7 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
             justifyContent: 'space-between',
             paddingVertical: spacing.sm,
           }}>
-            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
+            <Text style={{ color: text.primary, fontSize: 15, fontWeight: '600' }}>
               Allow sharing via link
             </Text>
             <Switch
@@ -102,7 +102,7 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
                 borderWidth: 1,
                 borderColor: 'rgba(255,255,255,0.1)',
               }}>
-                <Text style={{ color: '#cbd5e1', fontSize: 12 }} selectable numberOfLines={2}>
+                <Text style={{ color: text.secondary, fontSize: 12 }} selectable numberOfLines={2}>
                   {url || '—'}
                 </Text>
               </View>
@@ -126,19 +126,19 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
                   disabled={busyRotate}
                   style={{
                     flex: 1,
-                    backgroundColor: 'rgba(148, 163, 184, 0.12)',
+                    backgroundColor: palette.surface,
                     paddingVertical: spacing.sm,
                     borderRadius: radii.sm,
                     alignItems: 'center',
                     borderWidth: 1,
-                    borderColor: 'rgba(148, 163, 184, 0.35)',
+                    borderColor: palette.borderStrong,
                     flexDirection: 'row',
                     justifyContent: 'center',
                     gap: spacing.xs,
                   }}
                 >
                   {busyRotate && <ActivityIndicator size="small" color="#cbd5e1" />}
-                  <Text style={{ color: '#cbd5e1', fontWeight: '700' }}>
+                  <Text style={{ color: text.secondary, fontWeight: '700' }}>
                     {busyRotate ? 'Rotating…' : 'New link'}
                   </Text>
                 </TouchableOpacity>
