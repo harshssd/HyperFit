@@ -92,10 +92,11 @@ export const useTemplates = ({
 
   const applyTemplateToDay = useCallback(
     (template: TemplateType) => {
+      const baseId = Date.now();
       const newExercises = (template.exercises || []).map((name, index) => ({
-        id: `${Date.now()}-${index}-${Math.random()}`,
+        id: baseId + index,
         name,
-        sets: [{ id: Date.now() + index + 100, weight: '', reps: '', completed: false }],
+        sets: [{ id: baseId + index + 1000, weight: '', reps: '', completed: false }],
       }));
       const updatedWorkouts = { ...data.workouts, [today]: [...todaysWorkout, ...newExercises] };
       const newLogs = !isCheckedIn ? [...(data.gymLogs || []), today] : data.gymLogs || [];
