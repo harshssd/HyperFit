@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updatedAt": "2026-05-01T20:37:26.709Z",
+    "updatedAt": "2026-05-01T23:14:58.822Z",
     "source": "managed via scripts/backlog.js"
   },
   "items": [
@@ -77,7 +77,7 @@
     {
       "id": "BL-11",
       "title": "Calendar view: past logs + future planned workouts",
-      "status": "todo",
+      "status": "done",
       "category": "product",
       "notes": "Single calendar surface that shows: (a) past dates with logged workouts (link to session detail), and (b) upcoming dates with the active plan's scheduled sessions per plan_schedule. Likely a dedicated tab or screen, not a modal — the heatmap on History only shows volume, not a day-by-day workout-name view. Source data: workout_sessions for past, active user_workout_plan + plan_schedule for future. Probably wants month + week views."
     }

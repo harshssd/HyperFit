@@ -12,7 +12,7 @@ type Nav = BottomTabNavigationProp<MainTabParamList, 'Home'>;
 const tabIdToRoute: Record<string, keyof MainTabParamList> = {
   home: 'Home',
   gym: 'Plans',
-  challenges: 'Challenges',
+  calendar: 'Calendar',
   history: 'History',
   stats: 'History',
 };
