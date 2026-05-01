@@ -220,6 +220,74 @@ export const createWorkoutPlan = async (
   return newPlan;
 };
 
+/**
+ * Replace an existing plan's metadata + sessions + schedule with the supplied
+ * draft, atomically. Wraps `replace_workout_plan_contents` (Postgres RPC) so
+ * the wipe-and-reinsert runs in a single transaction — a client crash mid-
+ * flight rolls back instead of leaving the plan with no sessions/schedule.
+ *
+ * RLS gate: the RPC is SECURITY INVOKER, so the UPDATE on workout_plans still
+ * fires `plans_write` (user_id = auth.uid()). Standard plans (user_id null)
+ * stay read-only.
+ *
+ * Historical workout_sessions: their `plan_session_id` FK is `on delete set
+ * null` in the schema, so logged workouts retain plan attribution but lose
+ * the specific session-template label after an edit. That's intentional —
+ * preserving History over a fragile FK is the right trade-off.
+ *
+ * `sessions` and `schedule` are normalized for the RPC: the schedule
+ * references sessions by ordinal index in `sessions[]` instead of UUIDs,
+ * since the new session UUIDs don't exist until the RPC inserts them.
+ */
+export const updateWorkoutPlan = async (
+  planId: string,
+  plan: Tables['workout_plans']['Update'],
+  sessions: PlanSessionInput[],
+  schedule: Tables['plan_schedule']['Insert'][]
+) => {
+  const sessionsPayload = sessions.map((s, i) => ({
+    name: s.session.name,
+    description: (s.session as any).description,
+    focus: (s.session as any).focus,
+    order_index: (s.session as any).order_index ?? i + 1,
+    exercises: s.exercises.map((ex: any, j: number) => ({
+      exercise_id: ex.exercise_id,
+      order_index: ex.order_index ?? j + 1,
+      sets: ex.sets,
+      reps_min: ex.reps_min,
+      reps_max: ex.reps_max,
+      rest_seconds: ex.rest_seconds,
+    })),
+  }));
+
+  // Map the caller's session_id (a temp client id used as a join key) to the
+  // index in sessionsPayload — the RPC then resolves index → real new UUID.
+  const indexById = new Map<string, number>();
+  sessions.forEach((s, i) => {
+    if (s.session.id) indexById.set(s.session.id as string, i);
+  });
+  const schedulePayload = schedule
+    .map((row) => ({
+      session_index: indexById.get(row.session_id as string),
+      day_of_week: row.day_of_week,
+      order_index: (row as any).order_index ?? 0,
+    }))
+    .filter((row) => row.session_index !== undefined);
+
+  const planPatch: any = { ...plan };
+  delete planPatch.updated_at; // RPC sets it server-side
+
+  const { error } = await supabase.rpc('replace_workout_plan_contents', {
+    p_plan_id: planId,
+    p_plan_patch: planPatch,
+    p_sessions: sessionsPayload,
+    p_schedule: schedulePayload,
+  });
+  if (error) throw error;
+
+  return await fetchWorkoutPlanDetails(planId);
+};
+
 // --- User Workout Plans ---
 
 export const fetchUserWorkoutPlans = async (userId: string) => {

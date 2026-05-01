@@ -17,6 +17,8 @@ type WorkoutPlansLibraryProps = {
   onSelectPlan: (plan: WorkoutPlan) => void;
   onManagePlan: (plan: WorkoutPlan) => void; // For user's plans
   onEditPlan?: (plan: WorkoutPlan) => void; // Edit user-created plans
+  /** Duplicate any plan (standard or user-owned) into a new draft the user can customize. */
+  onDuplicatePlan?: (plan: WorkoutPlan) => void;
   onSyncPlan?: (plan: WorkoutPlan) => void; // Sync with latest version
   onCreateNew?: () => void; // Function to create a new plan
   /** Submit user's own plan for admin review (private -> pending_review). */
@@ -43,6 +45,7 @@ const WorkoutPlansLibrary = ({
   onSelectPlan,
   onManagePlan,
   onEditPlan,
+  onDuplicatePlan,
   onSyncPlan,
   onCreateNew,
   onSubmitForReview,
@@ -290,6 +293,25 @@ const WorkoutPlansLibrary = ({
           >
             <Text style={{ color: '#3b82f6', fontSize: 12, fontWeight: 'bold' }}>
               EDIT
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {onDuplicatePlan && (
+          <TouchableOpacity
+            onPress={() => onDuplicatePlan(plan)}
+            style={{
+              backgroundColor: 'rgba(148, 163, 184, 0.12)',
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.md,
+              borderRadius: radii.sm,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(148, 163, 184, 0.35)',
+            }}
+          >
+            <Text style={{ color: text.secondary, fontSize: 12, fontWeight: 'bold' }}>
+              DUPLICATE
             </Text>
           </TouchableOpacity>
         )}
