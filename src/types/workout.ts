@@ -123,6 +123,9 @@ export type WorkoutPlan = {
   reviewed_at?: string | null;
   reviewed_by?: string | null;
   review_notes?: string | null;
+  // Sharing (independent of moderation — owner toggles is_shareable).
+  share_code?: string;
+  is_shareable?: boolean;
 };
 
 // ---------------------------------------

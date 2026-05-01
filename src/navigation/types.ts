@@ -35,6 +35,8 @@ export type RootStackParamList = {
   // navigation state persistence.
   ExercisePicker: { context?: string } | undefined;
   SessionDetail: { sessionId: string };
+  /** Preview + import a plan someone shared with you via a share code. */
+  SharedPlan: { code: string };
 };
 
 declare global {

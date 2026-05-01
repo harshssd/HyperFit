@@ -4,7 +4,9 @@ import {
   createUserWorkoutPlan,
   createWorkoutPlan,
   fetchWorkoutPlanDetails,
+  rotatePlanShareCode,
   setPlanReviewStatus,
+  setPlanShareable,
   updateUserWorkoutPlan,
 } from '../../../services/workoutService';
 import { showError, showSuccess } from '../../../utils/alerts';
@@ -255,5 +257,57 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
     [patchLocalPlan]
   );
 
-  return { createPlan, activatePlan, submitForReview, withdrawFromReview };
+  // ---- Sharing -------------------------------------------------------------
+
+  const patchLocalShareFields = useCallback(
+    (planId: string, patch: { is_shareable?: boolean; share_code?: string }) => {
+      const latest = dataRef.current;
+      const next = (latest.workoutPlans || []).map((p) =>
+        p.id === planId ? { ...p, ...patch } : p
+      );
+      updateDataRef.current({ ...latest, workoutPlans: next });
+    },
+    []
+  );
+
+  const setShareable = useCallback(
+    async (planId: string, value: boolean): Promise<{ is_shareable: boolean; share_code: string } | null> => {
+      try {
+        const updated = await setPlanShareable(planId, value);
+        const fields = { is_shareable: !!updated.is_shareable, share_code: updated.share_code };
+        patchLocalShareFields(planId, fields);
+        return fields;
+      } catch (e: any) {
+        console.error('setShareable', e);
+        showError(friendlyError(e, 'Could not update sharing.'));
+        return null;
+      }
+    },
+    [patchLocalShareFields]
+  );
+
+  const rotateShareCode = useCallback(
+    async (planId: string): Promise<string | null> => {
+      try {
+        const code = await rotatePlanShareCode(planId);
+        patchLocalShareFields(planId, { share_code: code });
+        showSuccess('Old link revoked. New link is ready to share.');
+        return code;
+      } catch (e: any) {
+        console.error('rotateShareCode', e);
+        showError(friendlyError(e, 'Could not rotate share link.'));
+        return null;
+      }
+    },
+    [patchLocalShareFields]
+  );
+
+  return {
+    createPlan,
+    activatePlan,
+    submitForReview,
+    withdrawFromReview,
+    setShareable,
+    rotateShareCode,
+  };
 };
