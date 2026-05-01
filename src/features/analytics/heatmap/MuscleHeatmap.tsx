@@ -130,13 +130,13 @@ export const MuscleHeatmap = ({
             </View>
           </View>
 
-          {/* Color legend */}
+          {/* Monochrome legend — single hue, opacity encodes intensity. */}
           <View style={styles.legendRow}>
             <View style={[styles.legendSwatch, { backgroundColor: colors.surface }]} />
             <Text style={styles.legendLabel}>None</Text>
-            <View style={[styles.legendSwatch, { backgroundColor: colors.cyan }]} />
+            <View style={[styles.legendSwatch, { backgroundColor: '#ffffff', opacity: 0.25 }]} />
             <Text style={styles.legendLabel}>Light</Text>
-            <View style={[styles.legendSwatch, { backgroundColor: colors.primary }]} />
+            <View style={[styles.legendSwatch, { backgroundColor: '#ffffff', opacity: 1 }]} />
             <Text style={styles.legendLabel}>Heavy</Text>
           </View>
 

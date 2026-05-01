@@ -8,9 +8,11 @@ import GlassCard from '../../components/GlassCard';
 import NeonButton from '../../components/NeonButton';
 import { LoadingState, EmptyState, ErrorState } from '../../components/StateView';
 import { MuscleHeatmap } from '../analytics/heatmap/MuscleHeatmap';
-import { colors, spacing, radii } from '../../styles/theme';
+import { colors, spacing, radii, palette, text } from '../../styles/theme';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../services/supabase';
+import SessionRow from './components/SessionRow';
+import { useSessionTrajectories } from './hooks/useSessionTrajectories';
 
 type ViewMode = 'history' | 'analytics';
 
@@ -65,6 +67,10 @@ const HistoryAnalyticsView = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
+  // Per-session sparkline + trend dot, computed from a broader fetch of
+  // session_summary_view grouped by plan_session_id (or session name).
+  const trajectories = useSessionTrajectories(user?.id ?? null, sessions.length);
 
   useEffect(() => {
     if (user?.id && viewMode === 'history') {
@@ -332,74 +338,30 @@ const HistoryAnalyticsView = () => {
           )}
         </View>
 
-        {/* Sessions List */}
-        <View style={{ gap: spacing.md }}>
-          {sessions.map((session) => (
-            <GlassCard
+        {/* Sessions list — dense rows, inline sparkline + trend dot per row.
+            See DESIGN.md "honest mirror" — trajectory belongs in the list,
+            not buried in a separate analytics tab. */}
+        <View style={{
+          backgroundColor: palette.surface,
+          borderRadius: radii.lg,
+          borderWidth: 1,
+          borderColor: palette.borderStrong,
+          overflow: 'hidden',
+          marginBottom: spacing.lg,
+        }}>
+          {sessions.map((session, idx) => (
+            <View
               key={session.id}
-              style={{ padding: spacing.lg }}
-              onPress={() => {
-                console.log('Session card pressed:', session.id);
-                loadSessionDetails(session.id);
-              }}
+              style={idx === sessions.length - 1 ? { borderBottomWidth: 0 } : undefined}
             >
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: spacing.sm }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginBottom: 4 }}>
-                      {session.name}
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                      <Calendar size={12} color={colors.muted} />
-                      <Text style={{ color: colors.muted, fontSize: 12 }}>
-                        {formatDate(session.date)} • {formatTime(session.start_time)}
-                      </Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={20} color={colors.muted} />
-                </View>
-
-                <View style={{ 
-                  flexDirection: 'row', 
-                  gap: spacing.lg, 
-                  marginTop: spacing.md,
-                  paddingTop: spacing.md,
-                  borderTopWidth: 1,
-                  borderTopColor: 'rgba(255,255,255,0.08)'
-                }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                    <Dumbbell size={14} color={colors.primary} />
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {session.exercise_count} exercises
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                    <Target size={14} color={colors.primary} />
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {session.set_count} sets
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-                    <Clock size={14} color={colors.primary} />
-                    <Text style={{ color: colors.muted, fontSize: 12 }}>
-                      {formatDuration(session.duration_seconds)}
-                    </Text>
-                  </View>
-                </View>
-
-                {session.volume_load > 0 && (
-                  <View style={{ 
-                    marginTop: spacing.sm,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: spacing.xs
-                  }}>
-                    <TrendingUp size={14} color={colors.success} />
-                    <Text style={{ color: colors.success, fontSize: 12, fontWeight: 'bold' }}>
-                      {Math.round(session.volume_load).toLocaleString()} lbs total volume
-                    </Text>
-                  </View>
-                )}
-              </GlassCard>
+              <SessionRow
+                date={session.date}
+                name={session.name}
+                volumeLoad={session.volume_load}
+                trajectory={trajectories.byId[session.id]}
+                onPress={() => loadSessionDetails(session.id)}
+              />
+            </View>
           ))}
         </View>
 
