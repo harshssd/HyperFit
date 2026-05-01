@@ -89,6 +89,15 @@ export type UseWorkoutSessionReturn = {
   startQuickWorkout: (type: 'push' | 'pull' | 'legs' | 'fullbody') => void;
   /** Replace the whole session with a balanced AI-suggested list (currently a static seed). */
   startAISuggestion: () => void;
+  /**
+   * Restore a session from a persisted snapshot (AsyncStorage). Sets all
+   * three session fields atomically and suppresses the manual-name prompt.
+   */
+  hydrateFromSnapshot: (
+    exercises: WorkoutExercise[],
+    startTime: string | null,
+    context: SessionContext
+  ) => void;
 };
 
 /**
@@ -378,6 +387,19 @@ export const useWorkoutSession = ({
     showSuccess('AI workout generated based on your progress!');
   }, [buildExercises, updateSessionExercises]);
 
+  const hydrateFromSnapshot = useCallback(
+    (exercises: WorkoutExercise[], startTime: string | null, context: SessionContext) => {
+      setSessionExercises(exercises);
+      setSessionStartTime(startTime);
+      setSessionContext(context);
+      setIsSessionFinished(false);
+      // The user already named (or didn't name) this session before — don't
+      // reprompt on resume.
+      namePromptedRef.current = true;
+    },
+    []
+  );
+
   return {
     sessionExercises,
     sessionStartTime,
@@ -398,5 +420,6 @@ export const useWorkoutSession = ({
     startSessionFromPlan,
     startQuickWorkout,
     startAISuggestion,
+    hydrateFromSnapshot,
   };
 };
