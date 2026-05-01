@@ -47,12 +47,14 @@ const NavItem = ({
 );
 
 const NavBar = ({ activeTab, items, onChange }: NavBarProps) => {
-  // Bottom safe-area inset lifts the icons above the home indicator on iPhones.
+  // Bottom safe-area inset lifts icons above the home indicator on iPhones.
   // Without this the nav reads as "too low" because icons sit at the screen edge.
+  // Floor at 8pt so Android (where insets.bottom is often 0) keeps a cushion.
   const insets = useSafeAreaInsets();
+  const pad = insets.bottom > 0 ? insets.bottom : 8;
   return (
     <View
-      style={[navbarStyles.navBar, { paddingBottom: insets.bottom }]}
+      style={[navbarStyles.navBar, { paddingBottom: pad }]}
       accessibilityRole="tablist"
     >
       {items.map(item => (
