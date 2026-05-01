@@ -18,6 +18,10 @@ type WorkoutPlansLibraryProps = {
   onEditPlan?: (plan: WorkoutPlan) => void; // Edit user-created plans
   onSyncPlan?: (plan: WorkoutPlan) => void; // Sync with latest version
   onCreateNew?: () => void; // Function to create a new plan
+  /** Submit user's own plan for admin review (private -> pending_review). */
+  onSubmitForReview?: (plan: WorkoutPlan) => void;
+  /** Withdraw user's own plan from review (pending_review -> private). */
+  onWithdrawFromReview?: (plan: WorkoutPlan) => void;
   userPlans?: WorkoutPlan[]; // User's activated plan instances
   publicPlans?: WorkoutPlan[]; // Public/system plans from DB
   userCreatedPlans?: WorkoutPlan[]; // Plans created by user
@@ -34,6 +38,8 @@ const WorkoutPlansLibrary = ({
   onEditPlan,
   onSyncPlan,
   onCreateNew,
+  onSubmitForReview,
+  onWithdrawFromReview,
   userPlans = [],
   publicPlans = [],
   userCreatedPlans = [],
@@ -46,6 +52,21 @@ const WorkoutPlansLibrary = ({
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
   const [selectedPlanDetails, setSelectedPlanDetails] = useState<WorkoutPlan | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  // Per-plan in-flight set so the user can't double-tap PUBLISH/WITHDRAW.
+  const [pendingPlanIds, setPendingPlanIds] = useState<Set<string>>(new Set());
+  const wrapPending = async (id: string, run: () => Promise<void> | void) => {
+    if (pendingPlanIds.has(id)) return;
+    setPendingPlanIds((prev) => new Set(prev).add(id));
+    try {
+      await run();
+    } finally {
+      setPendingPlanIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
   // Reset selected plan when modal opens
   React.useEffect(() => {
@@ -142,10 +163,52 @@ const WorkoutPlansLibrary = ({
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <View style={{ flex: 1 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs, flexWrap: 'wrap', gap: spacing.xs }}>
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginRight: spacing.sm }}>
                 {plan.name}
               </Text>
+              {isUserCreated && plan.review_status === 'pending_review' && (
+                <View style={{
+                  backgroundColor: 'rgba(251, 191, 36, 0.18)',
+                  paddingHorizontal: spacing.xs,
+                  paddingVertical: 2,
+                  borderRadius: radii.sm,
+                  borderWidth: 1,
+                  borderColor: 'rgba(251, 191, 36, 0.45)',
+                }}>
+                  <Text style={{ color: '#fbbf24', fontSize: 10, fontWeight: 'bold', letterSpacing: 0.5 }}>
+                    UNDER REVIEW
+                  </Text>
+                </View>
+              )}
+              {isUserCreated && plan.review_status === 'approved' && (
+                <View style={{
+                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                  paddingHorizontal: spacing.xs,
+                  paddingVertical: 2,
+                  borderRadius: radii.sm,
+                  borderWidth: 1,
+                  borderColor: 'rgba(34, 197, 94, 0.45)',
+                }}>
+                  <Text style={{ color: '#22c55e', fontSize: 10, fontWeight: 'bold', letterSpacing: 0.5 }}>
+                    PUBLISHED
+                  </Text>
+                </View>
+              )}
+              {isUserCreated && plan.review_status === 'rejected' && (
+                <View style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                  paddingHorizontal: spacing.xs,
+                  paddingVertical: 2,
+                  borderRadius: radii.sm,
+                  borderWidth: 1,
+                  borderColor: 'rgba(239, 68, 68, 0.45)',
+                }}>
+                  <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold', letterSpacing: 0.5 }}>
+                    REJECTED
+                  </Text>
+                </View>
+              )}
               {isHighlyRelevant(plan) && (
                 <View style={{
                   backgroundColor: colors.primary,
@@ -162,6 +225,21 @@ const WorkoutPlansLibrary = ({
             <Text style={{ color: colors.muted, fontSize: 12, marginBottom: spacing.sm }} numberOfLines={2}>
               {plan.description}
             </Text>
+
+            {isUserCreated && plan.review_status === 'rejected' && plan.review_notes && (
+              <View style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                borderLeftWidth: 2,
+                borderLeftColor: '#ef4444',
+                paddingHorizontal: spacing.sm,
+                paddingVertical: spacing.xs,
+                marginBottom: spacing.sm,
+              }}>
+                <Text style={{ color: '#fca5a5', fontSize: 11, lineHeight: 16 }}>
+                  {plan.review_notes}
+                </Text>
+              </View>
+            )}
 
             <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
               <View style={{
@@ -248,6 +326,54 @@ const WorkoutPlansLibrary = ({
             </TouchableOpacity>
           ) : null;
         })()}
+
+        {isUserCreated && onSubmitForReview && plan.review_status !== undefined &&
+          plan.review_status !== 'approved' &&
+          plan.review_status !== 'pending_review' && (
+          <TouchableOpacity
+            disabled={pendingPlanIds.has(String(plan.id))}
+            onPress={() =>
+              wrapPending(String(plan.id), async () => onSubmitForReview(plan))
+            }
+            style={{
+              backgroundColor: 'rgba(251, 191, 36, 0.12)',
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.md,
+              borderRadius: radii.sm,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(251, 191, 36, 0.4)',
+              opacity: pendingPlanIds.has(String(plan.id)) ? 0.5 : 1,
+            }}
+          >
+            <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: 'bold' }}>
+              {plan.review_status === 'rejected' ? 'RESUBMIT' : 'PUBLISH'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {isUserCreated && onWithdrawFromReview && plan.review_status === 'pending_review' && (
+          <TouchableOpacity
+            disabled={pendingPlanIds.has(String(plan.id))}
+            onPress={() =>
+              wrapPending(String(plan.id), async () => onWithdrawFromReview(plan))
+            }
+            style={{
+              backgroundColor: 'rgba(148, 163, 184, 0.12)',
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.md,
+              borderRadius: radii.sm,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(148, 163, 184, 0.35)',
+              opacity: pendingPlanIds.has(String(plan.id)) ? 0.5 : 1,
+            }}
+          >
+            <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: 'bold' }}>
+              WITHDRAW
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     </GlassCard>
   );

@@ -125,7 +125,7 @@ const GymView = ({
   const { user: contextUser } = useUser();
   const userId = contextUser?.id || user?.id;
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { activatePlan } = usePlanActions({ userId, data, updateData });
+  const { activatePlan, submitForReview, withdrawFromReview } = usePlanActions({ userId, data, updateData });
   const { recentWorkouts } = useRecentWorkouts(userId, 30);
 
   // Workout session, rest timer, and the active plan all come from a single
@@ -964,8 +964,20 @@ const GymView = ({
             }}
             onEditPlan={handleEditPlan}
             onSyncPlan={handleSyncPlan}
+            onSubmitForReview={(p: WorkoutPlan) => submitForReview(p.id)}
+            onWithdrawFromReview={(p: WorkoutPlan) => withdrawFromReview(p.id)}
             userPlans={(data.userWorkoutPlans || []).map((p: any) => p.planData).filter(Boolean)}
-            userCreatedPlans={(data.workoutPlans || []).filter((p: WorkoutPlan) => !p.is_public)}
+            // Owner-based partition keeps an approved+published user plan in
+            // *their* library (so they keep seeing the status badge), while
+            // also surfacing it in the public templates list for everyone.
+            // While userId is still hydrating (auth/data race) the partition
+            // would silently exclude every owned plan; fall back to the
+            // legacy `!is_public` filter until userId arrives.
+            userCreatedPlans={
+              userId
+                ? (data.workoutPlans || []).filter((p: WorkoutPlan) => p.user_id === userId)
+                : (data.workoutPlans || []).filter((p: WorkoutPlan) => !p.is_public)
+            }
             publicPlans={(data.workoutPlans || []).filter((p: WorkoutPlan) => p.is_public)}
             userEquipment="gym"
             userFrequency={3}

@@ -258,6 +258,33 @@ export const updateUserWorkoutPlan = async (
   return data;
 };
 
+// --- Plan moderation ---
+
+/**
+ * Flip review_status on a plan the caller owns. The DB enforces that the
+ * only legal user-driven transitions are private<->pending_review (with
+ * is_public=false); approve_plan / reject_plan are admin-only RPCs.
+ */
+export const setPlanReviewStatus = async (
+  planId: string,
+  next: 'private' | 'pending_review'
+) => {
+  // Defense in depth: the type narrows callers to two values, but a future
+  // dynamic call site could pass something else and PostgREST would silently
+  // no-op on `{review_status: undefined}`.
+  if (next !== 'private' && next !== 'pending_review') {
+    throw new Error(`setPlanReviewStatus: invalid status ${next}`);
+  }
+  const { data, error } = await supabase
+    .from('workout_plans')
+    .update({ review_status: next })
+    .eq('id', planId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
 // --- Workout logging ---
 
 /**
