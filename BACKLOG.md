@@ -14,13 +14,14 @@ Managed via `backlog/backlog.json` + `node scripts/backlog.js`.
 - **BL-6** Security & accounts — Auth hardening, secure storage, privacy/scoping for templates.
 - **BL-7** Steps tab MVP — Device pedometer integration; daily summary/history; goals/reminders.
 - **BL-8** Challenges tab MVP — Join/leave, progress tracking, streaks, social share.
+- **BL-9** Test runner + unit tests (helpers, services) — Wire jest-expo + @testing-library/react-native, add npm test script + CI step. First batch: pure helpers in src/features/workout/helpers.ts (finishWorkoutState, startNewSessionState, updateSetValue, XP/rank math). Then services. BL-1 covers the broader CI/lint/E2E story; this is the test-runner foundation it depends on.
 
 ## Done
 - _None_
+
 
 ## How to use
 - List: `node scripts/backlog.js list`
 - Move status: `node scripts/backlog.js move BL-1 in_progress` (statuses: `todo`, `in_progress`, `done`)
 - Add item: `node scripts/backlog.js add "Title here" --category product --notes "short note"`
-- Regenerate this file is automatic after any command.
-
+- Regenerate this file is automatic after any command
