@@ -27,6 +27,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
       ActiveWorkout: 'session/active',
       PlanBuilder: 'plan/builder',
       SessionDetail: 'session/:sessionId',
+      SharedPlan: 'plan/share/:code',
     },
   },
 };

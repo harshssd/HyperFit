@@ -22,6 +22,8 @@ type WorkoutPlansLibraryProps = {
   onSubmitForReview?: (plan: WorkoutPlan) => void;
   /** Withdraw user's own plan from review (pending_review -> private). */
   onWithdrawFromReview?: (plan: WorkoutPlan) => void;
+  /** Open the share-by-link sheet for the given user-owned plan. */
+  onOpenShare?: (plan: WorkoutPlan) => void;
   userPlans?: WorkoutPlan[]; // User's activated plan instances
   publicPlans?: WorkoutPlan[]; // Public/system plans from DB
   userCreatedPlans?: WorkoutPlan[]; // Plans created by user
@@ -40,6 +42,7 @@ const WorkoutPlansLibrary = ({
   onCreateNew,
   onSubmitForReview,
   onWithdrawFromReview,
+  onOpenShare,
   userPlans = [],
   publicPlans = [],
   userCreatedPlans = [],
@@ -348,6 +351,25 @@ const WorkoutPlansLibrary = ({
           >
             <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: 'bold' }}>
               {plan.review_status === 'rejected' ? 'RESUBMIT' : 'PUBLISH'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {isUserCreated && onOpenShare && (
+          <TouchableOpacity
+            onPress={() => onOpenShare(plan)}
+            style={{
+              backgroundColor: 'rgba(34, 211, 238, 0.10)',
+              paddingVertical: spacing.sm,
+              paddingHorizontal: spacing.md,
+              borderRadius: radii.sm,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: 'rgba(34, 211, 238, 0.4)',
+            }}
+          >
+            <Text style={{ color: '#22d3ee', fontSize: 12, fontWeight: 'bold' }}>
+              {plan.is_shareable ? 'SHARING' : 'SHARE'}
             </Text>
           </TouchableOpacity>
         )}

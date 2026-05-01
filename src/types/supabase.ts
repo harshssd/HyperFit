@@ -58,6 +58,8 @@ export interface Database {
           reviewed_at: Timestamp | null;
           reviewed_by: string | null;
           review_notes: string | null;
+          share_code: string;
+          is_shareable: boolean;
           created_at: Timestamp;
           updated_at: Timestamp;
         };
@@ -76,6 +78,8 @@ export interface Database {
           reviewed_at?: Timestamp | null;
           reviewed_by?: string | null;
           review_notes?: string | null;
+          share_code?: string;
+          is_shareable?: boolean;
           created_at?: Timestamp;
           updated_at?: Timestamp;
         };
