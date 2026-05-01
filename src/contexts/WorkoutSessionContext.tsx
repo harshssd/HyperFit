@@ -10,6 +10,8 @@ import {
 type WorkoutSessionContextValue = {
   session: UseWorkoutSessionReturn;
   restTimer: UseRestTimerReturn;
+  /** The user's currently active plan instance (or undefined if none). */
+  activeUserPlan: any;
 };
 
 const WorkoutSessionContext = createContext<WorkoutSessionContextValue | undefined>(undefined);
@@ -35,7 +37,11 @@ export const WorkoutSessionProvider = ({ children }: { children: ReactNode }) =>
   const restTimer = useRestTimer();
   const session = useWorkoutSession({ userId: user?.id, activeUserPlan, restTimer });
 
-  const value = useMemo(() => ({ session, restTimer }), [session, restTimer]);
+  // useWorkoutSession / useRestTimer return fresh object literals every
+  // render, so memoizing on their identities is a no-op. Drop the memo —
+  // the provider itself only re-renders when its own deps change, and
+  // re-rendering consumers cheaply is fine until a second consumer exists.
+  const value: WorkoutSessionContextValue = { session, restTimer, activeUserPlan };
 
   return <WorkoutSessionContext.Provider value={value}>{children}</WorkoutSessionContext.Provider>;
 };

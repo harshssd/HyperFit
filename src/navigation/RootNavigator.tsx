@@ -47,7 +47,9 @@ export const RootNavigator = () => {
               signOut: auth.signOut,
             }}
           >
-            <WorkoutSessionProvider>
+            {/* Key on user id so signing out and back in as a different user
+                discards any in-memory session, preventing cross-user log bleed. */}
+            <WorkoutSessionProvider key={auth.user?.id ?? 'anon'}>
               <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {auth.user ? (
                   <Stack.Group>

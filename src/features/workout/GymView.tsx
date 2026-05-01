@@ -100,12 +100,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const { user: contextUser } = useUser();
   const userId = contextUser?.id || user?.id;
 
-  // Active user plan — used for session-context defaults and finish-time logging.
-  const activeUserPlan = (data.userWorkoutPlans || []).find((plan: any) => plan.isActive);
-
-  // Workout session + rest timer come from a single app-level provider so the
-  // upcoming ActiveWorkout modal route reads the same instance.
-  const { session, restTimer } = useActiveWorkoutSession();
+  // Workout session, rest timer, and the active plan all come from a single
+  // app-level provider so the upcoming ActiveWorkout modal route reads the
+  // same instances and so GymView and the provider can't disagree about
+  // which plan is active.
+  const { session, restTimer, activeUserPlan } = useActiveWorkoutSession();
   const {
     sessionExercises,
     sessionStartTime,
