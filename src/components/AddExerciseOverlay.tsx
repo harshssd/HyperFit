@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { X } from 'lucide-react-native';
 import NeonButton from './NeonButton';
 import workoutStyles from '../styles/workout';
@@ -26,7 +26,10 @@ const AddExerciseOverlay = ({
   if (!visible) return null;
 
   return (
-    <View style={workoutStyles.addExerciseOverlay}>
+    <KeyboardAvoidingView
+      style={workoutStyles.addExerciseOverlay}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       <View style={workoutStyles.addExerciseModal}>
         <Text style={workoutStyles.addExerciseTitle}>ADD EXERCISE</Text>
         <View style={workoutStyles.addExerciseInputContainer}>
@@ -62,7 +65,7 @@ const AddExerciseOverlay = ({
           </TouchableOpacity>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
