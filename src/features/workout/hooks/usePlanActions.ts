@@ -4,6 +4,7 @@ import {
   createUserWorkoutPlan,
   createWorkoutPlan,
   fetchWorkoutPlanDetails,
+  setPlanReviewStatus,
   updateUserWorkoutPlan,
 } from '../../../services/workoutService';
 import { showError, showSuccess } from '../../../utils/alerts';
@@ -185,5 +186,53 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
     [activatePlan, userId]
   );
 
-  return { createPlan, activatePlan };
+  // Patch review_status (and review_notes / reviewed_* if returned) on the
+  // matching plan in `data.workoutPlans`. Used by submit / withdraw to keep
+  // the library in sync without a refetch.
+  const patchLocalPlan = useCallback((updated: any) => {
+    const latest = dataRef.current;
+    const next = (latest.workoutPlans || []).map((p) =>
+      p.id === updated.id
+        ? {
+            ...p,
+            review_status: updated.review_status,
+            reviewed_at: updated.reviewed_at,
+            reviewed_by: updated.reviewed_by,
+            review_notes: updated.review_notes,
+            is_public: updated.is_public,
+          }
+        : p
+    );
+    updateDataRef.current({ ...latest, workoutPlans: next });
+  }, []);
+
+  const submitForReview = useCallback(
+    async (planId: string) => {
+      try {
+        const updated = await setPlanReviewStatus(planId, 'pending_review');
+        patchLocalPlan(updated);
+        showSuccess('Submitted for review. We\'ll publish it once approved.');
+      } catch (e: any) {
+        console.error('submitForReview', e);
+        showError(e?.message || 'Could not submit plan for review.');
+      }
+    },
+    [patchLocalPlan]
+  );
+
+  const withdrawFromReview = useCallback(
+    async (planId: string) => {
+      try {
+        const updated = await setPlanReviewStatus(planId, 'private');
+        patchLocalPlan(updated);
+        showSuccess('Withdrawn — your plan is private again.');
+      } catch (e: any) {
+        console.error('withdrawFromReview', e);
+        showError(e?.message || 'Could not withdraw plan.');
+      }
+    },
+    [patchLocalPlan]
+  );
+
+  return { createPlan, activatePlan, submitForReview, withdrawFromReview };
 };

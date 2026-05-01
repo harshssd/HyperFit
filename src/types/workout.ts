@@ -117,6 +117,12 @@ export type WorkoutPlan = {
   updatedAt?: string;              // ISO timestamp of last update
   isTemplate?: boolean;            // True if this is a library template
   is_public?: boolean;             // True if this is a public system plan
+  user_id?: string | null;         // Owner; null for system plans
+  // Moderation state (plan_review_status enum / approve_plan RPC).
+  review_status?: 'private' | 'pending_review' | 'approved' | 'rejected';
+  reviewed_at?: string | null;
+  reviewed_by?: string | null;
+  review_notes?: string | null;
 };
 
 // ---------------------------------------
