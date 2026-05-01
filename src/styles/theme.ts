@@ -1,3 +1,5 @@
+import type { TextStyle } from 'react-native';
+
 // Design system tokens — see DESIGN.md for the full system.
 //
 // "Honest mirror" direction (Strava × Robinhood hybrid): anthracite base,
@@ -133,9 +135,9 @@ export const fonts = {
     heavy:    '800',
     black:    '900',
   },
-  // Use fontVariant: ['tabular-nums'] on every numeric Text component.
+  // Use fontVariant: fonts.tabularNums on every numeric Text component.
   // RN's equivalent of CSS font-feature-settings: 'tnum'.
-  tabularNums: ['tabular-nums'] as const,
+  tabularNums: ['tabular-nums'] as NonNullable<TextStyle['fontVariant']>,
 };
 
 export const shadows = {
