@@ -3,6 +3,13 @@ import { supabase } from '../../../services/supabase';
 
 export type GhostSet = { weight: number | null; reps: number | null };
 
+export type LastSession = {
+  sets: GhostSet[];
+  /** ISO date (YYYY-MM-DD) of the prior session, or null if none. */
+  date: string | null;
+  loading: boolean;
+};
+
 const EMPTY: GhostSet[] = [];
 
 /**
@@ -17,13 +24,15 @@ const EMPTY: GhostSet[] = [];
 export const useLastSessionSets = (
   userId: string | null | undefined,
   exerciseId: string | null | undefined
-) => {
+): LastSession => {
   const [sets, setSets] = useState<GhostSet[]>(EMPTY);
+  const [date, setDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!userId || !exerciseId) {
       setSets(EMPTY);
+      setDate(null);
       return;
     }
 
@@ -44,7 +53,10 @@ export const useLastSessionSets = (
 
         const latest: any = sessionRows?.[0];
         if (!latest?.session_id) {
-          if (!cancelled) setSets(EMPTY);
+          if (!cancelled) {
+            setSets(EMPTY);
+            setDate(null);
+          }
           return;
         }
 
@@ -63,8 +75,12 @@ export const useLastSessionSets = (
           ordered[idx] = { weight: r.weight, reps: r.reps };
         });
         setSets(ordered);
+        setDate(latest.session?.workout_date ?? null);
       } catch {
-        if (!cancelled) setSets(EMPTY);
+        if (!cancelled) {
+          setSets(EMPTY);
+          setDate(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -76,5 +92,5 @@ export const useLastSessionSets = (
     };
   }, [userId, exerciseId]);
 
-  return { sets, loading };
+  return { sets, date, loading };
 };

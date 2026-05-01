@@ -743,6 +743,7 @@ const GymView = ({
         getExerciseConfig={getExerciseConfig}
         updateSet={updateSet}
         ghostSets={ghost.sets}
+        lastDate={ghost.date}
       />
 
       <TouchableOpacity
