@@ -38,8 +38,8 @@ export const useLastSessionSets = (
           .select('session_id, session:workout_sessions!inner(workout_date,start_time,user_id)')
           .eq('exercise_id', exerciseId)
           .eq('session.user_id', userId)
-          .order('session(workout_date)', { ascending: false })
-          .order('session(start_time)', { ascending: false, nullsFirst: false })
+          .order('workout_date', { referencedTable: 'session', ascending: false })
+          .order('start_time', { referencedTable: 'session', ascending: false, nullsFirst: false })
           .limit(1);
 
         const latest: any = sessionRows?.[0];

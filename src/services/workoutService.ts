@@ -6,7 +6,7 @@ import { DayOfWeek, ScheduledSession } from '../types/workout';
  * WORKOUT SERVICE
  * =================
  * All interactions with the normalized workout tables. Schema lives in
- * supabase/migrations/20250101000000_clean_initial_schema.sql.
+ * supabase/migrations/20260430000000_initial_schema.sql.
  */
 
 type Tables = Database['public']['Tables'];

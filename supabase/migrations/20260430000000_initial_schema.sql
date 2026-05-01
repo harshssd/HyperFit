@@ -92,6 +92,8 @@ create table public.plan_exercises (
   unique (session_id, order_index)
 );
 
+create index plan_exercises_session_idx on public.plan_exercises(session_id);
+
 create table public.plan_schedule (
   id              uuid primary key default gen_random_uuid(),
   plan_id         uuid not null references public.workout_plans(id) on delete cascade,
@@ -102,6 +104,7 @@ create table public.plan_schedule (
 );
 
 create index plan_schedule_plan_idx on public.plan_schedule(plan_id);
+create index plan_schedule_session_idx on public.plan_schedule(session_id);
 
 create table public.user_workout_plans (
   id              uuid primary key default gen_random_uuid(),
@@ -112,6 +115,8 @@ create table public.user_workout_plans (
   started_at      timestamptz not null default now(),
   created_at      timestamptz not null default now()
 );
+
+create index user_workout_plans_user_idx on public.user_workout_plans(user_id);
 
 -- At most one active plan per user.
 create unique index user_workout_plans_active_unique
@@ -213,7 +218,7 @@ create table public.workout_sessions (
 );
 
 create index workout_sessions_user_date_idx
-  on public.workout_sessions(user_id, workout_date desc);
+  on public.workout_sessions(user_id, workout_date desc, start_time desc);
 
 create table public.workout_sets (
   id              uuid primary key default gen_random_uuid(),
@@ -348,7 +353,9 @@ create policy "favorites_owner"
 
 -- One row per logged session with totals. The canonical read surface for the
 -- History tab; client code should NEVER reaggregate workout_sets in JS.
-create view public.session_summary_view as
+create view public.session_summary_view
+  with (security_invoker = on)
+  as
 select
   s.id,
   s.user_id,
@@ -375,7 +382,9 @@ left join public.workout_sets st on st.session_id = s.id
 group by s.id;
 
 -- Per-day per-muscle volume; powers MuscleHeatmap without client-side rollup.
-create view public.muscle_volume_view as
+create view public.muscle_volume_view
+  with (security_invoker = on)
+  as
 select
   s.user_id,
   s.workout_date,
