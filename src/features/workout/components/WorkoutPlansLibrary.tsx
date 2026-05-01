@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal } from 'react-native';
 import { ChevronLeft, Layout, User, Plus, Search, Calendar, ChevronRight, Info } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
+import PlanStatusBadge from './PlanStatusBadge';
 import NeonButton from '../../../components/NeonButton';
-import { colors, spacing, radii } from '../../../styles/theme';
+import { colors, spacing, radii, text, palette } from '../../../styles/theme';
 import { homeStyles } from '../../../styles';
 // Removed: DEFAULT_PLANS import - plans now come from database
 import { WorkoutPlan } from '../../../types/workout';
@@ -171,59 +172,18 @@ const WorkoutPlansLibrary = ({
                 {plan.name}
               </Text>
               {isUserCreated && plan.review_status === 'pending_review' && (
-                <View style={{
-                  backgroundColor: 'rgba(251, 191, 36, 0.18)',
-                  paddingHorizontal: spacing.xs,
-                  paddingVertical: 2,
-                  borderRadius: radii.sm,
-                  borderWidth: 1,
-                  borderColor: 'rgba(251, 191, 36, 0.45)',
-                }}>
-                  <Text style={{ color: '#fbbf24', fontSize: 10, fontWeight: 'bold', letterSpacing: 0.5 }}>
-                    UNDER REVIEW
-                  </Text>
-                </View>
+                <PlanStatusBadge kind="underReview" />
               )}
               {isUserCreated && plan.review_status === 'approved' && (
-                <View style={{
-                  backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                  paddingHorizontal: spacing.xs,
-                  paddingVertical: 2,
-                  borderRadius: radii.sm,
-                  borderWidth: 1,
-                  borderColor: 'rgba(34, 197, 94, 0.45)',
-                }}>
-                  <Text style={{ color: '#22c55e', fontSize: 10, fontWeight: 'bold', letterSpacing: 0.5 }}>
-                    PUBLISHED
-                  </Text>
-                </View>
+                <PlanStatusBadge kind="published" />
               )}
               {isUserCreated && plan.review_status === 'rejected' && (
-                <View style={{
-                  backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                  paddingHorizontal: spacing.xs,
-                  paddingVertical: 2,
-                  borderRadius: radii.sm,
-                  borderWidth: 1,
-                  borderColor: 'rgba(239, 68, 68, 0.45)',
-                }}>
-                  <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold', letterSpacing: 0.5 }}>
-                    REJECTED
-                  </Text>
-                </View>
+                <PlanStatusBadge kind="rejected" />
               )}
-              {isHighlyRelevant(plan) && (
-                <View style={{
-                  backgroundColor: colors.primary,
-                  paddingHorizontal: spacing.xs,
-                  paddingVertical: 2,
-                  borderRadius: radii.sm
-                }}>
-                  <Text style={{ color: '#0f172a', fontSize: 10, fontWeight: 'bold' }}>
-                    RECOMMENDED
-                  </Text>
-                </View>
+              {!isUserCreated && plan.is_public && plan.user_id == null && (
+                <PlanStatusBadge kind="official" />
               )}
+              {isHighlyRelevant(plan) && <PlanStatusBadge kind="recommended" />}
             </View>
             <Text style={{ color: colors.muted, fontSize: 12, marginBottom: spacing.sm }} numberOfLines={2}>
               {plan.description}
@@ -244,28 +204,17 @@ const WorkoutPlansLibrary = ({
               </View>
             )}
 
-            <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-              <View style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                paddingHorizontal: spacing.sm,
-                paddingVertical: 2,
-                borderRadius: radii.sm
-              }}>
-                <Text style={{ color: colors.primary, fontSize: 10, fontWeight: 'bold' }}>
-                  {plan.frequency}x / WEEK
-                </Text>
-              </View>
-              <View style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                paddingHorizontal: spacing.sm,
-                paddingVertical: 2,
-                borderRadius: radii.sm
-              }}>
-                <Text style={{ color: colors.primary, fontSize: 10, fontWeight: 'bold' }}>
-                  {plan.difficulty?.toUpperCase() || 'GENERAL'}
-                </Text>
-              </View>
-            </View>
+            {/* Metadata as plain mono caps — terminal-style metadata, not pills.
+                Orange is reserved for status badges (PR/active/lift) per DESIGN.md. */}
+            <Text style={{
+              color: text.quaternary,
+              fontFamily: 'monospace',
+              fontSize: 10,
+              fontWeight: '700',
+              letterSpacing: 1.2,
+            }}>
+              {plan.frequency}X / WEEK · {plan.difficulty?.toUpperCase() || 'GENERAL'}
+            </Text>
           </View>
 
           <View style={{ alignItems: 'center' }}>
@@ -287,7 +236,7 @@ const WorkoutPlansLibrary = ({
             alignItems: 'center'
           }}
         >
-          <Text style={{ color: '#0f172a', fontSize: 14, fontWeight: 'bold' }}>
+          <Text style={{ color: palette.bg, fontSize: 14, fontWeight: '800', letterSpacing: 0.6 }}>
             {selectionMode === 'activate' ? 'ACTIVATE' : 'SELECT PLAN'}
           </Text>
         </TouchableOpacity>
