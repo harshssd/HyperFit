@@ -35,8 +35,10 @@ type UseTemplatesArgs = {
   data: UserData;
   updateData: (d: UserData) => void;
   today: string;
-  todaysWorkout: WorkoutExercise[];
   isCheckedIn: boolean;
+  /** Append exercises onto the active workout session. Owned by the
+   *  session context so applying a template actually shows up in the UI. */
+  appendToSession: (exercises: WorkoutExercise[]) => void;
 };
 
 export const useTemplates = ({
@@ -44,8 +46,8 @@ export const useTemplates = ({
   data,
   updateData,
   today,
-  todaysWorkout,
   isCheckedIn,
+  appendToSession,
 }: UseTemplatesArgs) => {
   const [templates, setTemplates] = useState<TemplateType[]>([]);
   const [folders, setFolders] = useState<any[]>([]);
@@ -93,16 +95,21 @@ export const useTemplates = ({
   const applyTemplateToDay = useCallback(
     (template: TemplateType) => {
       const baseId = Date.now();
-      const newExercises = (template.exercises || []).map((name, index) => ({
+      const newExercises: WorkoutExercise[] = (template.exercises || []).map((name, index) => ({
         id: baseId + index,
         name,
         sets: [{ id: baseId + index + 1000, weight: '', reps: '', completed: false }],
       }));
-      const updatedWorkouts = { ...data.workouts, [today]: [...todaysWorkout, ...newExercises] };
-      const newLogs = !isCheckedIn ? [...(data.gymLogs || []), today] : data.gymLogs || [];
-      updateData({ ...data, workouts: updatedWorkouts, gymLogs: newLogs });
+      // Push into the active session so the UI actually reflects the change.
+      appendToSession(newExercises);
+      // Mark today as a check-in (legacy gymLogs surface — heatmap and XP
+      // still read it). When sessions get logged on finish, this becomes
+      // redundant; for now keep both in sync.
+      if (!isCheckedIn) {
+        updateData({ ...data, gymLogs: [...(data.gymLogs || []), today] });
+      }
     },
-    [data, isCheckedIn, today, todaysWorkout, updateData]
+    [appendToSession, data, isCheckedIn, today, updateData]
   );
 
   const saveTemplateToSupabase = useCallback(

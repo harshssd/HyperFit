@@ -7,7 +7,6 @@ export const ASSETS = {
 export const DEFAULT_DATA = {
   stepsToday: 2500,
   gymLogs: [],
-  workouts: {},
   activeChallenges: [],
   customChallenges: [],
   pushupsCompleted: []
