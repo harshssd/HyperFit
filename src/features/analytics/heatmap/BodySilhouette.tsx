@@ -26,10 +26,13 @@ type Props = {
   size?: number;
 };
 
-const SILHOUETTE_FILL = '#0f172a'; // matches background — body reads as a dark canvas
+// Monochrome heatmap — single hue (white) ramping in opacity. The heatmap
+// communicates *cadence* (where you trained) rather than decorative intensity.
+// See DESIGN.md "honest mirror" direction.
+const SILHOUETTE_FILL = '#0a0a0a'; // matches anthracite background
 const SILHOUETTE_STROKE = colors.borderStrong;
-const COLD = colors.cyan; // light intensity = cyan (cool)
-const HOT = colors.primary; // heavy intensity = orange (warm)
+const COLD = '#ffffff'; // light intensity = same hue, lower opacity
+const HOT = '#ffffff';  // heavy intensity = same hue, higher opacity (via fillOpacity below)
 const UNTOUCHED = colors.surface;
 
 /** Renders one region's shapes. Animates both fill color and opacity. */
@@ -52,13 +55,19 @@ const Region = ({
     }).start();
   }, [intensity, fadeAnim]);
 
+  // Untouched regions stay surface-grey; trained regions fade in white as a
+  // function of intensity. Single hue keeps the heatmap honest — "you trained"
+  // is signalled by opacity, not by warm/cool color theatre.
   const fill = fadeAnim.interpolate({
-    inputRange: [0, 0.5, 1],
+    inputRange: [0, 0.001, 1],
     outputRange: [UNTOUCHED, COLD, HOT],
   });
+  // Fill opacity encodes intensity: 0 = full untouched grey, 0.001 = barely
+  // visible white, 1 = full white. The Animated.timing duration handles the
+  // smooth fade-in.
   const opacity = fadeAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.7, 1],
+    inputRange: [0, 0.001, 1],
+    outputRange: [1, 0.18, 1],
   });
 
   return (
