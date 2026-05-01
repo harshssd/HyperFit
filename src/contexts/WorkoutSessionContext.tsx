@@ -6,6 +6,7 @@ import {
   useWorkoutSession,
   UseWorkoutSessionReturn,
 } from '../features/workout/hooks/useWorkoutSession';
+import { useSessionPersistence } from '../features/workout/hooks/useSessionPersistence';
 
 type WorkoutSessionContextValue = {
   session: UseWorkoutSessionReturn;
@@ -36,6 +37,10 @@ export const WorkoutSessionProvider = ({ children }: { children: ReactNode }) =>
 
   const restTimer = useRestTimer();
   const session = useWorkoutSession({ userId: user?.id, activeUserPlan, restTimer });
+
+  // Mirrors the active session to AsyncStorage so it survives a force-quit.
+  // Restores on cold start before the user sees the UI.
+  useSessionPersistence(user?.id, session);
 
   // useWorkoutSession / useRestTimer return fresh object literals every
   // render, so memoizing on their identities is a no-op. Drop the memo —
