@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View, Vibration } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View, Vibration } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Plus, SkipForward } from 'lucide-react-native';
 import { colors, spacing, radii } from '../../../styles/theme';
 
@@ -31,12 +32,14 @@ const formatMMSS = (s: number) => {
  * +30s / Skip controls. Buzzes once when the timer hits zero.
  */
 export const RestTimerBar = ({ restSeconds, totalSeconds, onExtend, onSkip }: Props) => {
-  const wasActiveRef = useRef(false);
+  const prevRef = useRef<number | null>(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    const isActive = restSeconds !== null && restSeconds > 0;
-    if (wasActiveRef.current && !isActive) {
-      // Just hit zero — buzz.
+    const prev = prevRef.current;
+    // Buzz only on natural completion: previous tick was 1 and we're now null.
+    // Skip jumps from N>1 to null and should NOT buzz.
+    if (prev === 1 && restSeconds === null) {
       try {
         if (Haptics?.notificationAsync) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -47,16 +50,16 @@ export const RestTimerBar = ({ restSeconds, totalSeconds, onExtend, onSkip }: Pr
         /* ignore */
       }
     }
-    wasActiveRef.current = isActive;
+    prevRef.current = restSeconds;
   }, [restSeconds]);
 
   if (restSeconds === null) return null;
 
-  const total = totalSeconds && totalSeconds > 0 ? totalSeconds : restSeconds;
+  const total = totalSeconds && totalSeconds >= restSeconds ? totalSeconds : restSeconds;
   const progress = Math.max(0, Math.min(1, 1 - restSeconds / total));
 
   return (
-    <View style={styles.wrap} pointerEvents="box-none">
+    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, spacing.sm) + spacing.sm }]} pointerEvents="box-none">
       <View style={styles.bar}>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />

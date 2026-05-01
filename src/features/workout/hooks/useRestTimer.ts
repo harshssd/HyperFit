@@ -80,17 +80,19 @@ export const useRestTimer = (): UseRestTimerReturn => {
     [skipRest]
   );
 
+  const restRef = useRef<number | null>(null);
+  restRef.current = restSeconds;
+
   const extendRest = useCallback(
     (extra: number = REST_INCREMENT_SECONDS) => {
-      setRestSeconds(prev => {
-        const next = (prev ?? 0) + extra;
-        if (!intervalRef.current) {
-          startRest(next);
-          return next;
-        }
-        setTotalSeconds(t => (t ?? 0) + extra);
-        return next;
-      });
+      // Read both flags via refs so each setState updater stays pure
+      // and idempotent under React Strict Mode (which double-invokes them).
+      if (intervalRef.current === null) {
+        startRest((restRef.current ?? 0) + extra);
+        return;
+      }
+      setRestSeconds(prev => (prev ?? 0) + extra);
+      setTotalSeconds(prev => (prev ?? 0) + extra);
     },
     [startRest]
   );
