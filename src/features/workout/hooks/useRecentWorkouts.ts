@@ -8,8 +8,22 @@ export type RecentWorkout = {
   dateStr: string;
   exercises: number;
   volume: number;
-  /** "Bench Press +2" — first exercise plus a count of remaining. */
+  /** Display label for the calendar tile — session name plus a count of
+   *  additional exercises when the session has more than one. */
   name: string;
+};
+
+/** YYYY-MM-DD in the user's local timezone. `new Date('YYYY-MM-DD')`
+ *  parses as UTC midnight and renders the prior day in negative-offset
+ *  zones, so build a local Date from the components instead. */
+const localDateFromISO = (iso: string): Date => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, (m ?? 1) - 1, d ?? 1);
+};
+
+const todayLocalISO = (): string => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 };
 
 const EMPTY: RecentWorkout[] = [];
@@ -41,9 +55,12 @@ export const useRecentWorkouts = (
       setLoading(true);
       setError(null);
       try {
-        const since = new Date();
-        since.setDate(since.getDate() - daysBack);
-        const sinceStr = since.toISOString().split('T')[0];
+        // Compute the cutoff in local time so users near midnight in
+        // negative-offset zones don't get a one-day-shifted window.
+        const today = todayLocalISO();
+        const cutoff = localDateFromISO(today);
+        cutoff.setDate(cutoff.getDate() - daysBack);
+        const sinceStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
 
         const { data: rows, error: rowsErr } = await supabase
           .from('session_summary_view')
@@ -59,7 +76,7 @@ export const useRecentWorkouts = (
           const count = Number(r.exercise_count) || 0;
           const baseName: string = r.session_name || 'Workout';
           return {
-            date: new Date(r.workout_date).toLocaleDateString(),
+            date: localDateFromISO(r.workout_date).toLocaleDateString(),
             dateStr: r.workout_date,
             exercises: count,
             volume: Number(r.volume_load) || 0,
