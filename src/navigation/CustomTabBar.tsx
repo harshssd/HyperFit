@@ -7,7 +7,7 @@ import { NAV_ITEMS } from '../constants/nav';
 const ID_TO_ROUTE: Record<string, string> = {
   home: 'Home',
   gym: 'Plans',
-  challenges: 'Challenges',
+  calendar: 'Calendar',
   history: 'History',
 };
 const ROUTE_TO_ID: Record<string, string> = Object.fromEntries(

@@ -21,7 +21,7 @@ export const linking: LinkingOptions<RootStackParamList> = {
           Home: 'home',
           Plans: 'plans',
           History: 'history',
-          Challenges: 'challenges',
+          Calendar: 'calendar',
         },
       },
       ActiveWorkout: 'session/active',

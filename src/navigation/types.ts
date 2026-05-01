@@ -21,7 +21,7 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
   Home: undefined;
   Plans: undefined; // formerly "Gym" — list of user's plans
-  Challenges: undefined;
+  Calendar: undefined;
   History: undefined;
 };
 
