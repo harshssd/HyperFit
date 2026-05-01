@@ -65,7 +65,7 @@ export const RootNavigator = () => {
                       options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
                     />
                     {/* PlanBuilder uses transparentModal because the inner
-                        WorkoutPlanCreator already owns its own slide-up
+                        SlimPlanCreator already owns its own slide-up
                         Modal — a `presentation: 'modal'` route would stack
                         a second animation on top. */}
                     <Stack.Screen

@@ -29,7 +29,8 @@ export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
   ActiveWorkout: { sessionId?: string } | undefined;
-  PlanBuilder: { planId?: string } | undefined;
+  /** mode + planId together drive create / edit / duplicate. Omit both for create. */
+  PlanBuilder: { planId?: string; mode?: 'create' | 'edit' | 'duplicate' } | undefined;
   // ExercisePicker uses an event-bus pattern (TBD) instead of a callback
   // route param — function params break deep-link serialization and
   // navigation state persistence.

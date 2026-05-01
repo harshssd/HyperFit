@@ -8,7 +8,6 @@ import homeStyles from '../../../styles/home';
 import { colors, spacing, radii } from '../../../styles/theme';
 import { WorkoutPlan } from '../../../types/workout';
 import { getWorkoutForDate } from '../helpers';
-import WorkoutPlanCreator from './WorkoutPlanCreator';
 import PlanManagementMenu from './PlanManagementMenu';
 import QuickStartTemplates, { QuickTemplateType } from './QuickStartTemplates';
 
@@ -605,5 +604,4 @@ const WorkoutPlanner = ({
   );
 };
 
-export { WorkoutPlanCreator };
 export default WorkoutPlanner;

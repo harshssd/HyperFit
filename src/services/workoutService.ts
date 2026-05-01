@@ -220,6 +220,74 @@ export const createWorkoutPlan = async (
   return newPlan;
 };
 
+/**
+ * Replace an existing plan's metadata + sessions + schedule with the supplied
+ * draft. Children (sessions, exercises, schedule rows) are deleted and
+ * re-inserted in one logical pass — simpler and more reliable than diffing.
+ *
+ * RLS guarantees the caller only mutates plans they own; standard plans
+ * (`user_id = null`) are read-only via the `plans_write` policy.
+ */
+export const updateWorkoutPlan = async (
+  planId: string,
+  plan: Tables['workout_plans']['Update'],
+  sessions: PlanSessionInput[],
+  schedule: Tables['plan_schedule']['Insert'][]
+) => {
+  const { error: planError } = await supabase
+    .from('workout_plans')
+    .update({ ...plan, updated_at: new Date().toISOString() })
+    .eq('id', planId);
+  if (planError) throw planError;
+
+  // Cascade-delete via parent row removal isn't appropriate here (we want to
+  // KEEP the plan), so clear children explicitly. plan_exercises FK cascades
+  // when its parent plan_session row is deleted.
+  const { error: schedDelErr } = await supabase
+    .from('plan_schedule').delete().eq('plan_id', planId);
+  if (schedDelErr) throw schedDelErr;
+  const { error: sessDelErr } = await supabase
+    .from('plan_sessions').delete().eq('plan_id', planId);
+  if (sessDelErr) throw sessDelErr;
+
+  const sessionIdMap = new Map<string, string>();
+  for (const { session, exercises } of sessions) {
+    const oldId = session.id;
+    const insertPayload: Tables['plan_sessions']['Insert'] = {
+      ...session,
+      plan_id: planId,
+    };
+    delete (insertPayload as any).id;
+
+    const { data: newSession, error: sessErr } = await supabase
+      .from('plan_sessions')
+      .insert(insertPayload)
+      .select()
+      .single();
+    if (sessErr) throw sessErr;
+    if (oldId) sessionIdMap.set(oldId, newSession.id);
+
+    if (exercises.length > 0) {
+      const rows = exercises.map(ex => ({ ...ex, session_id: newSession.id }));
+      const { error: exErr } = await supabase.from('plan_exercises').insert(rows);
+      if (exErr) throw exErr;
+    }
+  }
+
+  if (schedule.length > 0) {
+    const rows = schedule.map(s => ({
+      plan_id: planId,
+      session_id: sessionIdMap.get(s.session_id) ?? s.session_id,
+      day_of_week: s.day_of_week,
+      order_index: s.order_index,
+    }));
+    const { error: schedErr } = await supabase.from('plan_schedule').insert(rows);
+    if (schedErr) throw schedErr;
+  }
+
+  return await fetchWorkoutPlanDetails(planId);
+};
+
 // --- User Workout Plans ---
 
 export const fetchUserWorkoutPlans = async (userId: string) => {

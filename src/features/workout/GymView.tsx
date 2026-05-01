@@ -471,9 +471,13 @@ const GymView = ({
   };
 
   const handleEditPlan = (plan: WorkoutPlan) => {
-    // For now, just show a message. In the future, this would open the plan editor
-    // with the existing plan data pre-populated
-    showSuccess(`Edit plan: ${plan.name} - Coming soon!`);
+    setShowPlanLibrary(false);
+    navigation.navigate('PlanBuilder', { mode: 'edit', planId: plan.id });
+  };
+
+  const handleDuplicatePlan = (plan: WorkoutPlan) => {
+    setShowPlanLibrary(false);
+    navigation.navigate('PlanBuilder', { mode: 'duplicate', planId: plan.id });
   };
 
   const handleSyncPlan = (plan: WorkoutPlan) => {
@@ -1013,6 +1017,7 @@ const GymView = ({
               navigation.navigate('PlanBuilder');
             }}
             onEditPlan={handleEditPlan}
+            onDuplicatePlan={handleDuplicatePlan}
             onSyncPlan={handleSyncPlan}
             onSubmitForReview={(p: WorkoutPlan) => submitForReview(p.id)}
             onWithdrawFromReview={(p: WorkoutPlan) => withdrawFromReview(p.id)}

@@ -10,6 +10,7 @@ import {
   setPlanReviewStatus,
   setPlanShareable,
   updateUserWorkoutPlan,
+  updateWorkoutPlan,
 } from '../../../services/workoutService';
 import { showError, showSuccess } from '../../../utils/alerts';
 import type { UserData, WorkoutPlan } from '../../../types/workout';
@@ -191,6 +192,76 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
     [activatePlan, userId]
   );
 
+  const updatePlan = useCallback(
+    async (
+      planId: string,
+      planData: Omit<WorkoutPlan, 'id' | 'createdAt' | 'isTemplate'>,
+    ) => {
+      if (!userId) {
+        showError('You must be signed in to update a plan.');
+        return;
+      }
+      try {
+        const planForDb = {
+          name: planData.name,
+          description: planData.description,
+          frequency: planData.frequency,
+          equipment: planData.equipment,
+          duration: planData.duration != null ? String(planData.duration) : null,
+          difficulty: planData.difficulty,
+          tags: planData.tags || [],
+        };
+
+        const sessionsForDb = planData.sessions.map((session, index) => ({
+          session: {
+            id: session.id,
+            name: session.name,
+            description: session.description || '',
+            focus: session.focus as string,
+            order_index: index + 1,
+          } as any,
+          exercises: session.exercises.map((exercise) => ({
+            exercise_id: exercise.id,
+            sets: exercise.sets,
+            reps_min: exercise.repRange.min,
+            reps_max: exercise.repRange.max,
+            rest_seconds: exercise.restSeconds || 60,
+            order_index: exercise.order,
+          } as any)),
+        })) as any;
+
+        const scheduleForDb = Object.entries(planData.schedule || {}).flatMap(
+          ([day, sessions]) =>
+            (sessions || []).map((session) => ({
+              session_id: session.sessionId,
+              day_of_week: day,
+            } as any)),
+        );
+
+        const updated = await updateWorkoutPlan(planId, planForDb, sessionsForDb, scheduleForDb);
+
+        const latestData = dataRef.current;
+        const nextPlans = (latestData.workoutPlans || []).map((p) =>
+          p.id === planId ? updated : p,
+        );
+        const nextUserPlans = (latestData.userWorkoutPlans || []).map((up: any) =>
+          up.planData?.id === planId ? { ...up, planData: updated } : up,
+        );
+        updateDataRef.current({
+          ...latestData,
+          workoutPlans: nextPlans,
+          userWorkoutPlans: nextUserPlans,
+        });
+
+        showSuccess(`Plan "${updated.name}" updated.`);
+      } catch (e: any) {
+        console.error('updatePlan', e);
+        showError(e?.message || 'Could not update plan.');
+      }
+    },
+    [userId],
+  );
+
   // Patch review_status (and review_notes / reviewed_* if returned) on the
   // matching plan in `data.workoutPlans` AND inside any active-plan instance
   // that embeds the same plan in `data.userWorkoutPlans[].planData` — both
@@ -307,6 +378,7 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
 
   return {
     createPlan,
+    updatePlan,
     activatePlan,
     submitForReview,
     withdrawFromReview,
