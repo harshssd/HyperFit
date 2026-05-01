@@ -119,20 +119,16 @@ export const calculateTotalVolume = (workout: WorkoutExercise[]) => {
   }, 0);
 };
 
+/**
+ * 100 XP per workout day. The previous implementation also added a volume
+ * bonus from data.workouts, but that field has never been hydrated from
+ * Supabase — the term silently evaluated to 0 for every user. When we wire
+ * a real volume aggregate (sum of weight*reps from workout_log), reintroduce
+ * it as an optional second arg so the helper stays pure.
+ */
 export const calculateXP = (data: any) => {
   if (!data) return 0;
-  let xp = 0;
-  const allWorkouts = Object.values(data.workouts || {}).flat() as WorkoutExercise[];
-  xp += (data.gymLogs?.length || 0) * 100;
-  allWorkouts.forEach((ex) => {
-    if (ex.sets) {
-      ex.sets.forEach((s: any) => {
-        if (s.completed && s.weight && s.reps) xp += (parseInt(s.weight) * parseInt(s.reps)) * 0.05;
-        if (s.completed && (!s.weight || s.weight === '')) xp += (parseInt(s.reps) || 0) * 2;
-      });
-    }
-  });
-  return Math.floor(xp);
+  return (data.gymLogs?.length || 0) * 100;
 };
 
 export const getRank = (xp: number) => {
