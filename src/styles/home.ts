@@ -6,8 +6,6 @@ const homeStyles = StyleSheet.create({
     flex: 1,
   },
   homeViewContent: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
     paddingBottom: spacing.xl,
   },
   homeCard: {
