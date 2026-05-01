@@ -10,6 +10,7 @@ import { WorkoutPlan } from '../../../types/workout';
 import { getWorkoutForDate } from '../helpers';
 import WorkoutPlanCreator from './WorkoutPlanCreator';
 import PlanManagementMenu from './PlanManagementMenu';
+import QuickStartTemplates, { QuickTemplateType } from './QuickStartTemplates';
 
 /**
  * WORKOUT PLANNER COMPONENT
@@ -285,6 +286,8 @@ const WorkoutPlanner = ({
                       BROWSE PLAN LIBRARY
                     </Text>
                   </TouchableOpacity>
+
+                  <QuickStartTemplates onPick={(type: QuickTemplateType) => onQuickWorkout(type)} />
                 </View>
               ) : (
                 <View style={{ gap: spacing.sm }}>
