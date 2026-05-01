@@ -269,6 +269,12 @@ export const setPlanReviewStatus = async (
   planId: string,
   next: 'private' | 'pending_review'
 ) => {
+  // Defense in depth: the type narrows callers to two values, but a future
+  // dynamic call site could pass something else and PostgREST would silently
+  // no-op on `{review_status: undefined}`.
+  if (next !== 'private' && next !== 'pending_review') {
+    throw new Error(`setPlanReviewStatus: invalid status ${next}`);
+  }
   const { data, error } = await supabase
     .from('workout_plans')
     .update({ review_status: next })

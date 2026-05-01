@@ -52,6 +52,21 @@ const WorkoutPlansLibrary = ({
   const [selectedPlan, setSelectedPlan] = useState<WorkoutPlan | null>(null);
   const [selectedPlanDetails, setSelectedPlanDetails] = useState<WorkoutPlan | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  // Per-plan in-flight set so the user can't double-tap PUBLISH/WITHDRAW.
+  const [pendingPlanIds, setPendingPlanIds] = useState<Set<string>>(new Set());
+  const wrapPending = async (id: string, run: () => Promise<void> | void) => {
+    if (pendingPlanIds.has(id)) return;
+    setPendingPlanIds((prev) => new Set(prev).add(id));
+    try {
+      await run();
+    } finally {
+      setPendingPlanIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
   // Reset selected plan when modal opens
   React.useEffect(() => {
@@ -166,7 +181,7 @@ const WorkoutPlansLibrary = ({
                   </Text>
                 </View>
               )}
-              {isUserCreated && plan.review_status === 'approved' && plan.is_public && (
+              {isUserCreated && plan.review_status === 'approved' && (
                 <View style={{
                   backgroundColor: 'rgba(34, 197, 94, 0.15)',
                   paddingHorizontal: spacing.xs,
@@ -312,10 +327,14 @@ const WorkoutPlansLibrary = ({
           ) : null;
         })()}
 
-        {isUserCreated && onSubmitForReview && plan.review_status !== 'approved' &&
+        {isUserCreated && onSubmitForReview && plan.review_status !== undefined &&
+          plan.review_status !== 'approved' &&
           plan.review_status !== 'pending_review' && (
           <TouchableOpacity
-            onPress={() => onSubmitForReview(plan)}
+            disabled={pendingPlanIds.has(String(plan.id))}
+            onPress={() =>
+              wrapPending(String(plan.id), async () => onSubmitForReview(plan))
+            }
             style={{
               backgroundColor: 'rgba(251, 191, 36, 0.12)',
               paddingVertical: spacing.sm,
@@ -324,6 +343,7 @@ const WorkoutPlansLibrary = ({
               alignItems: 'center',
               borderWidth: 1,
               borderColor: 'rgba(251, 191, 36, 0.4)',
+              opacity: pendingPlanIds.has(String(plan.id)) ? 0.5 : 1,
             }}
           >
             <Text style={{ color: '#fbbf24', fontSize: 12, fontWeight: 'bold' }}>
@@ -334,7 +354,10 @@ const WorkoutPlansLibrary = ({
 
         {isUserCreated && onWithdrawFromReview && plan.review_status === 'pending_review' && (
           <TouchableOpacity
-            onPress={() => onWithdrawFromReview(plan)}
+            disabled={pendingPlanIds.has(String(plan.id))}
+            onPress={() =>
+              wrapPending(String(plan.id), async () => onWithdrawFromReview(plan))
+            }
             style={{
               backgroundColor: 'rgba(148, 163, 184, 0.12)',
               paddingVertical: spacing.sm,
@@ -343,6 +366,7 @@ const WorkoutPlansLibrary = ({
               alignItems: 'center',
               borderWidth: 1,
               borderColor: 'rgba(148, 163, 184, 0.35)',
+              opacity: pendingPlanIds.has(String(plan.id)) ? 0.5 : 1,
             }}
           >
             <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: 'bold' }}>

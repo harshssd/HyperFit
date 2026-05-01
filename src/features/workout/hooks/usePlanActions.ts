@@ -187,24 +187,45 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
   );
 
   // Patch review_status (and review_notes / reviewed_* if returned) on the
-  // matching plan in `data.workoutPlans`. Used by submit / withdraw to keep
-  // the library in sync without a refetch.
+  // matching plan in `data.workoutPlans` AND inside any active-plan instance
+  // that embeds the same plan in `data.userWorkoutPlans[].planData` — both
+  // surfaces are read by the library / "My Plans" UI and would drift if we
+  // updated only one.
   const patchLocalPlan = useCallback((updated: any) => {
     const latest = dataRef.current;
-    const next = (latest.workoutPlans || []).map((p) =>
-      p.id === updated.id
-        ? {
-            ...p,
-            review_status: updated.review_status,
-            reviewed_at: updated.reviewed_at,
-            reviewed_by: updated.reviewed_by,
-            review_notes: updated.review_notes,
-            is_public: updated.is_public,
-          }
-        : p
+    const apply = (p: any) => ({
+      ...p,
+      review_status: updated.review_status,
+      reviewed_at: updated.reviewed_at,
+      reviewed_by: updated.reviewed_by,
+      review_notes: updated.review_notes,
+      is_public: updated.is_public,
+    });
+    const nextWorkoutPlans = (latest.workoutPlans || []).map((p) =>
+      p.id === updated.id ? apply(p) : p
     );
-    updateDataRef.current({ ...latest, workoutPlans: next });
+    const nextUserWorkoutPlans = (latest.userWorkoutPlans || []).map((up: any) =>
+      up.planData?.id === updated.id
+        ? { ...up, planData: apply(up.planData) }
+        : up
+    );
+    updateDataRef.current({
+      ...latest,
+      workoutPlans: nextWorkoutPlans,
+      userWorkoutPlans: nextUserWorkoutPlans,
+    });
   }, []);
+
+  // PostgREST returns "JSON object requested, multiple (or no) rows" when
+  // RLS denies the update or the row was deleted between fetch and tap.
+  // Translate to a useful message at the boundary.
+  const friendlyError = (e: any, fallback: string): string => {
+    const msg = e?.message || '';
+    if (e?.code === 'PGRST116' || msg.includes('multiple (or no) rows')) {
+      return 'This plan no longer exists or you don\'t own it.';
+    }
+    return msg || fallback;
+  };
 
   const submitForReview = useCallback(
     async (planId: string) => {
@@ -214,7 +235,7 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
         showSuccess('Submitted for review. We\'ll publish it once approved.');
       } catch (e: any) {
         console.error('submitForReview', e);
-        showError(e?.message || 'Could not submit plan for review.');
+        showError(friendlyError(e, 'Could not submit plan for review.'));
       }
     },
     [patchLocalPlan]
@@ -228,7 +249,7 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
         showSuccess('Withdrawn — your plan is private again.');
       } catch (e: any) {
         console.error('withdrawFromReview', e);
-        showError(e?.message || 'Could not withdraw plan.');
+        showError(friendlyError(e, 'Could not withdraw plan.'));
       }
     },
     [patchLocalPlan]

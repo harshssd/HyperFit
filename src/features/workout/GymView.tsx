@@ -970,9 +970,14 @@ const GymView = ({
             // Owner-based partition keeps an approved+published user plan in
             // *their* library (so they keep seeing the status badge), while
             // also surfacing it in the public templates list for everyone.
-            userCreatedPlans={(data.workoutPlans || []).filter(
-              (p: WorkoutPlan) => p.user_id && p.user_id === userId
-            )}
+            // While userId is still hydrating (auth/data race) the partition
+            // would silently exclude every owned plan; fall back to the
+            // legacy `!is_public` filter until userId arrives.
+            userCreatedPlans={
+              userId
+                ? (data.workoutPlans || []).filter((p: WorkoutPlan) => p.user_id === userId)
+                : (data.workoutPlans || []).filter((p: WorkoutPlan) => !p.is_public)
+            }
             publicPlans={(data.workoutPlans || []).filter((p: WorkoutPlan) => p.is_public)}
             userEquipment="gym"
             userFrequency={3}
