@@ -4,7 +4,7 @@ import { ChevronLeft, Layout, User, Plus, Search, Calendar, ChevronRight, Info }
 import GlassCard from '../../../components/GlassCard';
 import PlanStatusBadge from './PlanStatusBadge';
 import NeonButton from '../../../components/NeonButton';
-import { colors, spacing, radii, text, palette } from '../../../styles/theme';
+import { colors, spacing, radii, text, palette, accent } from '../../../styles/theme';
 import { homeStyles } from '../../../styles';
 // Removed: DEFAULT_PLANS import - plans now come from database
 import { WorkoutPlan } from '../../../types/workout';
@@ -31,6 +31,10 @@ type WorkoutPlansLibraryProps = {
   userEquipment?: 'gym' | 'bodyweight' | 'dumbbells' | 'mixed';
   userFrequency?: number;
   selectionMode?: 'activate' | 'session'; // New prop to determine button text
+  /** plan_id (workout_plans.id) of the user's currently active plan, if any.
+   *  Drives the disabled "ACTIVE" state on the matching card so the user can
+   *  see at a glance which plan they're already on. */
+  activePlanId?: string;
 };
 
 const WorkoutPlansLibrary = ({
@@ -49,7 +53,8 @@ const WorkoutPlansLibrary = ({
   userCreatedPlans = [],
   userEquipment = 'gym',
   userFrequency = 3,
-  selectionMode = 'activate'
+  selectionMode = 'activate',
+  activePlanId,
 }: WorkoutPlansLibraryProps) => {
   const [activeTab, setActiveTab] = useState<'templates' | 'myPlans'>('templates');
   const [templateFilter, setTemplateFilter] = useState<'all' | 'public' | 'local'>('all');
@@ -157,8 +162,19 @@ const WorkoutPlansLibrary = ({
     return plan.equipment === userEquipment && plan.frequency === userFrequency;
   };
 
-  const renderPlanCard = (plan: WorkoutPlan, isUserPlan: boolean, isUserCreated: boolean = false) => (
-    <GlassCard key={plan.id} style={{ marginBottom: spacing.md, padding: spacing.md }}>
+  const renderPlanCard = (plan: WorkoutPlan, isUserPlan: boolean, isUserCreated: boolean = false) => {
+    const isActive = activePlanId != null && plan.id === activePlanId;
+    return (
+    <GlassCard
+      key={plan.id}
+      style={{
+        marginBottom: spacing.md,
+        padding: spacing.md,
+        ...(isActive
+          ? { borderWidth: 1, borderColor: 'rgba(252, 76, 2, 0.55)' }
+          : null),
+      }}
+    >
       <TouchableOpacity
         onPress={() => setSelectedPlan(plan)}
         style={{
@@ -171,6 +187,7 @@ const WorkoutPlansLibrary = ({
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginRight: spacing.sm }}>
                 {plan.name}
               </Text>
+              {isActive && <PlanStatusBadge kind="active" />}
               {isUserCreated && plan.review_status === 'pending_review' && (
                 <PlanStatusBadge kind="underReview" />
               )}
@@ -226,18 +243,37 @@ const WorkoutPlansLibrary = ({
 
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
         <TouchableOpacity
-          onPress={() => onSelectPlan(plan)}
+          onPress={() => {
+            if (isActive && selectionMode === 'activate') return;
+            onSelectPlan(plan);
+          }}
+          disabled={isActive && selectionMode === 'activate'}
           style={{
             flex: 1,
-            backgroundColor: colors.primary,
+            backgroundColor: isActive && selectionMode === 'activate'
+              ? 'rgba(252, 76, 2, 0.12)'
+              : colors.primary,
             paddingVertical: spacing.sm,
             paddingHorizontal: spacing.md,
             borderRadius: radii.sm,
-            alignItems: 'center'
+            alignItems: 'center',
+            borderWidth: isActive && selectionMode === 'activate' ? 1 : 0,
+            borderColor: 'rgba(252, 76, 2, 0.55)',
           }}
         >
-          <Text style={{ color: palette.bg, fontSize: 14, fontWeight: '800', letterSpacing: 0.6 }}>
-            {selectionMode === 'activate' ? 'ACTIVATE' : 'SELECT PLAN'}
+          <Text
+            style={{
+              color: isActive && selectionMode === 'activate'
+                ? accent.lift
+                : palette.bg,
+              fontSize: 14,
+              fontWeight: '800',
+              letterSpacing: 0.6,
+            }}
+          >
+            {selectionMode === 'activate'
+              ? (isActive ? 'ACTIVE' : 'ACTIVATE')
+              : 'SELECT PLAN'}
           </Text>
         </TouchableOpacity>
 
@@ -347,7 +383,8 @@ const WorkoutPlansLibrary = ({
         )}
       </View>
     </GlassCard>
-  );
+    );
+  };
 
   const renderPlanDetails = () => {
     if (!selectedPlan || !selectedPlanDetails) return null;
@@ -395,12 +432,35 @@ const WorkoutPlansLibrary = ({
                   </View>
                 </View>
 
-                <NeonButton onPress={() => onSelectPlan(selectedPlanDetails)} style={{ width: '100%' }}>
-                  <Calendar size={20} color="#0f172a" />
-                  <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>
-                    {selectionMode === 'activate' ? 'ACTIVATE THIS PLAN' : 'SELECT THIS PLAN'}
-                  </Text>
-                </NeonButton>
+                {(() => {
+                  const detailsActive = selectionMode === 'activate'
+                    && activePlanId != null
+                    && selectedPlanDetails.id === activePlanId;
+                  return (
+                    <NeonButton
+                      onPress={() => {
+                        if (detailsActive) return;
+                        onSelectPlan(selectedPlanDetails);
+                      }}
+                      disabled={detailsActive}
+                      style={{ width: '100%' }}
+                    >
+                      <Calendar size={20} color={detailsActive ? accent.lift : '#0f172a'} />
+                      <Text
+                        style={{
+                          marginLeft: 8,
+                          fontSize: 16,
+                          fontWeight: 'bold',
+                          color: detailsActive ? accent.lift : undefined,
+                        }}
+                      >
+                        {selectionMode === 'activate'
+                          ? (detailsActive ? 'ACTIVE PLAN' : 'ACTIVATE THIS PLAN')
+                          : 'SELECT THIS PLAN'}
+                      </Text>
+                    </NeonButton>
+                  );
+                })()}
               </GlassCard>
 
               <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: spacing.md }}>
