@@ -18,7 +18,7 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Modal, Alert } from 'react-native';
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Modal } from 'react-native';
 import {
   CheckCircle,
   ChevronLeft,
@@ -50,7 +50,7 @@ import WorkoutFocusActions from './components/WorkoutFocusActions';
 import RestTimerBar from './components/RestTimerBar';
 import WorkoutHeader from './components/WorkoutHeader';
 import WorkoutFocusHeader from './components/WorkoutFocusHeader';
-import WorkoutPlanner, { WorkoutPlanCreator } from './components/WorkoutPlanner';
+import WorkoutPlanner from './components/WorkoutPlanner';
 import FinishedSessionView from './components/FinishedSessionView';
 import NeonButton from '../../components/NeonButton';
 import GlassCard from '../../components/GlassCard';
@@ -83,7 +83,11 @@ try {
 } catch {
   // Optional native module — gracefully degrade.
 }
-import { fetchWorkoutPlanDetails, createWorkoutPlan, createUserWorkoutPlan, updateUserWorkoutPlan, fetchExercises } from '../../services/workoutService';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/types';
+import { usePlanActions } from './hooks/usePlanActions';
+import { fetchWorkoutPlanDetails, createUserWorkoutPlan, updateUserWorkoutPlan, fetchExercises } from '../../services/workoutService';
 import { confirmAction, showError, showSuccess } from '../../utils/alerts';
 import { ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE } from '../../constants/text';
 
@@ -119,6 +123,8 @@ const GymView = ({
 
   const { user: contextUser } = useUser();
   const userId = contextUser?.id || user?.id;
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+  const { activatePlan } = usePlanActions({ userId, data, updateData });
 
   // Workout session, rest timer, and the active plan all come from a single
   // app-level provider so the upcoming ActiveWorkout modal route reads the
@@ -235,8 +241,6 @@ const GymView = ({
   const saveTemplateTagInputRef = useRef<TextInput | null>(null);
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  const [showPlanCreator, setShowPlanCreator] = useState(false);
-  const [suggestedPlanType, setSuggestedPlanType] = useState<WorkoutPlan['equipment'] | undefined>();
 
   const closeOverview = closeOverviewView;
 
@@ -418,187 +422,10 @@ const GymView = ({
     setShowOverview(true);
   };
 
-  const handleCreatePlan = async (planData: Omit<WorkoutPlan, 'id' | 'createdAt' | 'isTemplate'>) => {
-    if (!user?.id) {
-      showError('You must be signed in to create a plan.');
-      return;
-    }
-
-    try {
-      // Transform the plan data to database format
-      const planForDb = {
-        name: planData.name,
-        description: planData.description,
-        frequency: planData.frequency,
-        equipment: planData.equipment,
-        // schema column is `text`; the in-memory shape happens to be a number
-        // ("weeks"). Coerce at the boundary.
-        duration: planData.duration != null ? String(planData.duration) : null,
-        difficulty: planData.difficulty,
-        tags: planData.tags || [],
-        is_public: false, // User-created plans are private by default
-        user_id: user.id,
-      };
-
-      // Transform sessions to database format
-      // All sessions are copies in the unified model
-      const sessionsForDb = planData.sessions
-        .map((session, index) => ({
-          session: {
-            id: session.id, // preserve client session id so schedule can reference it
-            name: session.name,
-            description: session.description || '',
-            focus: session.focus as string,
-            order_index: index + 1, // Use array index as order
-            original_session_id: (session as any).originalSessionId || null, // Track lineage for analytics
-          } as any,
-          exercises: session.exercises.map(exercise => ({
-            exercise_id: exercise.id,
-            sets: exercise.sets,
-            reps_min: exercise.repRange.min,
-            reps_max: exercise.repRange.max,
-            rest_seconds: exercise.restSeconds || 60,
-            order_index: exercise.order,
-          } as any))
-        })) as any;
-
-      // Transform schedule to database format
-      const scheduleForDb = Object.entries(planData.schedule || {}).flatMap(([day, sessions]) =>
-        (sessions || []).map(session => {
-          return {
-            // In the unified model, we always reference the session ID from the sessions list
-            // The service layer maps this client ID to the newly created DB ID
-            session_id: session.sessionId,
-            day_of_week: day,
-          } as any;
-        })
-      );
-
-      // Save to database
-      const savedPlan = await createWorkoutPlan(planForDb, sessionsForDb, scheduleForDb);
-
-      // Fetch the complete plan with all details from the database
-      const completePlan = await fetchWorkoutPlanDetails(savedPlan.id);
-
-      // Update local state with the complete plan data
-      const updatedPlans = [...(data.workoutPlans || []), completePlan];
-      updateData({ ...data, workoutPlans: updatedPlans });
-
-      // Close the plan creator
-      setShowPlanCreator(false);
-      
-      showSuccess(`Plan "${completePlan.name}" created successfully!`);
-
-      // Prompt to activate the newly created plan
-      setTimeout(() => {
-        Alert.alert(
-          "Plan Created",
-          "Would you like to activate this plan now?",
-          [
-            { 
-              text: "Not Now", 
-              style: "cancel",
-              onPress: () => {
-                // Refresh to show the new plan in the library
-                setShowPlanLibrary(true);
-              }
-            },
-            { 
-              text: "Activate", 
-              onPress: async () => {
-                await handleActivatePlan(savedPlan.id);
-                // Force a refresh by toggling plan library visibility
-                setShowPlanLibrary(false);
-              }
-            }
-          ]
-        );
-      }, 500);
-
-    } catch (error) {
-      console.error('Error creating plan:', error);
-      showError('Failed to create plan. Please try again.');
-    }
-  };
-
-  const handleActivatePlan = async (planId: string) => {
-    if (!user?.id) {
-      showError('You must be signed in to activate a plan.');
-      return;
-    }
-
-    const userPlans = data.userWorkoutPlans || [];
-    const targetPlan = userPlans.find((p: any) => p.planId === planId);
-
-    try {
-      // Fetch complete plan details from database to ensure we have all data
-      let planDetails = targetPlan?.planData;
-      if (!planDetails || !planDetails.sessions) {
-        planDetails = await fetchWorkoutPlanDetails(planId);
-      }
-
-      // Deactivate other plans in DB
-      await Promise.all(
-        userPlans
-          .filter((p: any) => p.isActive && p.planId !== planId && p.id)
-          .map((p: any) => updateUserWorkoutPlan(p.id, { is_active: false }))
-      );
-
-      // Activate selected plan in DB (create it if it doesn't exist locally)
-      let activePlanRecordId = targetPlan?.id;
-      if (targetPlan?.id) {
-        await updateUserWorkoutPlan(targetPlan.id, { is_active: true });
-      } else {
-        const newUserPlan = await createUserWorkoutPlan({
-          user_id: user.id,
-          plan_id: planId,
-          is_active: true,
-          started_at: new Date().toISOString(),
-        });
-        activePlanRecordId = newUserPlan.id;
-      }
-
-      // Update local state
-      const updatedUserPlans = userPlans
-        .map((p: any) => ({
-          ...p,
-          isActive: p.planId === planId,
-          // Update plan data if it's the active plan
-          planData: p.planId === planId ? planDetails : p.planData,
-        }))
-        .map((p: any) =>
-          p.planId === planId && activePlanRecordId
-            ? { ...p, id: activePlanRecordId, isActive: true }
-            : { ...p, isActive: false }
-        );
-
-      // If the plan wasn't in userPlans, add it now
-      if (!targetPlan && activePlanRecordId && planDetails) {
-        updatedUserPlans.push({
-          id: activePlanRecordId,
-          userId: user.id,
-          planId: planId,
-          planData: planDetails, // Use complete plan details
-          startedAt: new Date().toISOString(),
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          customName: planDetails.name,
-        });
-      }
-
-      updateData({
-        ...data,
-        userWorkoutPlans: updatedUserPlans,
-        activePlanId: planId,
-      });
-
-      const activePlan = updatedUserPlans.find((p: any) => p.isActive);
-      showSuccess(`${activePlan?.customName || activePlan?.planData?.name || 'Plan'} activated!`);
-    } catch (error) {
-      console.error('Error activating plan:', error);
-      showError('Failed to activate plan. Please try again.');
-    }
-  };
+  // Plan create + activate live in usePlanActions so PlanBuilderScreen and
+  // GymView share one source of truth. The activation prompt is fired by the
+  // hook itself after a successful create.
+  const handleActivatePlan = activatePlan;
 
   const handleSelectWorkout = (workoutType: string, planId?: string) => {
     handleQuickWorkout(workoutType);
@@ -1023,9 +850,8 @@ const GymView = ({
           }}
           onQuickWorkout={(type) => handleQuickWorkout(type)}
           onAISuggestion={() => handleAISuggestion()}
-          onCreatePlan={(suggestedType) => {
-            setSuggestedPlanType(suggestedType);
-            setShowPlanCreator(true);
+          onCreatePlan={() => {
+            navigation.navigate('PlanBuilder');
           }}
           onBrowsePlans={() => {
             setPlanSelectionMode('activate');
@@ -1145,7 +971,8 @@ const GymView = ({
               setShowPlanLibrary(false);
             }}
             onCreateNew={() => {
-              setShowPlanCreator(true);
+              setShowPlanLibrary(false);
+              navigation.navigate('PlanBuilder');
             }}
             onEditPlan={handleEditPlan}
             onSyncPlan={handleSyncPlan}
@@ -1209,14 +1036,6 @@ const GymView = ({
             </View>
           </Modal>
 
-          <WorkoutPlanCreator
-            visible={showPlanCreator}
-            onClose={() => {
-              setShowPlanCreator(false);
-              setSuggestedPlanType(undefined);
-            }}
-            onCreatePlan={handleCreatePlan}
-          />
         </>
       );
     }

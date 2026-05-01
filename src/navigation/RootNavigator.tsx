@@ -12,6 +12,7 @@ import { WorkoutSessionProvider } from '../contexts/WorkoutSessionContext';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
 import { ActiveWorkoutScreen } from '../screens/ActiveWorkoutScreen';
+import { PlanBuilderScreen } from '../screens/PlanBuilderScreen';
 import { linking } from './linking';
 import type { RootStackParamList } from './types';
 
@@ -62,8 +63,20 @@ export const RootNavigator = () => {
                       component={ActiveWorkoutScreen}
                       options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
                     />
+                    {/* PlanBuilder uses transparentModal because the inner
+                        WorkoutPlanCreator already owns its own slide-up
+                        Modal — a `presentation: 'modal'` route would stack
+                        a second animation on top. */}
+                    <Stack.Screen
+                      name="PlanBuilder"
+                      component={PlanBuilderScreen}
+                      options={{
+                        presentation: 'transparentModal',
+                        animation: 'none',
+                        gestureEnabled: true,
+                      }}
+                    />
                     <Stack.Group screenOptions={{ presentation: 'modal' }}>
-                      <Stack.Screen name="PlanBuilder" component={PlaceholderModal} />
                       <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />
                       <Stack.Screen name="SessionDetail" component={PlaceholderModal} />
                     </Stack.Group>
