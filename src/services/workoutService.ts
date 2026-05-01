@@ -243,6 +243,26 @@ export const createUserWorkoutPlan = async (userPlan: Tables['user_workout_plans
   return data;
 };
 
+/**
+ * Server-side deactivation of every is_active row for a user, optionally
+ * excluding one plan_id. Use this before activating a plan so the unique
+ * partial index (one is_active row per user) can never collide on a stale
+ * local cache.
+ */
+export const deactivateUserWorkoutPlans = async (
+  userId: string,
+  exceptPlanId?: string
+) => {
+  let query = supabase
+    .from('user_workout_plans')
+    .update({ is_active: false })
+    .eq('user_id', userId)
+    .eq('is_active', true);
+  if (exceptPlanId) query = query.neq('plan_id', exceptPlanId);
+  const { error } = await query;
+  if (error) throw error;
+};
+
 export const updateUserWorkoutPlan = async (
   id: string,
   updates: Tables['user_workout_plans']['Update']

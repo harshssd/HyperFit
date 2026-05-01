@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updatedAt": "2026-05-01T18:25:41.654Z",
+    "updatedAt": "2026-05-01T19:48:37.733Z",
     "source": "managed via scripts/backlog.js"
   },
   "items": [
@@ -66,6 +66,13 @@
       "status": "todo",
       "category": "infra",
       "notes": "Wire jest-expo + @testing-library/react-native, add npm test script + CI step. First batch: pure helpers in src/features/workout/helpers.ts (finishWorkoutState, startNewSessionState, updateSetValue, XP/rank math). Then services. BL-1 covers the broader CI/lint/E2E story; this is the test-runner foundation it depends on."
+    },
+    {
+      "id": "BL-10",
+      "title": "Atomic activate-plan via RPC",
+      "status": "todo",
+      "category": "infra",
+      "notes": "Currently deactivateUserWorkoutPlans + updateUserWorkoutPlan/createUserWorkoutPlan are two separate round-trips. A parallel client (multi-device) could race between them. Wrap both in a Postgres SECURITY DEFINER function activate_user_workout_plan(plan_id) that runs the deactivate+activate in one transaction. Low priority — single-device users won't hit this."
     }
   ]
 }
