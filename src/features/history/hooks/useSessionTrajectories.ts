@@ -40,12 +40,15 @@ export const useSessionTrajectories = (
     const load = async () => {
       setLoading(true);
       try {
+        // Pull most recent 200 sessions (descending), then reverse client-side
+        // so each per-type series is chronological. ascending+limit returns
+        // the OLDEST 200, which is the wrong slice for trajectory.
         const { data, error } = await supabase
           .from('session_summary_view')
           .select('id, plan_session_id, session_name, volume_load, workout_date, start_time')
           .eq('user_id', userId)
-          .order('workout_date', { ascending: true })
-          .order('start_time', { ascending: true, nullsFirst: false })
+          .order('workout_date', { ascending: false })
+          .order('start_time', { ascending: false, nullsFirst: false })
           .limit(200);
         if (error || !data) {
           if (!cancelled) {
@@ -55,9 +58,11 @@ export const useSessionTrajectories = (
           return;
         }
 
+        const ordered = [...(data as any[])].reverse();  // chronological
+
         // Bucket by type-key. Prefer plan_session_id, fall back to session_name.
         const buckets = new Map<string, { id: string; volume: number }[]>();
-        for (const r of data as any[]) {
+        for (const r of ordered) {
           const key = (r.plan_session_id as string | null) ?? `name:${r.session_name ?? ''}`;
           if (!buckets.has(key)) buckets.set(key, []);
           buckets.get(key)!.push({
