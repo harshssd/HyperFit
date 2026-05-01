@@ -16,11 +16,6 @@ const cardsStyles = StyleSheet.create({
   glassCardNoPadding: {
     padding: 0,
   },
-  glassCardPressable: {
-    // Subtle pressable affordance — no orange border, no glow. The pressable
-    // state is communicated by activeOpacity (set on the TouchableOpacity).
-    backgroundColor: palette.surface,
-  },
 
   // Error banner — used by ErrorBanner / inline error rows.
   errorBanner: {

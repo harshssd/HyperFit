@@ -16,7 +16,6 @@ const GlassCard = ({ children, style, onPress, noPadding = false }: GlassCardPro
     style={[
       cardsStyles.glassCard,
       noPadding && cardsStyles.glassCardNoPadding,
-      onPress && cardsStyles.glassCardPressable,
       style,
     ]}
   >

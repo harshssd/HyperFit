@@ -1,11 +1,13 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, radii } from './theme';
+import { palette, text, accent, spacing, radii } from './theme';
 
 const homeStyles = StyleSheet.create({
   homeView: {
     flex: 1,
   },
   homeViewContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.xl,
   },
   homeCard: {
@@ -14,31 +16,32 @@ const homeStyles = StyleSheet.create({
   },
   homeCardTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: '900',
+    color: text.primary,
+    letterSpacing: -0.4,
     marginBottom: spacing.sm,
   },
   homeCardSubtitle: {
     fontSize: 14,
-    color: colors.muted,
+    color: text.tertiary,
   },
   homeQuickAction: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.md,
-    padding: 20,
-    backgroundColor: colors.glass,
+    padding: spacing.lg,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: colors.surface,
+    borderColor: palette.borderStrong,
     borderRadius: radii.lg,
   },
   homeQuickActionText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.primary,
+    fontSize: 13,
+    fontWeight: '800',
+    color: accent.lift,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
 });
 
