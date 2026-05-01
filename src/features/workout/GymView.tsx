@@ -617,8 +617,30 @@ const GymView = ({
 
   const updateSet = session.updateSet;
 
+  // Auto-commit any uncompleted set on the given exercise that has both
+  // weight and reps filled in. Lets users skip the explicit checkmark tap
+  // when they advance via "Add Set" or "Next Exercise".
+  const commitFilledSets = (exId: number) => {
+    const exercise = visibleWorkout.find((e: any) => e.id === exId);
+    if (!exercise) return;
+    exercise.sets.forEach((set: any, idx: number) => {
+      if (set.completed) return;
+      const w = Number(set.weight);
+      const r = Number(set.reps);
+      if (Number.isFinite(w) && w > 0 && Number.isFinite(r) && r > 0) {
+        updateSet(exId, idx, 'completed', true);
+      }
+    });
+  };
+
   const addSet = (exId: number) => {
+    commitFilledSets(exId);
     addSetHook(exId);
+  };
+
+  const nextExerciseWithCommit = () => {
+    if (currentExercise) commitFilledSets(currentExercise.id);
+    nextExercise();
   };
 
   const deleteExercise = (exId: number) => {
@@ -630,6 +652,8 @@ const GymView = ({
   };
 
   const finishWorkout = () => {
+    // Catch any last-exercise sets the user filled in but didn't tick.
+    visibleWorkout.forEach((ex: any) => commitFilledSets(ex.id));
     finishWorkoutHook();
     stopSession();
     setShowOverview(false);
@@ -735,7 +759,7 @@ const GymView = ({
         currentIndex={currentExIndex}
         totalExercises={visibleWorkout.length}
         onPrev={prevExercise}
-        onNext={nextExercise}
+        onNext={nextExerciseWithCommit}
       />
 
       <WorkoutFocusSets
@@ -757,7 +781,7 @@ const GymView = ({
 
       <WorkoutFocusActions
         hasNext={currentExIndex < visibleWorkout.length - 1}
-        onNext={nextExercise}
+        onNext={nextExerciseWithCommit}
         onFinish={finishWorkout}
         onAbort={abortSession}
       />
