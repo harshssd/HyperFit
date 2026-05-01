@@ -10,7 +10,6 @@ export const DEFAULT_DATA = {
   workouts: {},
   workoutStatus: {},
   activeChallenges: [],
-  customTemplates: [],
   customChallenges: [],
   pushupsCompleted: []
 };

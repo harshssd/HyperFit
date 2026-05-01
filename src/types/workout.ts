@@ -264,9 +264,6 @@ export type UserData = {
   workouts: Record<string, WorkoutExercise[]>; // Date -> workout exercises
   workoutStatus?: WorkoutStatus;   // Completion status per date
 
-  // Template Management (Supabase-backed)
-  customTemplates?: Template[];    // User's saved templates
-
   // Plan Management
   // userWorkoutPlans = the user's plan *instances* (which plan they're on,
   //                    with isActive, custom_name, started_at, etc.)
@@ -275,9 +272,6 @@ export type UserData = {
   userWorkoutPlans?: UserWorkoutPlan[];
   workoutPlans?: WorkoutPlan[];
   activePlanId?: string;           // Currently active plan ID
-
-  // Session Management
-  currentSession?: ActiveWorkoutSession;  // Active workout session
 
   // Preferences (Future use)
   equipment?: EquipmentType;
