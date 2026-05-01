@@ -65,3 +65,6 @@ ui-debug.log
 
 # Local Claude Code state
 .claude/
+
+# Supabase CLI local cache
+supabase/.temp/
