@@ -71,7 +71,11 @@ Rules of thumb:
 - **Side-effectful Supabase calls** in `src/services/`.
 - **Reusable visual states** (`LoadingState`, `EmptyState`, `ErrorState`) live in `src/components/StateView.tsx` — use them instead of rolling another inline placeholder.
 
-`src/components/` holds shared/cross-feature UI (`GlassCard`, `NeonButton`, `NavBar`, `Header`, `LoginView`, modals, charts). Visual language is a dark "neon/glass" aesthetic via `expo-blur` + `expo-linear-gradient`; design tokens in `src/styles/theme.ts`.
+`src/components/` holds shared/cross-feature UI (`GlassCard`, `NeonButton`, `NavBar`, `Header`, `LoginView`, modals, charts). Visual language follows the **"honest mirror" direction** documented in `DESIGN.md` — anthracite base, strava-orange for active/lift signals, robinhood-green for session-volume improvement, mono numerics with tabular-nums on every readout. Design tokens in `src/styles/theme.ts`.
+
+## Design system
+
+Always read `DESIGN.md` before making any visual or UI decision. All color, type, spacing, and aesthetic direction is defined there. Use `palette.*`, `text.*`, `accent.*` from `src/styles/theme.ts` instead of hardcoded hex values. Set `fontVariant={fonts.tabularNums}` on every numeric `Text` component — it's how stat columns line up.
 
 ## Conventions
 
