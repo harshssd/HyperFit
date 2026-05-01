@@ -6,6 +6,8 @@ const REST_INCREMENT_SECONDS = 30;
 export type UseRestTimerReturn = {
   /** Seconds remaining; null when no rest timer is active. */
   restSeconds: number | null;
+  /** Total duration of the active timer in seconds; null when inactive. Includes any +30s extensions. */
+  totalSeconds: number | null;
   /** Last "set completed" timestamp (ms epoch); null when no set has been completed. */
   lastCompletedAt: number | null;
   /** Start a rest countdown for `seconds` (defaults to 90). */
@@ -36,6 +38,7 @@ export type UseRestTimerReturn = {
  */
 export const useRestTimer = (): UseRestTimerReturn => {
   const [restSeconds, setRestSeconds] = useState<number | null>(null);
+  const [totalSeconds, setTotalSeconds] = useState<number | null>(null);
   const [lastCompletedAtState, setLastCompletedAtState] = useState<number | null>(null);
   const lastCompletedAtRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -50,6 +53,7 @@ export const useRestTimer = (): UseRestTimerReturn => {
   const skipRest = useCallback(() => {
     clearInterval_();
     setRestSeconds(null);
+    setTotalSeconds(null);
   }, []);
 
   const startRest = useCallback(
@@ -60,11 +64,13 @@ export const useRestTimer = (): UseRestTimerReturn => {
       }
       clearInterval_();
       setRestSeconds(seconds);
+      setTotalSeconds(seconds);
       intervalRef.current = setInterval(() => {
         setRestSeconds(prev => {
           if (prev === null) return null;
           if (prev <= 1) {
             clearInterval_();
+            setTotalSeconds(null);
             return null;
           }
           return prev - 1;
@@ -74,16 +80,19 @@ export const useRestTimer = (): UseRestTimerReturn => {
     [skipRest]
   );
 
+  const restRef = useRef<number | null>(null);
+  restRef.current = restSeconds;
+
   const extendRest = useCallback(
     (extra: number = REST_INCREMENT_SECONDS) => {
-      setRestSeconds(prev => {
-        const next = (prev ?? 0) + extra;
-        if (!intervalRef.current) {
-          startRest(next);
-          return next;
-        }
-        return next;
-      });
+      // Read both flags via refs so each setState updater stays pure
+      // and idempotent under React Strict Mode (which double-invokes them).
+      if (intervalRef.current === null) {
+        startRest((restRef.current ?? 0) + extra);
+        return;
+      }
+      setRestSeconds(prev => (prev ?? 0) + extra);
+      setTotalSeconds(prev => (prev ?? 0) + extra);
     },
     [startRest]
   );
@@ -113,6 +122,7 @@ export const useRestTimer = (): UseRestTimerReturn => {
 
   return {
     restSeconds,
+    totalSeconds,
     lastCompletedAt: lastCompletedAtState,
     startRest,
     skipRest,
