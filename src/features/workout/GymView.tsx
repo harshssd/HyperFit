@@ -30,6 +30,7 @@ import {
   Layout,
   Maximize2,
   Medal,
+  Play,
   Plus,
   PlusCircle,
   RotateCcw,
@@ -90,11 +91,30 @@ type GymViewProps = {
   data: any;
   updateData: (d: any) => void;
   user: any;
+  /**
+   * Which surface this mount is rendering:
+   * - "planner" (default): the Gym/Plans tab. Plan management, templates,
+   *   quick-start tiles, and a Resume Workout CTA when a session is active.
+   * - "session": the ActiveWorkout modal route. Renders only the focused
+   *   workout / list / finished UI.
+   */
+  mode?: 'planner' | 'session';
+  /** Called when the modal should dismiss itself (session mode only). */
+  onDismissSession?: () => void;
+  /** Called from planner when user wants to open the active workout modal. */
+  onOpenSession?: () => void;
 };
 
 import WorkoutPlansLibrary from './components/WorkoutPlansLibrary';
 
-const GymView = ({ data, updateData, user }: GymViewProps) => {
+const GymView = ({
+  data,
+  updateData,
+  user,
+  mode = 'planner',
+  onDismissSession,
+  onOpenSession,
+}: GymViewProps) => {
   const [showPlanLibrary, setShowPlanLibrary] = useState(false);
 
   const { user: contextUser } = useUser();
@@ -207,6 +227,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const startSessionHandler = () => {
     startSessionView();
     closePicker();
+    if (onOpenSession) onOpenSession();
   };
   const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
   const [saveTemplateFolder, setSaveTemplateFolder] = useState<string | null>(null);
@@ -903,7 +924,50 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     </View>
   );
 
+  // Defensive auto-dismiss: if the modal mounts (or stays mounted) without a
+  // session, kick the user back to the planner. Done in an effect — calling
+  // navigation.goBack() during render warns and can loop.
+  useEffect(() => {
+    if (mode === 'session' && visibleWorkout.length === 0 && !isFinished && onDismissSession) {
+      onDismissSession();
+    }
+  }, [mode, visibleWorkout.length, isFinished, onDismissSession]);
+
+  // After a finish flow that clears `sessionExercises`, the planner mount may
+  // still have `showOverview=true` from the pre-session preview. Reset it so
+  // the user lands on the regular planner instead of an empty WorkoutOverview.
+  useEffect(() => {
+    if (mode === 'planner' && visibleWorkout.length === 0 && showOverview) {
+      setShowOverview(false);
+    }
+  }, [mode, visibleWorkout.length, showOverview, setShowOverview]);
+
   const renderOverview = () => {
+    // SESSION MODE — skip every planner surface; only show the active workout.
+    if (mode === 'session') {
+      if (visibleWorkout.length === 0) {
+        // Effect above handles the dismiss; render nothing in the meantime.
+        return null;
+      }
+      return (
+        <View style={workoutStyles.workoutContainer}>
+          <WorkoutHeader
+            isSessionActive={true}
+            viewMode={viewMode}
+            currentIndex={currentExIndex}
+            totalExercises={visibleWorkout.length}
+            onBackToOverview={() => {
+              if (onDismissSession) onDismissSession();
+            }}
+            onToggleViewMode={toggleViewMode}
+            onAddExercise={() => setIsAddingExercise(true)}
+          />
+          {viewMode === 'list' ? renderWorkoutList() : renderWorkoutFocus()}
+        </View>
+      );
+    }
+
+    // PLANNER MODE — show WorkoutOverview / WorkoutPlanner / Resume CTA.
     if (showOverview && !isSessionActive) {
       return (
         <WorkoutOverview
@@ -1155,28 +1219,46 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       );
     }
 
+    // Planner mode + active session → "Resume Workout" CTA. The actual
+    // workout UI lives in the ActiveWorkout modal route now.
     return (
-      <View style={workoutStyles.workoutContainer}>
-        <WorkoutHeader
-          isSessionActive={isSessionActive}
-          viewMode={viewMode}
-          currentIndex={currentExIndex}
-          totalExercises={visibleWorkout.length}
-          onBackToOverview={() => {
-            setShowOverview(true);
-            stopSession();
+      <View style={{ padding: spacing.lg }}>
+        <TouchableOpacity
+          onPress={() => onOpenSession && onOpenSession()}
+          accessibilityRole="button"
+          accessibilityLabel="Resume active workout"
+          style={{
+            padding: spacing.lg,
+            borderRadius: radii.lg,
+            backgroundColor: 'rgba(249,115,22,0.12)',
+            borderWidth: 1,
+            borderColor: 'rgba(249,115,22,0.45)',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.md,
           }}
-          onToggleViewMode={toggleViewMode}
-          onAddExercise={() => setIsAddingExercise(true)}
-        />
-
-        {viewMode === 'list' ? renderWorkoutList() : renderWorkoutFocus()}
+        >
+          <Play size={20} color={colors.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 1.2 }}>
+              IN PROGRESS
+            </Text>
+            <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700', marginTop: 2 }}>
+              {sessionContext.customName || sessionContext.sessionName || 'Workout'}
+            </Text>
+            <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+              {visibleWorkout.length} exercises · tap to resume
+            </Text>
+          </View>
+          <ChevronRight size={20} color={colors.primary} />
+        </TouchableOpacity>
       </View>
     );
   };
 
   const handleCloseFinished = () => {
     session.startNewSession();
+    if (mode === 'session' && onDismissSession) onDismissSession();
   };
 
   const renderFinished = () => (
@@ -1189,7 +1271,9 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
     />
   );
 
-  if (isFinished) {
+  // FinishedSessionView only renders in session mode (the modal). In planner
+  // mode the user has to re-open the modal via the Resume CTA to acknowledge.
+  if (isFinished && mode === 'session') {
     return renderFinished();
   }
 
@@ -1202,12 +1286,17 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       <ScrollView style={workoutStyles.gymView} contentContainerStyle={workoutStyles.gymViewContent}>
         {renderOverview()}
       </ScrollView>
-      <RestTimerBar
-        restSeconds={restSeconds}
-        totalSeconds={restTimer.totalSeconds}
-        onExtend={extendRest}
-        onSkip={skipRest}
-      />
+      {/* Only the modal route owns the rest-timer bar. Otherwise both mounts
+          would pin one to the bottom of the screen and they'd visually stack
+          and steal touches in any uncovered region. */}
+      {mode === 'session' && (
+        <RestTimerBar
+          restSeconds={restSeconds}
+          totalSeconds={restTimer.totalSeconds}
+          onExtend={extendRest}
+          onSkip={skipRest}
+        />
+      )}
     </>
   );
 };

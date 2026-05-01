@@ -11,6 +11,7 @@ import { AppDataProvider } from '../contexts/AppDataContext';
 import { WorkoutSessionProvider } from '../contexts/WorkoutSessionContext';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
+import { ActiveWorkoutScreen } from '../screens/ActiveWorkoutScreen';
 import { linking } from './linking';
 import type { RootStackParamList } from './types';
 
@@ -54,8 +55,14 @@ export const RootNavigator = () => {
                 {auth.user ? (
                   <Stack.Group>
                     <Stack.Screen name="Main" component={MainTabs} />
+                    {/* ActiveWorkout uses transparentModal so the underlying
+                        tab bar stays mounted/visible (per design decision). */}
+                    <Stack.Screen
+                      name="ActiveWorkout"
+                      component={ActiveWorkoutScreen}
+                      options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
+                    />
                     <Stack.Group screenOptions={{ presentation: 'modal' }}>
-                      <Stack.Screen name="ActiveWorkout" component={PlaceholderModal} />
                       <Stack.Screen name="PlanBuilder" component={PlaceholderModal} />
                       <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />
                       <Stack.Screen name="SessionDetail" component={PlaceholderModal} />
