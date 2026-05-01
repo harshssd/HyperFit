@@ -8,6 +8,7 @@ import { useAuthContext } from '../contexts/AuthContext';
 import { useUserData } from '../hooks/useUserData';
 import { UserProvider } from '../contexts/UserContext';
 import { AppDataProvider } from '../contexts/AppDataContext';
+import { WorkoutSessionProvider } from '../contexts/WorkoutSessionContext';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
 import { linking } from './linking';
@@ -46,21 +47,25 @@ export const RootNavigator = () => {
               signOut: auth.signOut,
             }}
           >
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              {auth.user ? (
-                <Stack.Group>
-                  <Stack.Screen name="Main" component={MainTabs} />
-                  <Stack.Group screenOptions={{ presentation: 'modal' }}>
-                    <Stack.Screen name="ActiveWorkout" component={PlaceholderModal} />
-                    <Stack.Screen name="PlanBuilder" component={PlaceholderModal} />
-                    <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />
-                    <Stack.Screen name="SessionDetail" component={PlaceholderModal} />
+            {/* Key on user id so signing out and back in as a different user
+                discards any in-memory session, preventing cross-user log bleed. */}
+            <WorkoutSessionProvider key={auth.user?.id ?? 'anon'}>
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                {auth.user ? (
+                  <Stack.Group>
+                    <Stack.Screen name="Main" component={MainTabs} />
+                    <Stack.Group screenOptions={{ presentation: 'modal' }}>
+                      <Stack.Screen name="ActiveWorkout" component={PlaceholderModal} />
+                      <Stack.Screen name="PlanBuilder" component={PlaceholderModal} />
+                      <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />
+                      <Stack.Screen name="SessionDetail" component={PlaceholderModal} />
+                    </Stack.Group>
                   </Stack.Group>
-                </Stack.Group>
-              ) : (
-                <Stack.Screen name="Auth" component={AuthStack} />
-              )}
-            </Stack.Navigator>
+                ) : (
+                  <Stack.Screen name="Auth" component={AuthStack} />
+                )}
+              </Stack.Navigator>
+            </WorkoutSessionProvider>
           </AppDataProvider>
         </UserProvider>
       </ErrorBoundary>

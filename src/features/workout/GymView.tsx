@@ -73,9 +73,8 @@ import {
 
 import { useSessionView } from './hooks/useSessionView';
 import { useTemplates } from './hooks/useTemplates';
-import { useWorkoutSession } from './hooks/useWorkoutSession';
-import { useRestTimer } from './hooks/useRestTimer';
 import { useLastSessionSets } from './hooks/useLastSessionSets';
+import { useActiveWorkoutSession } from '../../contexts/WorkoutSessionContext';
 
 let Haptics: any = null;
 try {
@@ -101,12 +100,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
   const { user: contextUser } = useUser();
   const userId = contextUser?.id || user?.id;
 
-  // Active user plan — used for session-context defaults and finish-time logging.
-  const activeUserPlan = (data.userWorkoutPlans || []).find((plan: any) => plan.isActive);
-
-  // Workout session + rest timer state lives in dedicated hooks.
-  const restTimer = useRestTimer();
-  const session = useWorkoutSession({ userId, activeUserPlan, restTimer });
+  // Workout session, rest timer, and the active plan all come from a single
+  // app-level provider so the upcoming ActiveWorkout modal route reads the
+  // same instances and so GymView and the provider can't disagree about
+  // which plan is active.
+  const { session, restTimer, activeUserPlan } = useActiveWorkoutSession();
   const {
     sessionExercises,
     sessionStartTime,
