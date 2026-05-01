@@ -32,30 +32,7 @@ const COLD = colors.cyan; // light intensity = cyan (cool)
 const HOT = colors.primary; // heavy intensity = orange (warm)
 const UNTOUCHED = colors.surface;
 
-/**
- * Lerp two hex colors at a given t (0 .. 1).
- * Returns rgba(...) so SVG fill plus opacity can be applied via Animated.
- */
-const lerpColor = (a: string, b: string, t: number): string => {
-  const parse = (hex: string) => {
-    const h = hex.replace('#', '');
-    return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
-  };
-  const [ar, ag, ab] = parse(a);
-  const [br, bg, bb] = parse(b);
-  const r = Math.round(ar + (br - ar) * t);
-  const g = Math.round(ag + (bg - ag) * t);
-  const bl = Math.round(ab + (bb - ab) * t);
-  return `rgb(${r}, ${g}, ${bl})`;
-};
-
-const intensityToColor = (i: number): string => {
-  if (i <= 0) return UNTOUCHED;
-  if (i <= 0.5) return lerpColor(UNTOUCHED, COLD, i / 0.5);
-  return lerpColor(COLD, HOT, (i - 0.5) / 0.5);
-};
-
-/** Renders one region's shapes. Animates fill via opacity crossfade. */
+/** Renders one region's shapes. Animates both fill color and opacity. */
 const Region = ({
   region,
   intensity,
@@ -75,10 +52,13 @@ const Region = ({
     }).start();
   }, [intensity, fadeAnim]);
 
-  const fill = intensityToColor(intensity);
+  const fill = fadeAnim.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [UNTOUCHED, COLD, HOT],
+  });
   const opacity = fadeAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.55, 1],
+    outputRange: [0.7, 1],
   });
 
   return (

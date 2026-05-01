@@ -15,6 +15,8 @@ export type MuscleVolumeBreakdown = {
 
 const EMPTY: MuscleVolumeBreakdown = { byRegion: {}, intensities: {}, total: 0, setCount: 0 };
 
+const ROW_LIMIT = 5000;
+
 /**
  * Aggregates workout_log volume per muscle region over the last `daysBack`
  * days for the given user. Joins to `exercises` to read each row's
@@ -26,10 +28,12 @@ export const useMuscleVolume = (userId: string | null | undefined, daysBack: num
   const [data, setData] = useState<MuscleVolumeBreakdown>(EMPTY);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [truncated, setTruncated] = useState(false);
 
   useEffect(() => {
     if (!userId) {
       setData(EMPTY);
+      setTruncated(false);
       return;
     }
 
@@ -41,7 +45,9 @@ export const useMuscleVolume = (userId: string | null | undefined, daysBack: num
         let query = supabase
           .from('workout_log')
           .select('weight, reps, exercise:exercises(muscle_group)')
-          .eq('user_id', userId);
+          .eq('user_id', userId)
+          .order('workout_date', { ascending: false })
+          .limit(ROW_LIMIT);
 
         if (daysBack !== null) {
           const since = new Date();
@@ -64,7 +70,7 @@ export const useMuscleVolume = (userId: string | null | undefined, daysBack: num
           const groupRaw: string | undefined = ex?.muscle_group;
           if (!groupRaw) return;
 
-          const regions = MUSCLE_GROUP_TO_REGION[groupRaw.toLowerCase()];
+          const regions = MUSCLE_GROUP_TO_REGION[groupRaw.trim().toLowerCase()];
           if (!regions || regions.length === 0) return;
 
           const volume = (Number(row.weight) || 0) * (Number(row.reps) || 0);
@@ -89,6 +95,7 @@ export const useMuscleVolume = (userId: string | null | undefined, daysBack: num
         }
 
         setData({ byRegion, intensities, total, setCount });
+        setTruncated((rows ?? []).length >= ROW_LIMIT);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e : new Error(String(e)));
       } finally {
@@ -102,5 +109,5 @@ export const useMuscleVolume = (userId: string | null | undefined, daysBack: num
     };
   }, [userId, daysBack]);
 
-  return { ...data, loading, error };
+  return { ...data, loading, error, truncated };
 };

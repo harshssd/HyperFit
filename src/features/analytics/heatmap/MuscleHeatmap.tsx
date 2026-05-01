@@ -65,7 +65,7 @@ export const MuscleHeatmap = ({
   compact = false,
 }: Props) => {
   const [days, setDays] = useState<7 | 30 | 90 | null>(defaultDays);
-  const live = useMuscleVolume(userId, staticIntensities ? null : days);
+  const live = useMuscleVolume(staticIntensities ? null : userId, days);
   const [view, setView] = useState<'front' | 'back'>('front');
   const [selected, setSelected] = useState<MuscleId | null>(null);
 

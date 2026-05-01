@@ -197,24 +197,37 @@ export const BACK_REGIONS: MuscleRegion[] = [
 ];
 
 /**
- * Outline of the body silhouette behind the muscle regions. Single Path so the
- * silhouette can be rendered in one stroke.
+ * Body silhouette as a single closed path: head + torso + arms + legs.
+ * Traced clockwise from the top of the head so the path never self-intersects.
+ * Front and back share the same simplified outline (the regions on top tell
+ * them apart visually).
  */
-export const FRONT_OUTLINE =
+const BODY_SILHOUETTE_PATH =
+  // Head (clockwise from top)
   'M 100 25 ' +
-  'C 88 25, 80 35, 80 50 ' + // head left
-  'C 80 65, 88 75, 100 75 ' + // head bottom
-  'C 112 75, 120 65, 120 50 ' + // head right
-  'C 120 35, 112 25, 100 25 Z'; // close head
-// Body outline drawn as separate path for clarity.
-export const FRONT_BODY_OUTLINE =
-  'M 80 90 ' +
-  'L 50 100 L 32 145 L 22 195 L 22 230 L 32 240 ' + // left arm
-  'L 70 165 L 70 220 L 65 310 L 65 380 L 105 380 L 105 310 ' + // left leg
-  'L 130 165 L 130 220 L 135 310 L 135 380 L 105 380 ' + // right leg
-  'L 168 240 L 178 230 L 178 195 L 168 145 L 150 100 L 120 90 Z';
-export const BACK_OUTLINE = FRONT_OUTLINE; // symmetric for our simplified silhouette
-export const BACK_BODY_OUTLINE = FRONT_BODY_OUTLINE;
+  'C 112 25, 120 35, 120 50 ' +
+  'C 120 65, 112 78, 100 80 ' +
+  // Right shoulder out to right arm
+  'L 150 95 L 168 130 L 178 180 L 178 225 L 168 240 ' +
+  // Right arm down to wrist, then back up the inner edge to torso
+  'L 158 230 L 150 180 L 140 140 L 130 160 ' +
+  // Right side of torso down to hip
+  'L 132 220 ' +
+  // Right leg: outer edge down to ankle, around the foot, inner edge back up
+  'L 138 310 L 135 380 L 108 380 L 105 310 L 100 230 ' +
+  // Inseam crotch and into left leg
+  'L 95 310 L 92 380 L 65 380 L 62 310 L 68 220 ' +
+  // Left side of torso up to shoulder
+  'L 70 160 L 60 140 L 50 180 L 42 230 L 32 240 ' +
+  // Left arm back up to shoulder
+  'L 22 225 L 22 180 L 32 130 L 50 95 ' +
+  // Left shoulder back to head
+  'L 80 80 ' +
+  'C 88 78, 80 65, 80 50 ' +
+  'C 80 35, 88 25, 100 25 Z';
+
+export const FRONT_BODY_OUTLINE = BODY_SILHOUETTE_PATH;
+export const BACK_BODY_OUTLINE = BODY_SILHOUETTE_PATH;
 
 export const VIEWBOX_WIDTH = 200;
 export const VIEWBOX_HEIGHT = 400;
