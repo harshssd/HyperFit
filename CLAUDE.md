@@ -13,7 +13,9 @@ Production builds use EAS:
 - `eas submit --platform ios --profile production`
 - (same with `--platform android`)
 
-There is no test runner, linter, or type-check script wired into `package.json`. Type-check manually with `npx tsc --noEmit`.
+- `npm run typecheck` — `tsc --noEmit`. Runs in CI on every PR (`.github/workflows/ci.yml`); keep it green.
+
+There is no test runner or linter wired up yet.
 
 Database:
 - Migrations live in `supabase/migrations/` and are applied via the Supabase CLI or SQL editor.
@@ -21,11 +23,11 @@ Database:
 
 ## Architecture
 
-Single-screen Expo app — there is no navigation library. `App.tsx` is the shell: it composes hooks (`useAuth`, `useUserData`) and renders one of four feature views based on a local `activeTab` string. Feature content is wrapped in `<ErrorBoundary>` so a crash in one tab doesn't take down the rest of the app.
+`App.tsx` mounts `GestureHandlerRootView` → `SafeAreaProvider` → `AuthProvider` → `RootNavigator`. Navigation is react-navigation v7 (auth stack + bottom tabs + modal stack — see `src/navigation/`). The legacy single-screen `activeTab` shell is gone.
 
 Auth and data flow:
 1. `useAuth` (in `src/hooks/useAuth.ts`) owns user state, the Supabase auth listener, and the Google OAuth dance via `expo-auth-session` + `expo-web-browser`. It exposes `{ user, status, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut }`.
-2. `useUserData` (in `src/hooks/useUserData.ts`) loads the persisted slice of `UserData` for the signed-in user. Today it only hydrates plan-related fields (`userWorkoutPlans`, `workoutPlans`); the other `UserData` fields stay in memory.
+2. `useUserData` (in `src/hooks/useUserData.ts`) loads the persisted slice of `UserData` for the signed-in user. Today it hydrates plan-related fields (`userWorkoutPlans`, `workoutPlans`) and `gymLogs` (distinct workout dates). Other `UserData` fields still live only in memory.
 3. `UserProvider` (in `src/contexts/UserContext.tsx`) re-exposes the current `User` to deep components that don't get props (e.g. `HistoryAnalyticsView`).
 
 Realtime sync is intentionally **not** wired up — the previous `subscribeToUserData` was a no-op. When realtime is needed, subscribe per table (workout_log, user_workout_plans) rather than to a monolithic user blob.
@@ -49,11 +51,13 @@ The "log" world:
 - `userWorkoutPlans: UserWorkoutPlan[]` — the user's plan **instances** (which plan they're on, with `isActive`, `customName`, `startedAt`).
 - `workoutPlans: WorkoutPlan[]` — the **catalog** of plan blueprints they can pick from (own + public). RLS handles visibility.
 
-Other `UserData` fields (`gymLogs`, `workouts`, `customTemplates`, `currentSession`) are still in-memory only — they reset on reload. Migrate them to feature hooks as the relevant features get touched.
+`gymLogs` is now hydrated from `session_summary_view` on load (see `loadUserData`). The remaining in-memory fields (`workouts`, `customTemplates`, `currentSession`) still reset on reload — migrate them to feature hooks that read on demand from `workout_log` as the relevant features get touched.
 
 ## Feature layout
 
-Feature folders under `src/features/` (`workout/`, `history/`, `analytics/`) are the unit of organization. The `workout` feature is by far the largest: `GymView.tsx` is its entry (still ~1500 lines — split is queued), with `components/`, `hooks/`, and `helpers.ts` (pure state transitions like `finishWorkoutState`, `startNewSessionState`, `updateSetValue`, plus XP/rank math).
+Feature folders under `src/features/` (`workout/`, `history/`, `analytics/`) are the unit of organization. The `workout` feature is by far the largest: `GymView.tsx` is its entry (~1.2k lines — modal split is queued), with `components/`, `hooks/`, and `helpers.ts` (pure state transitions like `finishWorkoutState`, `startNewSessionState`, `updateSetValue`, plus XP/rank math). Workout-session state is owned by `useWorkoutSession`; the rest timer is owned by `useRestTimer` and rendered by the docked `RestTimerBar`. `useLastSessionSets` powers the ghost-value placeholders on set inputs.
+
+Analytics has a body-silhouette muscle heatmap under `src/features/analytics/heatmap/` (`MuscleHeatmap` + `BodySilhouette` + `useMuscleVolume`), embedded in `HistoryAnalyticsView`. `useMuscleVolume` caps `workout_log` reads at 5000 rows.
 
 Rules of thumb:
 - **Pure helpers** in `helpers.ts` (no Supabase, no React state).
