@@ -40,13 +40,15 @@ const CalendarView = () => {
 
   const { days } = useCalendarData(user?.id, activePlan, month);
 
-  const goPrev = () => setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1));
-  const goNext = () => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1));
+  // Clear the selection when leaving the month — otherwise the bottom sheet
+  // keeps showing data for a day that's no longer on the grid.
+  const goPrev = () => { setSelected(null); setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1)); };
+  const goNext = () => { setSelected(null); setMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1)); };
   const jumpToday = () => {
     const now = new Date();
     setMonth(new Date(now.getFullYear(), now.getMonth(), 1));
     const todayCell = days.find((d) => d.isToday);
-    if (todayCell) setSelected(todayCell);
+    setSelected(todayCell || null);
   };
 
   const onTapDay = (d: CalendarDay) => {
