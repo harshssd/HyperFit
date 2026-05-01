@@ -34,18 +34,25 @@ Realtime sync is intentionally **not** wired up — the previous `subscribeToUse
 
 ## Data model
 
-Two SQL migrations are canonical:
-- `20250101000000_clean_initial_schema.sql` — the workout-plan world.
-- `20250102000000_quick_templates_and_session_summary.sql` — quick-save templates + the `session_summary_view`.
+Single canonical migration: `20260430000000_initial_schema.sql`. Anything not referenced by source code on 2026-04-30 was dropped (no progress/PR table, no per-day summary table, no dead views) — recreate them as Postgres views the day a feature actually needs them.
 
-There are **two distinct "template" concepts**, one in each migration:
-- `session_templates` / `template_exercises` — reusable session blueprints used inside a `workout_plan` (e.g., a "Push Day v2" definition referenced from multiple plans). Used by `fetchSessionTemplates` / `createSessionTemplate` and by `plan_sessions.template_id`.
-- `workout_templates` / `workout_template_folders` / `user_template_favorites` — quick-save bookmarks of an ad-hoc exercise list ("Hotel workout"). Used by `src/services/templates.ts` and the `useTemplates` hook in GymView.
+The plan world:
+- `workout_plans` — blueprint catalog (own + public).
+- `plan_sessions` — sessions inside a plan; **owned outright** (no `template_id` coupling).
+- `plan_exercises` — exercises in a plan_session, FK to master `exercises`.
+- `plan_schedule` — which session(s) on which day-of-week.
+- `user_workout_plans` — instance: which plan a user is on. At most one `is_active` row per user (unique partial index).
 
-The "log" world:
-- `workout_log` is the unified write surface — one row per set. Session metadata (`session_name`, `start_time`, `end_time`) is duplicated across set rows on purpose for analytics (see schema comments).
-- `session_summary_view` aggregates `workout_log` into one row per (user, date, session_name) with totals and status. **Use the view** for History and per-session reads — `workoutService.fetchWorkoutSessions` already does. Do not reintroduce client-side `Map()` aggregation over `workout_log`.
-- `workout_summaries` is a separate per-day aggregate table (currently underused; analyticsService writes to it).
+The session-log world:
+- `workout_sessions` — **one row per logged workout** (parent). Holds `workout_date`, `name`, `start_time`, `end_time`, optional `plan_id` / `plan_session_id` linkage.
+- `workout_sets` — child rows, FK to `workout_sessions`. Each row is a single set with `set_number`, `weight`, `reps`, `completed`, `order_index`.
+- `session_summary_view` — folds sessions+sets into one row per session with `total_sets`, `exercise_count`, `volume_load`, `status`. **Use the view** for History — never re-aggregate in JS.
+- `muscle_volume_view` — per-day per-muscle aggregate; powers the heatmap.
+
+Templates:
+- One `templates` table with `kind enum('plan_session','quick')` — replaces the prior split between `session_templates` and `workout_templates`.
+- `template_exercises` is FK-joined to `exercises.id` (no more `text[]` of names that breaks on rename).
+- `template_folders`, `user_template_favorites` unchanged.
 
 `UserData` (in `src/types/workout.ts`) is the in-memory shape held by `App.tsx`. Two plan fields live there with intentionally different meaning:
 - `userWorkoutPlans: UserWorkoutPlan[]` — the user's plan **instances** (which plan they're on, with `isActive`, `customName`, `startedAt`).

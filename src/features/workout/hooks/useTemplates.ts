@@ -108,7 +108,7 @@ export const useTemplates = ({
   const saveTemplateToSupabase = useCallback(
     async (name: string, exercises: string[], folderId?: string | null, tags?: string[]) => {
       if (!userId) throw new Error('No user');
-      await saveTemplate(userId, name, exercises, folderId, tags, userId.split('@')[0] || 'User');
+      await saveTemplate(userId, name, exercises, folderId, tags);
       await fetchAll();
     },
     [fetchAll, userId]
@@ -163,9 +163,9 @@ export const useTemplates = ({
   );
 
   const createFolder = useCallback(
-    async (name: string, color: string = '#f97316', icon: string = '📁') => {
+    async (name: string) => {
       if (!userId) return;
-      await createTemplateFolder(userId, name, color, icon);
+      await createTemplateFolder(userId, name);
       await fetchAll();
     },
     [fetchAll, userId]
@@ -180,7 +180,6 @@ export const useTemplates = ({
           (t: TemplateType) =>
             t.name.toLowerCase().includes(q) ||
             t.description?.toLowerCase().includes(q) ||
-            t.created_by_username?.toLowerCase().includes(q) ||
             (t.exercises || []).some((ex: string) => ex.toLowerCase().includes(q))
         );
       }

@@ -6,9 +6,13 @@ export type GhostSet = { weight: number | null; reps: number | null };
 const EMPTY: GhostSet[] = [];
 
 /**
- * Fetches the user's most recent prior session for `exerciseId` and returns
- * its sets ordered by set_number. Used as ghost-value placeholders so empty
- * inputs hint at what the user did last time.
+ * Fetches the user's most recent prior session that included `exerciseId`
+ * and returns its sets ordered by set_number. Used as ghost-value
+ * placeholders so empty inputs hint at what the user did last time.
+ *
+ * Reads from the new workout_sessions / workout_sets schema:
+ *   - find latest session that has any set for this exercise
+ *   - return that session's sets for the exercise, ordered by set_number
  */
 export const useLastSessionSets = (
   userId: string | null | undefined,
@@ -27,37 +31,34 @@ export const useLastSessionSets = (
     const load = async () => {
       setLoading(true);
       try {
-        // Find the most recent prior session for this user+exercise.
-        // Tiebreaker on start_time then created_at so same-day repeats are stable.
-        const { data: latestRows } = await supabase
-          .from('workout_log')
-          .select('workout_date, session_name, start_time, created_at')
-          .eq('user_id', userId)
+        // Latest session containing this exercise. Tiebreaker: workout_date
+        // desc, then session start_time desc.
+        const { data: sessionRows } = await supabase
+          .from('workout_sets')
+          .select('session_id, session:workout_sessions!inner(workout_date,start_time,user_id)')
           .eq('exercise_id', exerciseId)
-          .order('workout_date', { ascending: false })
-          .order('start_time', { ascending: false, nullsFirst: false })
-          .order('created_at', { ascending: false, nullsFirst: false })
+          .eq('session.user_id', userId)
+          .order('workout_date', { referencedTable: 'session', ascending: false })
+          .order('start_time', { referencedTable: 'session', ascending: false, nullsFirst: false })
           .limit(1);
 
-        const latest = latestRows?.[0];
-        if (!latest) {
+        const latest: any = sessionRows?.[0];
+        if (!latest?.session_id) {
           if (!cancelled) setSets(EMPTY);
           return;
         }
 
         const { data: rows } = await supabase
-          .from('workout_log')
+          .from('workout_sets')
           .select('set_number, weight, reps')
-          .eq('user_id', userId)
+          .eq('session_id', latest.session_id)
           .eq('exercise_id', exerciseId)
-          .eq('workout_date', latest.workout_date)
-          .eq('session_name', latest.session_name)
           .order('set_number', { ascending: true });
 
         if (cancelled) return;
 
         const ordered: GhostSet[] = [];
-        (rows ?? []).forEach(r => {
+        (rows ?? []).forEach((r: any) => {
           const idx = Math.max(0, (r.set_number ?? 1) - 1);
           ordered[idx] = { weight: r.weight, reps: r.reps };
         });

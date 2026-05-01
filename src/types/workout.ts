@@ -193,12 +193,10 @@ export type Template = {
   name: string;                   // Template name
   icon?: string;                  // Visual icon (emoji)
   description?: string;           // Template description
-  exercises: string[];            // Array of exercise names
-  user_id?: string;               // Owner user ID
+  exercises: string[];            // Array of exercise names (resolved from template_exercises join)
+  user_id?: string;               // Owner user ID (null = system / shared)
   folder_id?: string | null;      // Organizational folder
   tags?: string[];                // Categorization tags
-  created_by_username?: string;   // Creator's display name
-  is_standard?: boolean;          // Whether it's a system template
   is_public?: boolean;            // Whether other users can see it
 };
 

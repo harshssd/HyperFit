@@ -431,7 +431,9 @@ const GymView = ({
         description: planData.description,
         frequency: planData.frequency,
         equipment: planData.equipment,
-        duration: planData.duration,
+        // schema column is `text`; the in-memory shape happens to be a number
+        // ("weeks"). Coerce at the boundary.
+        duration: planData.duration != null ? String(planData.duration) : null,
         difficulty: planData.difficulty,
         tags: planData.tags || [],
         is_public: false, // User-created plans are private by default
