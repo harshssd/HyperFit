@@ -49,7 +49,8 @@ const headerStyles = StyleSheet.create({
     fontWeight: '800',
     fontFamily: 'monospace',
     borderWidth: 1,
-    borderColor: 'currentColor',
+    // borderColor is set inline alongside `color` (RN doesn't support
+    // CSS `currentColor` — must be passed explicitly).
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radii.xs,

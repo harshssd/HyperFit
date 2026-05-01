@@ -3,7 +3,7 @@ import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Dumbbell, Play, Calendar, CheckCircle, TrendingUp, BarChart2 } from 'lucide-react-native';
 import GlassCard from './GlassCard';
 import { homeStyles } from '../styles';
-import { colors, spacing, radii } from '../styles/theme';
+import { palette, text, accent, spacing, radii } from '../styles/theme';
 import { UserData } from '../types/workout';
 import { getWorkoutForDate } from '../features/workout/helpers';
 import NeonButton from './NeonButton';
@@ -51,10 +51,10 @@ const HomeView = ({ data, onChangeView, streak, xp }: HomeViewProps) => {
         return (
           <View style={{ gap: spacing.md }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-              <CheckCircle size={32} color={colors.success} />
+              <CheckCircle size={32} color={accent.sessionUp} />
               <View>
-                <Text style={{ color: colors.success, fontSize: 18, fontWeight: 'bold' }}>COMPLETED</Text>
-                <Text style={{ color: colors.muted, fontSize: 14 }}>Good job crushing {todaysWorkout.name}!</Text>
+                <Text style={{ color: accent.sessionUp, fontSize: 13, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase' }}>Completed</Text>
+                <Text style={{ color: text.tertiary, fontSize: 14 }}>Good job crushing {todaysWorkout.name}!</Text>
               </View>
             </View>
           </View>
@@ -63,28 +63,28 @@ const HomeView = ({ data, onChangeView, streak, xp }: HomeViewProps) => {
         return (
           <View style={{ gap: spacing.lg }}>
             <View>
-              <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: spacing.xs }}>
+              <Text style={{ color: text.primary, fontSize: 24, fontWeight: '900', letterSpacing: -0.4, marginBottom: spacing.xs }}>
                 {todaysWorkout.name.toUpperCase()}
               </Text>
-              <Text style={{ color: colors.primary, fontSize: 14, fontWeight: 'bold', letterSpacing: 1 }}>
-                TODAY'S SESSION
+              <Text style={{ color: accent.lift, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>
+                Today's Session
               </Text>
             </View>
-            
+
             <View style={{ flexDirection: 'row', gap: spacing.xl }}>
               <View>
-                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>{todaysWorkout.exercises}</Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>EXERCISES</Text>
+                <Text style={{ color: text.primary, fontSize: 18, fontWeight: '800' }}>{todaysWorkout.exercises}</Text>
+                <Text style={{ color: text.quaternary, fontSize: 11, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>Exercises</Text>
               </View>
               <View>
-                <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold' }}>~60</Text>
-                <Text style={{ color: colors.muted, fontSize: 12 }}>MINUTES</Text>
+                <Text style={{ color: text.primary, fontSize: 18, fontWeight: '800' }}>~60</Text>
+                <Text style={{ color: text.quaternary, fontSize: 11, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>Minutes</Text>
               </View>
             </View>
 
             <NeonButton onPress={() => onChangeView('gym')} style={{ width: '100%' }}>
-              <Play size={20} color="#0f172a" />
-              <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>START WORKOUT</Text>
+              <Play size={18} color={palette.bg} />
+              <Text style={{ marginLeft: spacing.sm, fontSize: 13, fontWeight: '800', letterSpacing: 1.2, color: palette.bg }}>START WORKOUT</Text>
             </NeonButton>
           </View>
         );
@@ -94,29 +94,31 @@ const HomeView = ({ data, onChangeView, streak, xp }: HomeViewProps) => {
     return (
       <View style={{ gap: spacing.lg }}>
         <View>
-          <Text style={{ color: '#fff', fontSize: 24, fontWeight: 'bold', marginBottom: spacing.xs }}>
+          <Text style={{ color: text.primary, fontSize: 24, fontWeight: '900', letterSpacing: -0.4, marginBottom: spacing.xs }}>
             REST DAY
           </Text>
-          <Text style={{ color: colors.muted, fontSize: 14 }}>
+          <Text style={{ color: text.tertiary, fontSize: 14 }}>
             Active recovery or light cardio recommended.
           </Text>
         </View>
-        
-        <TouchableOpacity 
+
+        <TouchableOpacity
           onPress={() => onChangeView('gym')}
-          style={{ 
-            flexDirection: 'row', 
-            alignItems: 'center', 
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
             gap: spacing.sm,
             paddingVertical: spacing.md,
             paddingHorizontal: spacing.lg,
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            backgroundColor: palette.surface,
+            borderWidth: 1,
+            borderColor: palette.borderStrong,
             borderRadius: radii.md,
             alignSelf: 'flex-start'
           }}
         >
-          <Dumbbell size={16} color="#fff" />
-          <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12 }}>START CUSTOM WORKOUT</Text>
+          <Dumbbell size={16} color={text.primary} />
+          <Text style={{ color: text.primary, fontWeight: '800', fontSize: 13, letterSpacing: 1.2, textTransform: 'uppercase' }}>Start Custom Workout</Text>
         </TouchableOpacity>
       </View>
     );
@@ -127,46 +129,46 @@ const HomeView = ({ data, onChangeView, streak, xp }: HomeViewProps) => {
       {/* Header Stats */}
       <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl }}>
         <GlassCard style={{ flex: 1, padding: spacing.lg, alignItems: 'center' }}>
-          <TrendingUp size={24} color={colors.primary} />
-          <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginTop: spacing.sm }}>{streak}</Text>
-          <Text style={{ color: colors.muted, fontSize: 10, letterSpacing: 1 }}>DAY STREAK</Text>
+          <TrendingUp size={20} color={accent.lift} />
+          <Text style={{ color: text.primary, fontSize: 22, fontWeight: '900', marginTop: spacing.sm, letterSpacing: -0.4 }}>{streak}</Text>
+          <Text style={{ color: text.quaternary, fontSize: 10, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>Day Streak</Text>
         </GlassCard>
         <GlassCard style={{ flex: 1, padding: spacing.lg, alignItems: 'center' }}>
-          <BarChart2 size={24} color="#3b82f6" />
-          <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', marginTop: spacing.sm }}>{xp}</Text>
-          <Text style={{ color: colors.muted, fontSize: 10, letterSpacing: 1 }}>TOTAL XP</Text>
+          <BarChart2 size={20} color={text.secondary} />
+          <Text style={{ color: text.primary, fontSize: 22, fontWeight: '900', marginTop: spacing.sm, letterSpacing: -0.4 }}>{xp}</Text>
+          <Text style={{ color: text.quaternary, fontSize: 10, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>Total XP</Text>
         </GlassCard>
       </View>
 
       {/* Main Action Card */}
-      <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl, borderColor: colors.primary }}>
+      <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl }}>
         {renderTodaysFocus()}
       </GlassCard>
 
       {/* Weekly Consistency */}
       <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
-          <Calendar size={20} color={colors.primary} />
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: spacing.sm }}>
-            WEEKLY CONSISTENCY
+          <Calendar size={16} color={text.tertiary} />
+          <Text style={{ color: text.quaternary, fontSize: 11, fontWeight: '800', marginLeft: spacing.sm, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>
+            Weekly Consistency
           </Text>
         </View>
-        <SimpleBarChart data={getWeeklyData()} color={colors.primary} />
+        <SimpleBarChart data={getWeeklyData()} color={accent.lift} />
       </GlassCard>
 
       {/* Quick Actions */}
-      <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: spacing.md, marginLeft: spacing.sm }}>
-        QUICK ACTIONS
+      <Text style={{ color: text.quaternary, fontSize: 11, fontWeight: '800', marginBottom: spacing.md, marginLeft: spacing.sm, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>
+        Quick Actions
       </Text>
-      
+
       <View style={{ gap: spacing.md }}>
         <TouchableOpacity onPress={() => onChangeView('stats')} style={homeStyles.homeQuickAction}>
-          <BarChart2 size={20} color={colors.primary} />
+          <BarChart2 size={18} color={accent.lift} />
           <Text style={homeStyles.homeQuickActionText}>VIEW PROGRESS</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity onPress={() => onChangeView('history')} style={homeStyles.homeQuickAction}>
-          <Calendar size={20} color={colors.primary} />
+          <Calendar size={18} color={accent.lift} />
           <Text style={homeStyles.homeQuickActionText}>HISTORY LOG</Text>
         </TouchableOpacity>
       </View>
