@@ -1,13 +1,14 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { statsStyles, colors } from '../styles';
+import { statsStyles } from '../styles';
+import { accent } from '../styles/theme';
 
 type SimpleBarChartProps = {
   data: Array<{ label: string; value: number }>;
   color?: string;
 };
 
-const SimpleBarChart = ({ data, color = colors.primary }: SimpleBarChartProps) => {
+const SimpleBarChart = ({ data, color = accent.lift }: SimpleBarChartProps) => {
   if (!data || data.length === 0) {
     return (
       <View style={statsStyles.chartEmpty}>

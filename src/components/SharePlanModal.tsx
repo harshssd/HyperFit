@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, Share, ActivityIndicator, Switch } from 'react-native';
 import * as Linking from 'expo-linking';
 import GlassCard from './GlassCard';
-import { colors, spacing, radii } from '../styles/theme';
+import { palette, text, accent, spacing, radii } from '../styles/theme';
 import type { WorkoutPlan } from '../types/workout';
 
 type Props = {
@@ -66,13 +66,13 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
           gap: spacing.md,
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>Share plan</Text>
+            <Text style={{ color: text.primary, fontSize: 18, fontWeight: '700' }}>Share plan</Text>
             <TouchableOpacity onPress={onClose}>
-              <Text style={{ color: colors.muted, fontSize: 14 }}>Close</Text>
+              <Text style={{ color: text.tertiary, fontSize: 14 }}>Close</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+          <Text style={{ color: text.tertiary, fontSize: 13, lineHeight: 18 }}>
             Sharing this plan gives anyone with the link a preview and a one-tap import. It does NOT
             publish the plan to the public library — that's a separate "Publish" flow with admin review.
           </Text>
@@ -83,7 +83,7 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
             justifyContent: 'space-between',
             paddingVertical: spacing.sm,
           }}>
-            <Text style={{ color: '#fff', fontSize: 15, fontWeight: '600' }}>
+            <Text style={{ color: text.primary, fontSize: 15, fontWeight: '600' }}>
               Allow sharing via link
             </Text>
             <Switch
@@ -102,7 +102,7 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
                 borderWidth: 1,
                 borderColor: 'rgba(255,255,255,0.1)',
               }}>
-                <Text style={{ color: '#cbd5e1', fontSize: 12 }} selectable numberOfLines={2}>
+                <Text style={{ color: text.secondary, fontSize: 12 }} selectable numberOfLines={2}>
                   {url || '—'}
                 </Text>
               </View>
@@ -112,13 +112,13 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
                   onPress={onShare}
                   style={{
                     flex: 1,
-                    backgroundColor: colors.primary,
+                    backgroundColor: accent.lift,
                     paddingVertical: spacing.sm,
                     borderRadius: radii.sm,
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ color: '#0f172a', fontWeight: '700' }}>Share link</Text>
+                  <Text style={{ color: palette.bg, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', fontSize: 13 }}>Share link</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -126,25 +126,25 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
                   disabled={busyRotate}
                   style={{
                     flex: 1,
-                    backgroundColor: 'rgba(148, 163, 184, 0.12)',
+                    backgroundColor: palette.surface,
                     paddingVertical: spacing.sm,
                     borderRadius: radii.sm,
                     alignItems: 'center',
                     borderWidth: 1,
-                    borderColor: 'rgba(148, 163, 184, 0.35)',
+                    borderColor: palette.borderStrong,
                     flexDirection: 'row',
                     justifyContent: 'center',
                     gap: spacing.xs,
                   }}
                 >
                   {busyRotate && <ActivityIndicator size="small" color="#cbd5e1" />}
-                  <Text style={{ color: '#cbd5e1', fontWeight: '700' }}>
+                  <Text style={{ color: text.secondary, fontWeight: '700' }}>
                     {busyRotate ? 'Rotating…' : 'New link'}
                   </Text>
                 </TouchableOpacity>
               </View>
 
-              <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+              <Text style={{ color: text.tertiary, fontSize: 11, lineHeight: 16 }}>
                 "New link" invalidates the old code immediately. Use it if you accidentally shared too widely.
               </Text>
             </>

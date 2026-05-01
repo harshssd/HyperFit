@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { ScreenLayout } from '../components/ScreenLayout';
 import GlassCard from '../components/GlassCard';
 import NeonButton from '../components/NeonButton';
-import { colors, spacing, radii } from '../styles/theme';
+import { text, accent, spacing, radii } from '../styles/theme';
 import { showError, showSuccess } from '../utils/alerts';
 import { useUser } from '../contexts/UserContext';
 import { useAppData } from '../contexts/AppDataContext';
@@ -81,22 +81,22 @@ export const SharedPlanScreen = ({ route }: Props) => {
       <ScrollView contentContainerStyle={{ padding: spacing.lg, gap: spacing.md }}>
         {loading && (
           <View style={{ alignItems: 'center', paddingTop: spacing.xl * 2 }}>
-            <ActivityIndicator color={colors.primary} />
-            <Text style={{ color: colors.muted, marginTop: spacing.sm }}>Resolving share link…</Text>
+            <ActivityIndicator color={accent.lift} />
+            <Text style={{ color: text.tertiary, marginTop: spacing.sm }}>Resolving share link…</Text>
           </View>
         )}
 
         {!loading && !plan && (
           <GlassCard style={{ padding: spacing.lg, gap: spacing.sm }}>
-            <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>Link no longer works</Text>
-            <Text style={{ color: colors.muted, lineHeight: 20 }}>
+            <Text style={{ color: text.primary, fontSize: 18, fontWeight: '700' }}>Link no longer works</Text>
+            <Text style={{ color: text.tertiary, lineHeight: 20 }}>
               This share link has been revoked or the plan was deleted. Ask the sender for a new one.
             </Text>
             <TouchableOpacity
               onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'Main' as never }] })}
               style={{ marginTop: spacing.md, alignSelf: 'flex-start' }}
             >
-              <Text style={{ color: colors.primary, fontWeight: '700' }}>Back</Text>
+              <Text style={{ color: accent.lift, fontWeight: '700' }}>Back</Text>
             </TouchableOpacity>
           </GlassCard>
         )}
@@ -104,12 +104,12 @@ export const SharedPlanScreen = ({ route }: Props) => {
         {!loading && plan && (
           <>
             <GlassCard style={{ padding: spacing.lg, gap: spacing.sm }}>
-              <Text style={{ color: colors.muted, fontSize: 11, letterSpacing: 1, fontWeight: '700' }}>
+              <Text style={{ color: text.tertiary, fontSize: 11, letterSpacing: 1, fontWeight: '700' }}>
                 SHARED PLAN
               </Text>
-              <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700' }}>{plan.name}</Text>
+              <Text style={{ color: text.primary, fontSize: 22, fontWeight: '700' }}>{plan.name}</Text>
               {plan.description && (
-                <Text style={{ color: colors.muted, lineHeight: 20 }}>{plan.description}</Text>
+                <Text style={{ color: text.tertiary, lineHeight: 20 }}>{plan.description}</Text>
               )}
               <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.xs }}>
                 {plan.frequency != null && (
@@ -125,13 +125,13 @@ export const SharedPlanScreen = ({ route }: Props) => {
 
             {(plan.sessions || []).map((s: any) => (
               <GlassCard key={s.id} style={{ padding: spacing.md, gap: spacing.xs }}>
-                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{s.name}</Text>
+                <Text style={{ color: text.primary, fontSize: 15, fontWeight: '700' }}>{s.name}</Text>
                 {s.description && (
-                  <Text style={{ color: colors.muted, fontSize: 12 }}>{s.description}</Text>
+                  <Text style={{ color: text.tertiary, fontSize: 12 }}>{s.description}</Text>
                 )}
                 <View style={{ marginTop: spacing.xs, gap: 2 }}>
                   {(s.exercises || []).map((ex: any, i: number) => (
-                    <Text key={`${s.id}-${i}`} style={{ color: '#cbd5e1', fontSize: 13 }}>
+                    <Text key={`${s.id}-${i}`} style={{ color: text.secondary, fontSize: 13 }}>
                       • {ex.name} — {ex.sets}×{ex.reps_min}–{ex.reps_max}
                     </Text>
                   ))}
@@ -146,7 +146,7 @@ export const SharedPlanScreen = ({ route }: Props) => {
               onPress={() => navigation.canGoBack() ? navigation.goBack() : navigation.reset({ index: 0, routes: [{ name: 'Main' as never }] })}
               style={{ alignSelf: 'center', marginTop: spacing.xs }}
             >
-              <Text style={{ color: colors.muted, fontSize: 13 }}>Cancel</Text>
+              <Text style={{ color: text.tertiary, fontSize: 13 }}>Cancel</Text>
             </TouchableOpacity>
           </>
         )}
@@ -162,7 +162,7 @@ const Chip = ({ children }: { children: React.ReactNode }) => (
     paddingVertical: 4,
     borderRadius: radii.sm,
   }}>
-    <Text style={{ color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>
+    <Text style={{ color: accent.lift, fontSize: 11, fontWeight: '700', letterSpacing: 0.5 }}>
       {String(children).toUpperCase()}
     </Text>
   </View>
