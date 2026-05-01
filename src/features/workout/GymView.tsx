@@ -89,7 +89,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { usePlanActions } from './hooks/usePlanActions';
-import { fetchWorkoutPlanDetails, createUserWorkoutPlan, updateUserWorkoutPlan, deactivateUserWorkoutPlans, fetchExercises } from '../../services/workoutService';
+import { fetchWorkoutPlanDetails, createUserWorkoutPlan, updateUserWorkoutPlan, deactivateUserWorkoutPlans, findUserWorkoutPlan, fetchExercises } from '../../services/workoutService';
 import { confirmAction, showError, showSuccess } from '../../utils/alerts';
 import { ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE } from '../../constants/text';
 
@@ -896,17 +896,17 @@ const GymView = ({
                 }
 
                 const userPlans = data.userWorkoutPlans || [];
-                const existingUserPlan = userPlans.find((p: any) => p.planId === plan.id);
 
-                // Deactivate any currently active plans in DB based on
-                // server state, not local cache, so the unique partial
-                // index can't collide on stale userPlans.
-                await deactivateUserWorkoutPlans(user?.id || userId, plan.id);
+                // Always clear the active slot first, then look up the
+                // existing (user, plan) row from the DB — local state can
+                // be stale or missing the row entirely.
+                const ownerId = user?.id || userId;
+                await deactivateUserWorkoutPlans(ownerId);
+                const existingUserPlan = await findUserWorkoutPlan(ownerId, plan.id);
 
                 let userPlanId = existingUserPlan?.id;
 
                 if (existingUserPlan?.id) {
-                  // Activate existing record in DB
                   await updateUserWorkoutPlan(existingUserPlan.id, { is_active: true });
                 } else {
                   // Create new record in DB
