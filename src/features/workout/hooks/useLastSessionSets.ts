@@ -27,13 +27,16 @@ export const useLastSessionSets = (
     const load = async () => {
       setLoading(true);
       try {
-        // Find the most recent workout_date for this user+exercise.
+        // Find the most recent prior session for this user+exercise.
+        // Tiebreaker on start_time then created_at so same-day repeats are stable.
         const { data: latestRows } = await supabase
           .from('workout_log')
-          .select('workout_date, session_name')
+          .select('workout_date, session_name, start_time, created_at')
           .eq('user_id', userId)
           .eq('exercise_id', exerciseId)
           .order('workout_date', { ascending: false })
+          .order('start_time', { ascending: false, nullsFirst: false })
+          .order('created_at', { ascending: false, nullsFirst: false })
           .limit(1);
 
         const latest = latestRows?.[0];

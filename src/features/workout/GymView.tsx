@@ -806,8 +806,13 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const currentExercise = visibleWorkout[currentExIndex];
 
+  // Prefer the exerciseId already stamped on the WorkoutExercise (set when
+  // adding from a plan or via addExercise). Fall back to the cache for
+  // sessions hydrated before exerciseId was populated.
   const currentExerciseId = currentExercise
-    ? session.exerciseCache.get(currentExercise.name.toLowerCase()) ?? null
+    ? (currentExercise as any).exerciseId
+      ?? session.exerciseCache.get(currentExercise.name.toLowerCase())
+      ?? null
     : null;
   const ghost = useLastSessionSets(userId, currentExerciseId);
 
