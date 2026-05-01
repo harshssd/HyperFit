@@ -1,35 +1,41 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, radii, shadows } from './theme';
+import { palette, accent, spacing, radii } from './theme';
 
 const cardsStyles = StyleSheet.create({
+  // Flat surface card. The previous "glass" treatment (heavy shadow, blur,
+  // orange-on-press border) competed with the hero gradient and stole
+  // attention from the data inside. Per DESIGN.md "honest mirror" direction:
+  // hairline border, no shadow, surface fill — let typography carry hierarchy.
   glassCard: {
-    backgroundColor: colors.glass,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: colors.surface,
+    borderColor: palette.borderStrong,
     borderRadius: radii.lg,
-    padding: 20,
-    ...shadows.card,
+    padding: spacing.lg,
   },
   glassCardNoPadding: {
     padding: 0,
   },
   glassCardPressable: {
-    borderColor: colors.primary,
+    // Subtle pressable affordance — no orange border, no glow. The pressable
+    // state is communicated by activeOpacity (set on the TouchableOpacity).
+    backgroundColor: palette.surface,
   },
 
+  // Error banner — used by ErrorBanner / inline error rows.
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     padding: spacing.md,
-    backgroundColor: 'rgba(248, 113, 113, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(248, 113, 113, 0.3)',
+    borderColor: 'rgba(239, 68, 68, 0.30)',
     borderRadius: radii.md,
     marginBottom: spacing.md,
   },
   errorBannerText: {
-    color: '#f87171',
+    color: accent.regression,
     fontSize: 12,
     flex: 1,
   },
@@ -38,16 +44,13 @@ const cardsStyles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: radii.sm,
     borderWidth: 1,
-    borderColor: colors.primary,
+    borderColor: accent.lift,
   },
   errorBannerRetryText: {
-    color: colors.primary,
+    color: accent.lift,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });
 
 export default cardsStyles;
-
-
-

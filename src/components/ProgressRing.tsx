@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import { accent } from '../styles/theme';
 
 type ProgressRingProps = {
   radius: number;
@@ -8,7 +9,7 @@ type ProgressRingProps = {
   color?: string;
 };
 
-const ProgressRing = ({ radius, stroke, progress, color = '#22d3ee' }: ProgressRingProps) => {
+const ProgressRing = ({ radius, stroke, progress, color = accent.lift }: ProgressRingProps) => {
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
   const strokeDashoffset = circumference - (progress / 100) * circumference;

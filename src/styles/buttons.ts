@@ -1,10 +1,13 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, radii } from './theme';
+import { palette, text, accent, spacing, radii } from './theme';
 
 const buttonStyles = StyleSheet.create({
+  // Honest-mirror buttons: flat surface, no glow, no gradient. Primary owns
+  // the lift orange. Secondary is a hairline-bordered surface. Danger and
+  // ghost stay restrained.
   neonButton: {
-    borderRadius: radii.sm,
-    paddingVertical: spacing.lg,
+    borderRadius: radii.md,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
@@ -12,41 +15,42 @@ const buttonStyles = StyleSheet.create({
     gap: spacing.sm,
   },
   neonButtonBase: {
-    fontWeight: 'bold',
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontSize: 14,
+    letterSpacing: 1.2,
+    fontSize: 13,
   },
   neonButtonPrimary: {
-    backgroundColor: colors.primary,
-    borderWidth: 1,
-    borderColor: colors.primaryBright,
+    backgroundColor: accent.lift,
+    // No border ring. Solid orange = action.
   },
   neonButtonSecondary: {
-    backgroundColor: colors.surface,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: palette.borderStrong,
   },
   neonButtonDanger: {
-    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+    backgroundColor: 'rgba(239, 68, 68, 0.10)',
     borderWidth: 1,
-    borderColor: 'rgba(244, 63, 94, 0.2)',
+    borderColor: 'rgba(239, 68, 68, 0.30)',
   },
   neonButtonGhost: {
     backgroundColor: 'transparent',
   },
   neonButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.4,
   },
   neonButtonText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-    fontSize: 14,
+    color: text.primary,
+    fontWeight: '800',
+    fontSize: 13,
     textTransform: 'uppercase',
-    letterSpacing: 1,
+    letterSpacing: 1.2,
   },
   neonButtonTextPrimary: {
-    color: colors.background,
+    // Page bg color punches out the orange button — high contrast,
+    // reads as "instrument-panel button" not "iOS pill".
+    color: palette.bg,
   },
   neonButtonContent: {
     flexDirection: 'row',
@@ -57,6 +61,3 @@ const buttonStyles = StyleSheet.create({
 });
 
 export default buttonStyles;
-
-
-

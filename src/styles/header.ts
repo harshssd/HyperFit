@@ -1,14 +1,16 @@
 import { StyleSheet } from 'react-native';
-import { colors, spacing, radii } from './theme';
+import { palette, text, accent, spacing, radii } from './theme';
 
 const headerStyles = StyleSheet.create({
+  // Honest-mirror header. No glass blur on the bg, no italic, no orange
+  // logo block. Just clean type with a hairline divider below.
   header: {
     paddingTop: spacing.lg,
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing.lg,
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    backgroundColor: palette.bg,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+    borderBottomColor: palette.borderSubtle,
   },
   headerTop: {
     flexDirection: 'row',
@@ -22,34 +24,37 @@ const headerStyles = StyleSheet.create({
     gap: spacing.md,
   },
   headerLogo: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: colors.primary,
+    width: 36,
+    height: 36,
+    borderRadius: radii.sm,
+    backgroundColor: accent.lift,
     justifyContent: 'center',
     alignItems: 'center',
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '900',
-    color: '#fff',
-    fontStyle: 'italic',
+    color: text.primary,
+    letterSpacing: -0.4,
+    // Italic was very 90s-fitness. Dropping it for tighter modern type.
   },
   headerTitleAccent: {
-    color: colors.primary,
+    color: accent.lift,
   },
   headerRank: {
     marginTop: spacing.xs,
   },
   headerRankText: {
     fontSize: 9,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    fontFamily: 'monospace',
     borderWidth: 1,
     borderColor: 'currentColor',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: radii.xs,
     textTransform: 'uppercase',
+    letterSpacing: 1.2,
   },
   headerRight: {
     flexDirection: 'row',
@@ -57,9 +62,9 @@ const headerStyles = StyleSheet.create({
     gap: spacing.md,
   },
   streakContainer: {
-    backgroundColor: colors.surface,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: palette.borderStrong,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radii.full,
@@ -68,33 +73,30 @@ const headerStyles = StyleSheet.create({
     gap: spacing.sm,
   },
   streakText: {
-    color: '#fff',
+    color: text.primary,
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: '700',
     fontFamily: 'monospace',
   },
   logoutButton: {
     padding: spacing.sm,
     borderRadius: radii.full,
-    backgroundColor: colors.surface,
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: palette.borderStrong,
   },
   progressBar: {
     width: '100%',
     height: 4,
-    backgroundColor: colors.surface,
+    backgroundColor: palette.surface,
     borderRadius: 2,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: colors.primary,
+    backgroundColor: accent.lift,
     borderRadius: 2,
   },
 });
 
 export default headerStyles;
-
-
-
