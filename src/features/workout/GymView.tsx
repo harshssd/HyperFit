@@ -46,6 +46,7 @@ import WorkoutOverview from './components/WorkoutOverview';
 import WorkoutListView from './components/WorkoutListView';
 import WorkoutFocusSets from './components/WorkoutFocusSets';
 import WorkoutFocusActions from './components/WorkoutFocusActions';
+import RestTimerBar from './components/RestTimerBar';
 import WorkoutHeader from './components/WorkoutHeader';
 import WorkoutFocusHeader from './components/WorkoutFocusHeader';
 import WorkoutPlanner, { WorkoutPlanCreator } from './components/WorkoutPlanner';
@@ -879,22 +880,6 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
         onNext={nextExercise}
       />
 
-      {restSeconds !== null && (
-        <View style={workoutStyles.restTimerPill}>
-          <Text style={workoutStyles.restTimerText}>
-            REST {Math.floor(restSeconds / 60)}:{String(restSeconds % 60).padStart(2, '0')}
-          </Text>
-          <View style={workoutStyles.restTimerActions}>
-            <TouchableOpacity onPress={() => extendRest()} style={workoutStyles.restTimerButton}>
-              <Text style={workoutStyles.restTimerButtonText}>+30s</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={skipRest} style={workoutStyles.restTimerButtonSecondary}>
-              <Text style={workoutStyles.restTimerButtonText}>Skip</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
-
       <WorkoutFocusSets
         currentExercise={currentExercise}
         getExerciseConfig={getExerciseConfig}
@@ -1219,6 +1204,12 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
       <ScrollView style={workoutStyles.gymView} contentContainerStyle={workoutStyles.gymViewContent}>
         {renderOverview()}
       </ScrollView>
+      <RestTimerBar
+        restSeconds={restSeconds}
+        totalSeconds={restTimer.totalSeconds}
+        onExtend={extendRest}
+        onSkip={skipRest}
+      />
     </>
   );
 };
