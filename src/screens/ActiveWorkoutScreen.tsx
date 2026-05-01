@@ -7,22 +7,29 @@ import { useAppData } from '../contexts/AppDataContext';
 import { useUser } from '../contexts/UserContext';
 import type { RootStackParamList } from '../navigation/types';
 
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+type Nav = NativeStackNavigationProp<RootStackParamList, 'ActiveWorkout'>;
 
-export const PlansScreen = () => {
+/**
+ * Modal route that hosts the active workout UI. Mounts <GymView mode="session">,
+ * which gates its rendering to the focus / list / finished surfaces only and
+ * skips every planner branch. The session itself lives in WorkoutSessionContext
+ * so the underlying Plans tab and this modal share state.
+ */
+export const ActiveWorkoutScreen = () => {
   const { user } = useUser();
   const { data, setData } = useAppData();
   const navigation = useNavigation<Nav>();
 
-  // GymView still owns its own scroll views; opt out of the layout's wrapper.
   return (
-    <ScreenLayout scroll={false} errorLabel="Error in Gym">
+    <ScreenLayout scroll={false} errorLabel="Error in workout">
       <GymView
         data={data}
         updateData={setData}
         user={user}
-        mode="planner"
-        onOpenSession={() => navigation.navigate('ActiveWorkout')}
+        mode="session"
+        onDismissSession={() => {
+          if (navigation.canGoBack()) navigation.goBack();
+        }}
       />
     </ScreenLayout>
   );
