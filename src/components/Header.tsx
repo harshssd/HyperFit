@@ -4,6 +4,7 @@ import { Hexagon, Flame, LogOut } from 'lucide-react-native';
 import { headerStyles } from '../styles';
 import ProgressRing from './ProgressRing';
 import { getRankProgress } from '../features/workout/helpers';
+import { palette, accent, text } from '../styles/theme';
 
 type HeaderProps = {
   streak?: number;
@@ -20,7 +21,7 @@ const Header = ({ streak = 0, xp = 0, onLogout, username }: HeaderProps) => {
       <View style={headerStyles.headerTop}>
         <View style={headerStyles.headerLeft}>
           <View style={headerStyles.headerLogo}>
-            <Hexagon size={24} color="#0f172a" strokeWidth={3} />
+            <Hexagon size={22} color={palette.bg} strokeWidth={3} />
           </View>
           <View>
             <Text style={headerStyles.headerTitle}>
@@ -35,11 +36,11 @@ const Header = ({ streak = 0, xp = 0, onLogout, username }: HeaderProps) => {
         </View>
         <View style={headerStyles.headerRight}>
           <View style={headerStyles.streakContainer}>
-            <Flame size={16} color={streak > 0 ? "#f97316" : "#475569"} />
+            <Flame size={16} color={streak > 0 ? accent.lift : text.disabled} />
             <Text style={headerStyles.streakText}>{streak}</Text>
           </View>
           <TouchableOpacity onPress={onLogout} style={headerStyles.logoutButton}>
-            <LogOut size={16} color="#94a3b8" />
+            <LogOut size={16} color={text.tertiary} />
           </TouchableOpacity>
         </View>
       </View>

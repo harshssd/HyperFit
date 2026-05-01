@@ -1,7 +1,7 @@
 import React, { ReactNode } from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet } from 'react-native';
 import { AlertTriangle } from 'lucide-react-native';
-import { colors, spacing, radii } from '../styles/theme';
+import { palette, text, accent, fonts, spacing, radii } from '../styles/theme';
 
 const styles = StyleSheet.create({
   container: {
@@ -12,36 +12,48 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   title: {
-    color: '#f8fafc',
+    color: text.primary,
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
     marginTop: spacing.sm,
+    letterSpacing: -0.2,
   },
   message: {
-    color: colors.muted,
+    color: text.tertiary,
     fontSize: 14,
     textAlign: 'center',
     maxWidth: 320,
+    lineHeight: 20,
+  },
+  loadingLabel: {
+    color: text.quaternary,
+    fontFamily: 'monospace',
+    fontVariant: fonts.tabularNums,
+    fontSize: 11,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    marginTop: spacing.xs,
   },
   retryButton: {
     marginTop: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: radii.md,
-    backgroundColor: colors.primary,
+    backgroundColor: accent.lift,
   },
   retryText: {
-    color: '#0f172a',
-    fontWeight: '700',
-    letterSpacing: 1,
+    color: palette.bg,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    fontSize: 13,
   },
 });
 
-export const LoadingState = ({ label = 'Loading…' }: { label?: string }) => (
+export const LoadingState = ({ label = 'Loading' }: { label?: string }) => (
   <View style={styles.container} accessibilityRole="progressbar" accessibilityLabel={label}>
-    <ActivityIndicator color={colors.primary} />
-    <Text style={styles.message}>{label}</Text>
+    <ActivityIndicator color={accent.lift} />
+    <Text style={styles.loadingLabel}>{label.toUpperCase()}</Text>
   </View>
 );
 
@@ -81,9 +93,9 @@ export const ErrorState = ({
   onRetry?: () => void;
 }) => (
   <View style={styles.container}>
-    <AlertTriangle size={28} color={colors.danger} />
+    <AlertTriangle size={28} color={accent.regression} />
     <Text style={styles.title}>Something went wrong</Text>
-    <Text style={styles.message}>{message ?? 'We couldn’t load this. Please try again.'}</Text>
+    <Text style={styles.message}>{message ?? "We couldn't load this. Please try again."}</Text>
     {onRetry ? (
       <TouchableOpacity
         style={styles.retryButton}

@@ -1,6 +1,6 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors, spacing, radii } from '../styles/theme';
+import { palette, text, accent, spacing, radii } from '../styles/theme';
 
 type Props = {
   children: ReactNode;
@@ -48,14 +48,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    color: '#f8fafc',
+    color: text.primary,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   message: {
-    color: colors.mutedAlt,
+    color: text.tertiary,
     fontSize: 14,
     marginBottom: spacing.lg,
     textAlign: 'center',
@@ -64,10 +64,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: radii.md,
-    backgroundColor: colors.primary,
+    backgroundColor: accent.lift,
   },
   buttonText: {
-    color: '#0f172a',
-    fontWeight: '700',
+    color: palette.bg,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    fontSize: 13,
   },
 });
