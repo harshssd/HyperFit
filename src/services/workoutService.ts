@@ -316,6 +316,31 @@ export const fetchWorkoutSessions = async (userId: string) => {
   }));
 };
 
+/**
+ * Distinct workout_dates the user has logged at least one set on, newest first.
+ * Used to hydrate gymLogs (streaks, calendar dots) on app load so they survive
+ * a refresh.
+ */
+export const fetchUserWorkoutDates = async (userId: string): Promise<string[]> => {
+  const { data, error } = await supabase
+    .from('session_summary_view')
+    .select('workout_date')
+    .eq('user_id', userId)
+    .order('workout_date', { ascending: false });
+
+  if (error) throw error;
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  (data ?? []).forEach(row => {
+    if (row.workout_date && !seen.has(row.workout_date)) {
+      seen.add(row.workout_date);
+      out.push(row.workout_date);
+    }
+  });
+  return out;
+};
+
 export type LoggedExerciseInput = {
   exercise: {
     // Nullable so callers can pass entries before exercises are matched to
