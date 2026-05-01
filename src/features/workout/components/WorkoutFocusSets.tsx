@@ -4,19 +4,44 @@ import { CheckCircle } from 'lucide-react-native';
 import NumberControl from '../../../components/NumberControl';
 import workoutStyles from '../../../styles/workout';
 
+type GhostSet = { weight: number | null; reps: number | null };
+
 type WorkoutFocusSetsProps = {
   currentExercise: any;
   getExerciseConfig: (name: string) => any;
   updateSet: (exerciseId: number, setIndex: number, field: string, value: any) => void;
+  /** Last-session values per set index — shown as ghost placeholders. */
+  ghostSets?: GhostSet[];
 };
 
-const WorkoutFocusSets = ({ currentExercise, getExerciseConfig, updateSet }: WorkoutFocusSetsProps) => {
+const ghostString = (val: number | null | undefined, fallback: string): string => {
+  if (val === null || val === undefined) return fallback;
+  // Trim trailing .0 so "100" reads cleaner than "100.0".
+  const n = Number(val);
+  if (!Number.isFinite(n)) return fallback;
+  return Number.isInteger(n) ? String(n) : n.toString();
+};
+
+const WorkoutFocusSets = ({
+  currentExercise,
+  getExerciseConfig,
+  updateSet,
+  ghostSets = [],
+}: WorkoutFocusSetsProps) => {
   if (!currentExercise) return null;
 
   return (
     <View style={workoutStyles.workoutSets}>
       {currentExercise.sets.map((set: any, setIndex: number) => {
         const exConfig = getExerciseConfig(currentExercise.name);
+        const ghost = ghostSets[setIndex];
+        // Carry the latest known set forward if last session had fewer sets.
+        const ghostFallback = ghostSets.length > 0
+          ? ghostSets[Math.min(setIndex, ghostSets.length - 1)]
+          : undefined;
+        const ghostFor = ghost ?? ghostFallback;
+        const weightPlaceholder = ghostString(ghostFor?.weight, exConfig.weightPlaceholder);
+        const repsPlaceholder = ghostString(ghostFor?.reps, exConfig.repPlaceholder);
         return (
           <View
             key={set.id}
@@ -46,14 +71,14 @@ const WorkoutFocusSets = ({ currentExercise, getExerciseConfig, updateSet }: Wor
                   label={exConfig.weightLabel}
                   value={set.weight}
                   step={exConfig.weightStep}
-                  placeholder={exConfig.weightPlaceholder}
+                  placeholder={weightPlaceholder}
                   onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'weight', val)}
                 />
                 <NumberControl
                   label={exConfig.repLabel}
                   value={set.reps}
                   step={exConfig.repStep}
-                  placeholder={exConfig.repPlaceholder}
+                  placeholder={repsPlaceholder}
                   onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'reps', val)}
                 />
               </View>

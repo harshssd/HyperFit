@@ -74,6 +74,7 @@ import { useSessionView } from './hooks/useSessionView';
 import { useTemplates } from './hooks/useTemplates';
 import { useWorkoutSession } from './hooks/useWorkoutSession';
 import { useRestTimer } from './hooks/useRestTimer';
+import { useLastSessionSets } from './hooks/useLastSessionSets';
 
 let Haptics: any = null;
 try {
@@ -805,6 +806,11 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
 
   const currentExercise = visibleWorkout[currentExIndex];
 
+  const currentExerciseId = currentExercise
+    ? session.exerciseCache.get(currentExercise.name.toLowerCase()) ?? null
+    : null;
+  const ghost = useLastSessionSets(userId, currentExerciseId);
+
   const renderTemplatePicker = () => (
     <TemplatePickerModal
       {...templatePickerProps}
@@ -888,6 +894,7 @@ const GymView = ({ data, updateData, user }: GymViewProps) => {
         currentExercise={currentExercise}
         getExerciseConfig={getExerciseConfig}
         updateSet={updateSet}
+        ghostSets={ghost.sets}
       />
 
       <TouchableOpacity
