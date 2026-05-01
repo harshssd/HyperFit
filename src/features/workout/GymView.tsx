@@ -74,6 +74,7 @@ import {
 
 import { useSessionView } from './hooks/useSessionView';
 import { useTemplates } from './hooks/useTemplates';
+import { useRecentWorkouts } from './hooks/useRecentWorkouts';
 import { useLastSessionSets } from './hooks/useLastSessionSets';
 import { useActiveWorkoutSession } from '../../contexts/WorkoutSessionContext';
 
@@ -125,6 +126,7 @@ const GymView = ({
   const userId = contextUser?.id || user?.id;
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { activatePlan } = usePlanActions({ userId, data, updateData });
+  const { recentWorkouts } = useRecentWorkouts(userId, 30);
 
   // Workout session, rest timer, and the active plan all come from a single
   // app-level provider so the upcoming ActiveWorkout modal route reads the
@@ -226,8 +228,8 @@ const GymView = ({
     data,
     updateData,
     today,
-    todaysWorkout,
     isCheckedIn,
+    appendToSession: session.appendExercises,
   });
 
   const startSessionHandler = () => {
@@ -303,7 +305,7 @@ const GymView = ({
   const handleNameChange = (val: string) => {
     setNewExerciseName(val);
     if (val.length > 0) {
-      const allNames = getAllExerciseNames(data, exerciseOptions);
+      const allNames = getAllExerciseNames(exerciseOptions);
       const filtered = allNames.filter(name => name.toLowerCase().includes(val.toLowerCase()));
       setSuggestions(filtered.slice(0, 5));
     } else {
@@ -816,21 +818,7 @@ const GymView = ({
     }
 
     if (visibleWorkout.length === 0) {
-      // Prepare recent workouts data
-      const recentWorkouts = (data.gymLogs || [])
-        .slice(-30) // Last 30 days for calendar view
-        .map((date: string) => {
-          const workout = data.workouts?.[date] || [];
-          const volume = calculateTotalVolume(workout);
-          return {
-            date: new Date(date).toLocaleDateString(),
-            dateStr: date,
-            exercises: workout.length,
-            volume,
-            name: workout.length > 0 ? `${workout[0].name}${workout.length > 1 ? ` +${workout.length - 1}` : ''}` : 'Empty Workout'
-          };
-        });
-
+      // recentWorkouts now comes from useRecentWorkouts (session_summary_view).
       const workoutPlans: WorkoutPlan[] = data.workoutPlans || [];
       const userWorkoutPlans: any[] = data.userWorkoutPlans || [];
       const activePlan = activeUserPlan?.planData;

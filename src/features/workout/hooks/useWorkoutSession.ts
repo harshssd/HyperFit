@@ -69,6 +69,8 @@ export type UseWorkoutSessionReturn = {
   // Mutators
   setSessionContext: (ctx: SessionContext) => void;
   addExercise: (name: string, position?: 'top' | 'bottom') => void;
+  /** Append a list of exercises onto the active session (used by templates). */
+  appendExercises: (exercises: WorkoutExercise[]) => void;
   renameExerciseById: (id: number, name: string) => void;
   moveExercise: (id: number, direction: 'up' | 'down') => void;
   deleteExercise: (id: number) => void;
@@ -139,6 +141,12 @@ export const useWorkoutSession = ({
     setSessionStartTime(prev =>
       exercises.length === 0 ? null : prev ?? new Date().toISOString()
     );
+  }, []);
+
+  const appendExercises = useCallback((toAppend: WorkoutExercise[]) => {
+    if (toAppend.length === 0) return;
+    setSessionExercises(prev => [...prev, ...toAppend]);
+    setSessionStartTime(prev => prev ?? new Date().toISOString());
   }, []);
 
   // Tracks whether we've already shown the manual-workout name prompt so
@@ -408,6 +416,7 @@ export const useWorkoutSession = ({
     exerciseCache,
     setSessionContext,
     addExercise,
+    appendExercises,
     renameExerciseById,
     moveExercise,
     deleteExercise,

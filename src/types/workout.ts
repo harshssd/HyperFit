@@ -246,12 +246,9 @@ export type CompletedWorkout = {
  */
 export type UserData = {
   // Historical Records
-  gymLogs: string[];              // Dates when user worked out (legacy)
-  workouts: Record<string, WorkoutExercise[]>; // Date -> in-memory workout
-                                  // mirror; not persisted. Used by
-                                  // applyTemplateToDay and the autocomplete
-                                  // history fold. Migration target — read
-                                  // path will move to session_summary_view.
+  gymLogs: string[];              // Dates when user worked out. Hydrated
+                                  // from session_summary_view; still feeds
+                                  // XP and the heatmap legend.
 
   // Plan Management
   // userWorkoutPlans = the user's plan *instances* (which plan they're on,

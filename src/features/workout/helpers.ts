@@ -120,11 +120,9 @@ export const calculateTotalVolume = (workout: WorkoutExercise[]) => {
 };
 
 /**
- * 100 XP per workout day. The previous implementation also added a volume
- * bonus from data.workouts, but that field has never been hydrated from
- * Supabase — the term silently evaluated to 0 for every user. When we wire
- * a real volume aggregate (sum of weight*reps from workout_log), reintroduce
- * it as an optional second arg so the helper stays pure.
+ * 100 XP per workout day. To layer in a volume bonus, pass it as an
+ * optional second arg derived from `session_summary_view.volume_load` so
+ * this helper stays pure.
  */
 export const calculateXP = (data: any) => {
   if (!data) return 0;
