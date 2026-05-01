@@ -16,6 +16,7 @@ Managed via `backlog/backlog.json` + `node scripts/backlog.js`.
 - **BL-8** Challenges tab MVP — Join/leave, progress tracking, streaks, social share.
 - **BL-9** Test runner + unit tests (helpers, services) — Wire jest-expo + @testing-library/react-native, add npm test script + CI step. First batch: pure helpers in src/features/workout/helpers.ts (finishWorkoutState, startNewSessionState, updateSetValue, XP/rank math). Then services. BL-1 covers the broader CI/lint/E2E story; this is the test-runner foundation it depends on.
 - **BL-10** Atomic activate-plan via RPC — Currently deactivateUserWorkoutPlans + updateUserWorkoutPlan/createUserWorkoutPlan are two separate round-trips. A parallel client (multi-device) could race between them. Wrap both in a Postgres SECURITY DEFINER function activate_user_workout_plan(plan_id) that runs the deactivate+activate in one transaction. Low priority — single-device users won't hit this.
+- **BL-11** Calendar view: past logs + future planned workouts — Single calendar surface that shows: (a) past dates with logged workouts (link to session detail), and (b) upcoming dates with the active plan's scheduled sessions per plan_schedule. Likely a dedicated tab or screen, not a modal — the heatmap on History only shows volume, not a day-by-day workout-name view. Source data: workout_sessions for past, active user_workout_plan + plan_schedule for future. Probably wants month + week views.
 
 ## Done
 - _None_

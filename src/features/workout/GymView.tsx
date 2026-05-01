@@ -617,19 +617,37 @@ const GymView = ({
 
   const updateSet = session.updateSet;
 
-  // Auto-commit any uncompleted set on the given exercise that has both
-  // weight and reps filled in. Lets users skip the explicit checkmark tap
-  // when they advance via "Add Set" or "Next Exercise".
+  // Auto-commit any uncompleted set on the given exercise that the user
+  // has actually filled in. Lets users skip the explicit checkmark tap
+  // when they advance via "Add Set", "Next Exercise", or "Finish".
+  //
+  // "Filled in" rules:
+  //   - reps must be a finite number > 0 (you can't have done zero reps)
+  //   - weight must be user-entered (not the default empty string), but
+  //     can be 0 — that's how bodyweight exercises log
+  //
+  // Side-effect note: each updateSet call into useWorkoutSession will
+  // fire the rest timer for that set. When multiple sets get batched in
+  // a single advance (rare: user filled 2+ sets without ticking either),
+  // the first set captures real rest seconds, subsequent ones capture
+  // ~0. That's correct: the user didn't actually rest between them.
+  // Multiple setSessionExercises calls inside this loop are also fine —
+  // React batches them within one event handler, so the user sees a
+  // single render.
   const commitFilledSets = (exId: number) => {
     const exercise = visibleWorkout.find((e: any) => e.id === exId);
     if (!exercise) return;
     exercise.sets.forEach((set: any, idx: number) => {
       if (set.completed) return;
-      const w = Number(set.weight);
       const r = Number(set.reps);
-      if (Number.isFinite(w) && w > 0 && Number.isFinite(r) && r > 0) {
-        updateSet(exId, idx, 'completed', true);
-      }
+      if (!Number.isFinite(r) || r <= 0) return;
+      // Treat empty string / null / undefined as "weight not entered".
+      // Numeric 0 (or "0") is a deliberate bodyweight log and IS valid.
+      const weightRaw = set.weight;
+      if (weightRaw === '' || weightRaw === null || weightRaw === undefined) return;
+      const w = Number(weightRaw);
+      if (!Number.isFinite(w) || w < 0) return;
+      updateSet(exId, idx, 'completed', true);
     });
   };
 

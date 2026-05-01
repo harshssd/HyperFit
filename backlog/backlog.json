@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updatedAt": "2026-05-01T19:48:37.733Z",
+    "updatedAt": "2026-05-01T20:37:26.709Z",
     "source": "managed via scripts/backlog.js"
   },
   "items": [
@@ -73,6 +73,13 @@
       "status": "todo",
       "category": "infra",
       "notes": "Currently deactivateUserWorkoutPlans + updateUserWorkoutPlan/createUserWorkoutPlan are two separate round-trips. A parallel client (multi-device) could race between them. Wrap both in a Postgres SECURITY DEFINER function activate_user_workout_plan(plan_id) that runs the deactivate+activate in one transaction. Low priority — single-device users won't hit this."
+    },
+    {
+      "id": "BL-11",
+      "title": "Calendar view: past logs + future planned workouts",
+      "status": "todo",
+      "category": "product",
+      "notes": "Single calendar surface that shows: (a) past dates with logged workouts (link to session detail), and (b) upcoming dates with the active plan's scheduled sessions per plan_schedule. Likely a dedicated tab or screen, not a modal — the heatmap on History only shows volume, not a day-by-day workout-name view. Source data: workout_sessions for past, active user_workout_plan + plan_schedule for future. Probably wants month + week views."
     }
   ]
 }
