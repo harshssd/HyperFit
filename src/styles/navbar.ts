@@ -1,14 +1,18 @@
-import { StyleSheet, Platform } from 'react-native';
-import { colors, spacing } from './theme';
+import { StyleSheet } from 'react-native';
+import { accent, palette, spacing } from './theme';
 
 const navbarStyles = StyleSheet.create({
   navBar: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    // Anthracite glass — the only place blur survives at full intensity is
+    // the rest dock; nav is solid-with-alpha for context separation.
+    backgroundColor: 'rgba(10, 10, 10, 0.92)',
     borderTopWidth: 1,
-    borderTopColor: '#1e293b',
+    borderTopColor: palette.borderSubtle,
     paddingTop: spacing.sm,
-    paddingBottom: Platform.OS === 'ios' ? 0 : spacing.sm,
+    // paddingBottom is set dynamically from useSafeAreaInsets in NavBar.tsx
+    // (was Platform.OS === 'ios' ? 0 : spacing.sm — caused icons to sit
+    // under the home indicator on iPhones).
   },
   navItem: {
     flex: 1,
@@ -23,11 +27,8 @@ const navbarStyles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.cyan,
+    backgroundColor: accent.lift,
   },
 });
 
 export default navbarStyles;
-
-
-
