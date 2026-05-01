@@ -7,6 +7,7 @@ import {
 import GlassCard from '../../components/GlassCard';
 import NeonButton from '../../components/NeonButton';
 import { LoadingState, EmptyState, ErrorState } from '../../components/StateView';
+import { MuscleHeatmap } from '../analytics/heatmap/MuscleHeatmap';
 import { colors, spacing, radii } from '../../styles/theme';
 import { useUser } from '../../contexts/UserContext';
 import { supabase } from '../../services/supabase';
@@ -540,13 +541,14 @@ const HistoryAnalyticsView = () => {
   const renderAnalyticsView = () => {
     return (
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.xl }}>
-        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xxl }}>
-          <BarChart2 size={64} color={colors.muted} style={{ opacity: 0.5 }} />
-          <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginTop: spacing.lg }}>
-            Analytics Coming Soon
+        <MuscleHeatmap userId={user?.id} defaultDays={7} />
+        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl }}>
+          <BarChart2 size={48} color={colors.muted} style={{ opacity: 0.5 }} />
+          <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginTop: spacing.md }}>
+            More analytics coming
           </Text>
-          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: spacing.sm }}>
-            Detailed workout analytics and progress tracking will be available here
+          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: spacing.xs }}>
+            Volume trends, PR timeline, and adherence by week.
           </Text>
         </View>
       </ScrollView>
