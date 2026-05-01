@@ -118,8 +118,10 @@ const styles = StyleSheet.create({
     backgroundColor: palette.bgHeroTint,
     overflow: 'hidden',
     position: 'relative',
-    marginHorizontal: -space.lg,
-    marginTop: -space.md,
+    // Negative horizontal margin matches gymViewContent's paddingHorizontal
+    // (spacing.sm = 8pt) so the hero bleeds edge-to-edge.
+    marginHorizontal: -space.sm,
+    marginTop: -space.sm,
     marginBottom: space.lg,
   },
   content: {
