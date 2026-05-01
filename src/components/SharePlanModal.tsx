@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Modal, Share, ActivityIndicator, Switch } from 'react-native';
 import * as Linking from 'expo-linking';
 import GlassCard from './GlassCard';
-import { colors, spacing, radii } from '../styles/theme';
+import { palette, text, accent, spacing, radii } from '../styles/theme';
 import type { WorkoutPlan } from '../types/workout';
 
 type Props = {
@@ -68,11 +68,11 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <Text style={{ color: '#fff', fontSize: 18, fontWeight: '700' }}>Share plan</Text>
             <TouchableOpacity onPress={onClose}>
-              <Text style={{ color: colors.muted, fontSize: 14 }}>Close</Text>
+              <Text style={{ color: text.tertiary, fontSize: 14 }}>Close</Text>
             </TouchableOpacity>
           </View>
 
-          <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 18 }}>
+          <Text style={{ color: text.tertiary, fontSize: 13, lineHeight: 18 }}>
             Sharing this plan gives anyone with the link a preview and a one-tap import. It does NOT
             publish the plan to the public library — that's a separate "Publish" flow with admin review.
           </Text>
@@ -112,13 +112,13 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
                   onPress={onShare}
                   style={{
                     flex: 1,
-                    backgroundColor: colors.primary,
+                    backgroundColor: accent.lift,
                     paddingVertical: spacing.sm,
                     borderRadius: radii.sm,
                     alignItems: 'center',
                   }}
                 >
-                  <Text style={{ color: '#0f172a', fontWeight: '700' }}>Share link</Text>
+                  <Text style={{ color: palette.bg, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', fontSize: 13 }}>Share link</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -144,7 +144,7 @@ const SharePlanModal = ({ visible, plan, onClose, onToggleShareable, onRotateCod
                 </TouchableOpacity>
               </View>
 
-              <Text style={{ color: colors.muted, fontSize: 11, lineHeight: 16 }}>
+              <Text style={{ color: text.tertiary, fontSize: 11, lineHeight: 16 }}>
                 "New link" invalidates the old code immediately. Use it if you accidentally shared too widely.
               </Text>
             </>

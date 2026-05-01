@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, Text } from 'react-native';
 import GlassCard from './GlassCard';
 import { challengesStyles } from '../styles';
-import EmptyState from './EmptyState';
+import { EmptyState } from './StateView';
 
 const ChallengesView = () => {
   return (

@@ -3,7 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-nativ
 import { Save, X } from 'lucide-react-native';
 import NeonButton from './NeonButton';
 import workoutStyles from '../styles/workout';
-import { modalStyles, colors } from '../styles';
+import { modalStyles } from '../styles';
+import { palette, text } from '../styles/theme';
 
 type SaveTemplateModalProps = {
   visible: boolean;
@@ -42,7 +43,7 @@ const SaveTemplateModal = ({
         <View style={modalStyles.headerRow}>
           <Text style={workoutStyles.addExerciseTitle}>SAVE TEMPLATE</Text>
           <TouchableOpacity onPress={onClose} style={workoutStyles.addExerciseCancel}>
-            <X size={24} color={colors.textMutedAlt} />
+            <X size={24} color={text.tertiary} />
           </TouchableOpacity>
         </View>
         <Text style={workoutStyles.saveTemplateSubtitle}>{exerciseCount} Exercises</Text>
@@ -51,7 +52,7 @@ const SaveTemplateModal = ({
         <TextInput
           style={workoutStyles.addExerciseInput}
           placeholder="Enter template name..."
-          placeholderTextColor={colors.muted}
+          placeholderTextColor={text.disabled}
           value={templateName}
           onChangeText={onChangeTemplateName}
           autoFocus
@@ -93,7 +94,7 @@ const SaveTemplateModal = ({
               <View key={idx} style={workoutStyles.saveTemplateTag}>
                 <Text style={workoutStyles.saveTemplateTagText}>{tag}</Text>
                 <TouchableOpacity onPress={() => onChangeTags(saveTemplateTags.filter((_, i) => i !== idx))}>
-                  <X size={12} color="#64748b" />
+                  <X size={12} color={text.disabled} />
                 </TouchableOpacity>
               </View>
             ))}
@@ -101,7 +102,7 @@ const SaveTemplateModal = ({
               ref={saveTemplateTagInputRef}
               style={workoutStyles.saveTemplateTagInput}
               placeholder="Add tag..."
-              placeholderTextColor="#64748b"
+              placeholderTextColor={text.disabled}
               onSubmitEditing={(e) => {
                 const tag = e.nativeEvent.text.trim();
                 if (tag && !saveTemplateTags.includes(tag)) {
@@ -115,11 +116,11 @@ const SaveTemplateModal = ({
 
         <View style={workoutStyles.addExerciseActions}>
           <NeonButton onPress={onSave} style={workoutStyles.addExerciseButton} disabled={!templateName.trim()}>
-            <Save size={18} color="#0f172a" />
+            <Save size={18} color={palette.bg} />
             <Text style={{ marginLeft: 8 }}>SAVE</Text>
           </NeonButton>
           <TouchableOpacity onPress={onClose} style={workoutStyles.addExerciseCancel}>
-            <X size={24} color={colors.textMutedAlt} />
+            <X size={24} color={text.tertiary} />
           </TouchableOpacity>
         </View>
       </View>

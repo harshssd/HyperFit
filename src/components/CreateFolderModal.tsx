@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { FolderPlus, X } from 'lucide-react-native';
 import NeonButton from './NeonButton';
 import { workoutStyles, modalStyles } from '../styles';
+import { palette, text } from '../styles/theme';
 
 type CreateFolderModalProps = {
   visible: boolean;
@@ -32,7 +33,7 @@ const CreateFolderModal = ({
             onPress={onClose}
             style={workoutStyles.addExerciseCancel}
           >
-            <X size={24} color="#94a3b8" />
+            <X size={24} color={text.tertiary} />
           </TouchableOpacity>
         </View>
 
@@ -40,7 +41,7 @@ const CreateFolderModal = ({
         <TextInput
           style={workoutStyles.addExerciseInput}
           placeholder="Enter folder name..."
-          placeholderTextColor="#64748b"
+          placeholderTextColor={text.disabled}
           value={newFolderName}
           onChangeText={onChangeFolderName}
           autoFocus
@@ -55,11 +56,11 @@ const CreateFolderModal = ({
             style={workoutStyles.addExerciseButton}
             disabled={!trimmed}
           >
-            <FolderPlus size={18} color="#0f172a" />
+            <FolderPlus size={18} color={palette.bg} />
             <Text style={{ marginLeft: 8 }}>CREATE</Text>
           </NeonButton>
           <TouchableOpacity onPress={onClose} style={workoutStyles.addExerciseCancel}>
-            <X size={24} color="#94a3b8" />
+            <X size={24} color={text.tertiary} />
           </TouchableOpacity>
         </View>
       </View>
