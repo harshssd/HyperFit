@@ -4,6 +4,7 @@ import {
   createUserWorkoutPlan,
   createWorkoutPlan,
   deactivateUserWorkoutPlans,
+  findUserWorkoutPlan,
   fetchWorkoutPlanDetails,
   rotatePlanShareCode,
   setPlanReviewStatus,
@@ -57,14 +58,16 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
           planDetails = await fetchWorkoutPlanDetails(planId);
         }
 
-        // Deactivate every other active row for this user server-side so
-        // the unique partial index (one is_active row per user) can't
-        // collide on a stale local cache.
-        await deactivateUserWorkoutPlans(userId, planId);
+        // Always clear the active slot first, then look up the existing
+        // (user, plan) row from the DB — local state can be stale or even
+        // missing the row entirely, which is what makes naive insert
+        // collide with the unique partial index.
+        await deactivateUserWorkoutPlans(userId);
 
-        let activePlanRecordId = targetPlan?.id;
-        if (targetPlan?.id) {
-          await updateUserWorkoutPlan(targetPlan.id, { is_active: true });
+        const existing = await findUserWorkoutPlan(userId, planId);
+        let activePlanRecordId: string | undefined = existing?.id;
+        if (existing?.id) {
+          await updateUserWorkoutPlan(existing.id, { is_active: true });
         } else {
           const newUserPlan = await createUserWorkoutPlan({
             user_id: userId,

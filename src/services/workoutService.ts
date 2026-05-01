@@ -244,23 +244,36 @@ export const createUserWorkoutPlan = async (userPlan: Tables['user_workout_plans
 };
 
 /**
- * Server-side deactivation of every is_active row for a user, optionally
- * excluding one plan_id. Use this before activating a plan so the unique
- * partial index (one is_active row per user) can never collide on a stale
- * local cache.
+ * Server-side deactivation of every is_active row for a user. No exceptions
+ * — we always clear the active slot before re-activating the target. This
+ * guarantees the unique partial index (one is_active row per user) can
+ * never collide, regardless of local cache state.
  */
-export const deactivateUserWorkoutPlans = async (
-  userId: string,
-  exceptPlanId?: string
-) => {
-  let query = supabase
+export const deactivateUserWorkoutPlans = async (userId: string) => {
+  const { error } = await supabase
     .from('user_workout_plans')
     .update({ is_active: false })
     .eq('user_id', userId)
     .eq('is_active', true);
-  if (exceptPlanId) query = query.neq('plan_id', exceptPlanId);
-  const { error } = await query;
   if (error) throw error;
+};
+
+/**
+ * Authoritative lookup of an existing (user_id, plan_id) row, regardless of
+ * its is_active state. Used by activation flows that can't trust the local
+ * userPlans cache.
+ */
+export const findUserWorkoutPlan = async (userId: string, planId: string) => {
+  const { data, error } = await supabase
+    .from('user_workout_plans')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('plan_id', planId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
 };
 
 export const updateUserWorkoutPlan = async (
