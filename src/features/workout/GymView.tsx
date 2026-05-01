@@ -918,6 +918,7 @@ const GymView = ({
             visible={showPlanLibrary}
             onClose={() => setShowPlanLibrary(false)}
             selectionMode={planSelectionMode}
+            activePlanId={activeUserPlan?.planId || data.activePlanId}
             onSelectPlan={async (plan) => {
               try {
                 // Always fetch the latest plan details
