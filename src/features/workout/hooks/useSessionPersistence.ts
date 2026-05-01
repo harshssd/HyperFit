@@ -49,16 +49,20 @@ export const useSessionPersistence = (
         if (cancelled) return;
         if (raw) {
           const snap = JSON.parse(raw) as Snapshot;
-          if (
+          const usable =
             snap?.v === SCHEMA_VERSION &&
             Array.isArray(snap.exercises) &&
-            snap.exercises.length > 0
-          ) {
+            snap.exercises.length > 0;
+          if (usable) {
             sessionRef.current.hydrateFromSnapshot(
               snap.exercises,
               snap.startTime ?? null,
               snap.context ?? { type: 'manual' }
             );
+          } else {
+            // Stale or future-version snapshot — drop it so we don't keep
+            // skipping it forever.
+            AsyncStorage.removeItem(STORAGE_KEY(userId)).catch(() => {});
           }
         }
       } catch (e) {
