@@ -49,6 +49,10 @@ export type SlimPlanCreatorMode = 'create' | 'edit' | 'duplicate';
 type Props = {
   visible: boolean;
   onClose: () => void;
+  /** Owner of any newly-created exercises. RLS `exercises_write` requires
+   *  `user_id = auth.uid()`, so free-text exercise creation fails silently
+   *  if this isn't passed. */
+  userId?: string;
   /** create: blank form. edit: prefill + write back to initialPlan.id.
    *  duplicate: prefill but always create a new plan. */
   mode?: SlimPlanCreatorMode;
@@ -110,6 +114,7 @@ const fromInitialPlan = (plan: WorkoutPlan): DraftSession[] => {
 export const SlimPlanCreator = ({
   visible,
   onClose,
+  userId,
   mode = 'create',
   initialPlan,
   onCreatePlan,
@@ -210,8 +215,15 @@ export const SlimPlanCreator = ({
     if (!q) return null;
     const match = exerciseLibrary.find((e) => e.name.toLowerCase() === q.toLowerCase());
     if (match) return match;
+    if (!userId) {
+      setError('Sign in to add new exercises.');
+      return null;
+    }
     try {
+      // RLS `exercises_write` requires user_id = auth.uid() on insert. Without
+      // user_id the policy rejects with a confusing 42501 error.
       const created: any = await createExercise({
+        user_id: userId,
         name: q,
         muscle_group: 'other',
         equipment: 'mixed',

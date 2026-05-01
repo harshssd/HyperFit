@@ -222,11 +222,22 @@ export const createWorkoutPlan = async (
 
 /**
  * Replace an existing plan's metadata + sessions + schedule with the supplied
- * draft. Children (sessions, exercises, schedule rows) are deleted and
- * re-inserted in one logical pass — simpler and more reliable than diffing.
+ * draft, atomically. Wraps `replace_workout_plan_contents` (Postgres RPC) so
+ * the wipe-and-reinsert runs in a single transaction — a client crash mid-
+ * flight rolls back instead of leaving the plan with no sessions/schedule.
  *
- * RLS guarantees the caller only mutates plans they own; standard plans
- * (`user_id = null`) are read-only via the `plans_write` policy.
+ * RLS gate: the RPC is SECURITY INVOKER, so the UPDATE on workout_plans still
+ * fires `plans_write` (user_id = auth.uid()). Standard plans (user_id null)
+ * stay read-only.
+ *
+ * Historical workout_sessions: their `plan_session_id` FK is `on delete set
+ * null` in the schema, so logged workouts retain plan attribution but lose
+ * the specific session-template label after an edit. That's intentional —
+ * preserving History over a fragile FK is the right trade-off.
+ *
+ * `sessions` and `schedule` are normalized for the RPC: the schedule
+ * references sessions by ordinal index in `sessions[]` instead of UUIDs,
+ * since the new session UUIDs don't exist until the RPC inserts them.
  */
 export const updateWorkoutPlan = async (
   planId: string,
@@ -234,56 +245,45 @@ export const updateWorkoutPlan = async (
   sessions: PlanSessionInput[],
   schedule: Tables['plan_schedule']['Insert'][]
 ) => {
-  const { error: planError } = await supabase
-    .from('workout_plans')
-    .update({ ...plan, updated_at: new Date().toISOString() })
-    .eq('id', planId);
-  if (planError) throw planError;
+  const sessionsPayload = sessions.map((s, i) => ({
+    name: s.session.name,
+    description: (s.session as any).description,
+    focus: (s.session as any).focus,
+    order_index: (s.session as any).order_index ?? i + 1,
+    exercises: s.exercises.map((ex: any, j: number) => ({
+      exercise_id: ex.exercise_id,
+      order_index: ex.order_index ?? j + 1,
+      sets: ex.sets,
+      reps_min: ex.reps_min,
+      reps_max: ex.reps_max,
+      rest_seconds: ex.rest_seconds,
+    })),
+  }));
 
-  // Cascade-delete via parent row removal isn't appropriate here (we want to
-  // KEEP the plan), so clear children explicitly. plan_exercises FK cascades
-  // when its parent plan_session row is deleted.
-  const { error: schedDelErr } = await supabase
-    .from('plan_schedule').delete().eq('plan_id', planId);
-  if (schedDelErr) throw schedDelErr;
-  const { error: sessDelErr } = await supabase
-    .from('plan_sessions').delete().eq('plan_id', planId);
-  if (sessDelErr) throw sessDelErr;
+  // Map the caller's session_id (a temp client id used as a join key) to the
+  // index in sessionsPayload — the RPC then resolves index → real new UUID.
+  const indexById = new Map<string, number>();
+  sessions.forEach((s, i) => {
+    if (s.session.id) indexById.set(s.session.id as string, i);
+  });
+  const schedulePayload = schedule
+    .map((row) => ({
+      session_index: indexById.get(row.session_id as string),
+      day_of_week: row.day_of_week,
+      order_index: (row as any).order_index ?? 0,
+    }))
+    .filter((row) => row.session_index !== undefined);
 
-  const sessionIdMap = new Map<string, string>();
-  for (const { session, exercises } of sessions) {
-    const oldId = session.id;
-    const insertPayload: Tables['plan_sessions']['Insert'] = {
-      ...session,
-      plan_id: planId,
-    };
-    delete (insertPayload as any).id;
+  const planPatch: any = { ...plan };
+  delete planPatch.updated_at; // RPC sets it server-side
 
-    const { data: newSession, error: sessErr } = await supabase
-      .from('plan_sessions')
-      .insert(insertPayload)
-      .select()
-      .single();
-    if (sessErr) throw sessErr;
-    if (oldId) sessionIdMap.set(oldId, newSession.id);
-
-    if (exercises.length > 0) {
-      const rows = exercises.map(ex => ({ ...ex, session_id: newSession.id }));
-      const { error: exErr } = await supabase.from('plan_exercises').insert(rows);
-      if (exErr) throw exErr;
-    }
-  }
-
-  if (schedule.length > 0) {
-    const rows = schedule.map(s => ({
-      plan_id: planId,
-      session_id: sessionIdMap.get(s.session_id) ?? s.session_id,
-      day_of_week: s.day_of_week,
-      order_index: s.order_index,
-    }));
-    const { error: schedErr } = await supabase.from('plan_schedule').insert(rows);
-    if (schedErr) throw schedErr;
-  }
+  const { error } = await supabase.rpc('replace_workout_plan_contents', {
+    p_plan_id: planId,
+    p_plan_patch: planPatch,
+    p_sessions: sessionsPayload,
+    p_schedule: schedulePayload,
+  });
+  if (error) throw error;
 
   return await fetchWorkoutPlanDetails(planId);
 };

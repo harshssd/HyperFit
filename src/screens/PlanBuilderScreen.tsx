@@ -74,6 +74,7 @@ export const PlanBuilderScreen = () => {
     <SlimPlanCreator
       visible={visible}
       onClose={close}
+      userId={user?.id}
       mode={mode}
       initialPlan={initialPlan}
       onCreatePlan={async (planData) => {
