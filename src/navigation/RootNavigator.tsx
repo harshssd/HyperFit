@@ -70,7 +70,11 @@ export const RootNavigator = () => {
                     <Stack.Screen
                       name="PlanBuilder"
                       component={PlanBuilderScreen}
-                      options={{ presentation: 'transparentModal', animation: 'none' }}
+                      options={{
+                        presentation: 'transparentModal',
+                        animation: 'none',
+                        gestureEnabled: true,
+                      }}
                     />
                     <Stack.Group screenOptions={{ presentation: 'modal' }}>
                       <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />

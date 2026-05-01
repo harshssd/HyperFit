@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import {
   createUserWorkoutPlan,
@@ -20,8 +20,20 @@ type Args = {
  * Encapsulates the database-shape transform, post-create activation prompt,
  * and the local state reconciliation that keeps `userWorkoutPlans` in sync
  * with the active plan rule (at most one is_active per user).
+ *
+ * `data` and `updateData` are read through refs so the activation alert
+ * fired from `createPlan` (after PlanBuilderScreen has already unmounted
+ * itself) still operates on the *current* UserData rather than the
+ * snapshot captured when create was kicked off.
  */
 export const usePlanActions = ({ userId, data, updateData }: Args) => {
+  const dataRef = useRef(data);
+  const updateDataRef = useRef(updateData);
+  useEffect(() => {
+    dataRef.current = data;
+    updateDataRef.current = updateData;
+  });
+
   const activatePlan = useCallback(
     async (planId: string) => {
       if (!userId) {
@@ -29,7 +41,10 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
         return;
       }
 
-      const userPlans = data.userWorkoutPlans || [];
+      // Read latest UserData via ref — this callback can fire from an alert
+      // raised after the calling screen unmounted (see hook docstring).
+      const latestData = dataRef.current;
+      const userPlans = latestData.userWorkoutPlans || [];
       const targetPlan = userPlans.find((p) => p.planId === planId);
 
       try {
@@ -57,17 +72,16 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
           activePlanRecordId = newUserPlan.id;
         }
 
-        const updated = userPlans
-          .map((p) => ({
-            ...p,
-            isActive: p.planId === planId,
-            planData: p.planId === planId ? planDetails! : p.planData,
-          }))
-          .map((p) =>
-            p.planId === planId && activePlanRecordId
-              ? { ...p, id: activePlanRecordId, isActive: true }
-              : { ...p, isActive: false }
-          );
+        const updated = userPlans.map((p) =>
+          p.planId === planId
+            ? {
+                ...p,
+                id: activePlanRecordId ?? p.id,
+                isActive: true,
+                planData: planDetails!,
+              }
+            : { ...p, isActive: false }
+        );
 
         if (!targetPlan && activePlanRecordId && planDetails) {
           updated.push({
@@ -82,7 +96,7 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
           });
         }
 
-        updateData({ ...data, userWorkoutPlans: updated, activePlanId: planId });
+        updateDataRef.current({ ...latestData, userWorkoutPlans: updated, activePlanId: planId });
 
         const active = updated.find((p) => p.isActive);
         showSuccess(`${active?.customName || active?.planData?.name || 'Plan'} activated!`);
@@ -91,7 +105,7 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
         showError('Failed to activate plan. Please try again.');
       }
     },
-    [data, updateData, userId]
+    [userId]
   );
 
   const createPlan = useCallback(
@@ -148,8 +162,9 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
         const savedPlan = await createWorkoutPlan(planForDb, sessionsForDb, scheduleForDb);
         const completePlan = await fetchWorkoutPlanDetails(savedPlan.id);
 
-        const updatedPlans = [...(data.workoutPlans || []), completePlan];
-        updateData({ ...data, workoutPlans: updatedPlans });
+        const latestData = dataRef.current;
+        const updatedPlans = [...(latestData.workoutPlans || []), completePlan];
+        updateDataRef.current({ ...latestData, workoutPlans: updatedPlans });
 
         showSuccess(`Plan "${completePlan.name}" created successfully!`);
         onAfterCreate?.(completePlan);
@@ -167,7 +182,7 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
         showError('Failed to create plan. Please try again.');
       }
     },
-    [activatePlan, data, updateData, userId]
+    [activatePlan, userId]
   );
 
   return { createPlan, activatePlan };
