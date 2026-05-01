@@ -15,6 +15,7 @@ Managed via `backlog/backlog.json` + `node scripts/backlog.js`.
 - **BL-7** Steps tab MVP — Device pedometer integration; daily summary/history; goals/reminders.
 - **BL-8** Challenges tab MVP — Join/leave, progress tracking, streaks, social share.
 - **BL-9** Test runner + unit tests (helpers, services) — Wire jest-expo + @testing-library/react-native, add npm test script + CI step. First batch: pure helpers in src/features/workout/helpers.ts (finishWorkoutState, startNewSessionState, updateSetValue, XP/rank math). Then services. BL-1 covers the broader CI/lint/E2E story; this is the test-runner foundation it depends on.
+- **BL-10** Atomic activate-plan via RPC — Currently deactivateUserWorkoutPlans + updateUserWorkoutPlan/createUserWorkoutPlan are two separate round-trips. A parallel client (multi-device) could race between them. Wrap both in a Postgres SECURITY DEFINER function activate_user_workout_plan(plan_id) that runs the deactivate+activate in one transaction. Low priority — single-device users won't hit this.
 
 ## Done
 - _None_
