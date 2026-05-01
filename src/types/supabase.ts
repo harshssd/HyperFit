@@ -13,6 +13,7 @@ export type Json =
 type Timestamp = string;
 
 export type TemplateKind = 'plan_session' | 'quick';
+export type PlanReviewStatus = 'private' | 'pending_review' | 'approved' | 'rejected';
 
 export interface Database {
   public: {
@@ -53,6 +54,10 @@ export interface Database {
           difficulty: string | null;
           tags: string[];
           is_public: boolean;
+          review_status: PlanReviewStatus;
+          reviewed_at: Timestamp | null;
+          reviewed_by: string | null;
+          review_notes: string | null;
           created_at: Timestamp;
           updated_at: Timestamp;
         };
@@ -67,6 +72,10 @@ export interface Database {
           difficulty?: string | null;
           tags?: string[];
           is_public?: boolean;
+          review_status?: PlanReviewStatus;
+          reviewed_at?: Timestamp | null;
+          reviewed_by?: string | null;
+          review_notes?: string | null;
           created_at?: Timestamp;
           updated_at?: Timestamp;
         };
@@ -330,6 +339,7 @@ export interface Database {
 
     Enums: {
       template_kind: TemplateKind;
+      plan_review_status: PlanReviewStatus;
     };
   };
 }
