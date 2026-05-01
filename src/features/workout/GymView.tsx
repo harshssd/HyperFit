@@ -924,12 +924,29 @@ const GymView = ({
     </View>
   );
 
+  // Defensive auto-dismiss: if the modal mounts (or stays mounted) without a
+  // session, kick the user back to the planner. Done in an effect — calling
+  // navigation.goBack() during render warns and can loop.
+  useEffect(() => {
+    if (mode === 'session' && visibleWorkout.length === 0 && !isFinished && onDismissSession) {
+      onDismissSession();
+    }
+  }, [mode, visibleWorkout.length, isFinished, onDismissSession]);
+
+  // After a finish flow that clears `sessionExercises`, the planner mount may
+  // still have `showOverview=true` from the pre-session preview. Reset it so
+  // the user lands on the regular planner instead of an empty WorkoutOverview.
+  useEffect(() => {
+    if (mode === 'planner' && visibleWorkout.length === 0 && showOverview) {
+      setShowOverview(false);
+    }
+  }, [mode, visibleWorkout.length, showOverview, setShowOverview]);
+
   const renderOverview = () => {
     // SESSION MODE — skip every planner surface; only show the active workout.
     if (mode === 'session') {
       if (visibleWorkout.length === 0) {
-        // Defensive: modal opened without a session. Dismiss back to planner.
-        if (onDismissSession) onDismissSession();
+        // Effect above handles the dismiss; render nothing in the meantime.
         return null;
       }
       return (
@@ -1269,12 +1286,17 @@ const GymView = ({
       <ScrollView style={workoutStyles.gymView} contentContainerStyle={workoutStyles.gymViewContent}>
         {renderOverview()}
       </ScrollView>
-      <RestTimerBar
-        restSeconds={restSeconds}
-        totalSeconds={restTimer.totalSeconds}
-        onExtend={extendRest}
-        onSkip={skipRest}
-      />
+      {/* Only the modal route owns the rest-timer bar. Otherwise both mounts
+          would pin one to the bottom of the screen and they'd visually stack
+          and steal touches in any uncovered region. */}
+      {mode === 'session' && (
+        <RestTimerBar
+          restSeconds={restSeconds}
+          totalSeconds={restTimer.totalSeconds}
+          onExtend={extendRest}
+          onSkip={skipRest}
+        />
+      )}
     </>
   );
 };
