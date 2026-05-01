@@ -47,7 +47,6 @@ import SharePlanModal from '../../components/SharePlanModal';
 import WorkoutOverview from './components/WorkoutOverview';
 import WorkoutListView from './components/WorkoutListView';
 import WorkoutFocusSets from './components/WorkoutFocusSets';
-import SessionHero from './components/SessionHero';
 import WorkoutFocusActions from './components/WorkoutFocusActions';
 import RestTimerBar from './components/RestTimerBar';
 import WorkoutHeader from './components/WorkoutHeader';
@@ -78,7 +77,6 @@ import { useSessionView } from './hooks/useSessionView';
 import { useTemplates } from './hooks/useTemplates';
 import { useRecentWorkouts } from './hooks/useRecentWorkouts';
 import { useLastSessionSets } from './hooks/useLastSessionSets';
-import { useLastSessionVolume } from './hooks/useLastSessionVolume';
 import { useActiveWorkoutSession } from '../../contexts/WorkoutSessionContext';
 
 let Haptics: any = null;
@@ -677,18 +675,6 @@ const GymView = ({
     : null;
   const ghost = useLastSessionSets(userId, currentExerciseId);
 
-  // Hero volume comparison: today's running volume vs the last session
-  // matching this session's plan_session_id (or session name when manual).
-  const todayIso = session.sessionStartTime
-    ? new Date(session.sessionStartTime).toISOString().slice(0, 10)
-    : null;
-  const lastVolume = useLastSessionVolume(
-    userId,
-    sessionContext.planSessionId ?? null,
-    sessionContext.customName || sessionContext.sessionName || null,
-    todayIso
-  );
-
   const renderTemplatePicker = () => (
     <TemplatePickerModal
       {...templatePickerProps}
@@ -744,22 +730,6 @@ const GymView = ({
 
   const renderWorkoutFocus = () => (
     <View style={workoutStyles.workoutFocus}>
-      <SessionHero
-        name={sessionContext.customName || sessionContext.sessionName || 'Workout'}
-        eyebrow={[
-          'LIVE',
-          sessionContext.planName,
-          sessionContext.sessionName && sessionContext.customName !== sessionContext.sessionName
-            ? sessionContext.sessionName
-            : null,
-        ]
-          .filter(Boolean)
-          .join(' · ')
-          .toUpperCase()}
-        volume={calculateTotalVolumeLocal()}
-        prevVolume={lastVolume.volume}
-        prevLabel={`vs last ${(sessionContext.sessionName || 'session').toLowerCase()}`}
-      />
       <WorkoutFocusHeader
         currentExerciseName={currentExercise?.name}
         currentIndex={currentExIndex}

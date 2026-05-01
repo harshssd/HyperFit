@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { CheckCircle } from 'lucide-react-native';
 import NumberControl from '../../../components/NumberControl';
 import LastSessionRule from './LastSessionRule';
-import SetGrid from './SetGrid';
+import workoutStyles from '../../../styles/workout';
 import type { GhostSet } from '../hooks/useLastSessionSets';
-import { palette, text, accent, fonts, space, radii } from '../../../styles/theme';
+import { palette, text } from '../../../styles/theme';
 
 type WorkoutFocusSetsProps = {
   currentExercise: any;
@@ -46,145 +46,101 @@ const WorkoutFocusSets = ({
     [currentExercise?.sets]
   );
 
-  const liveIndex = useMemo(() => {
-    const arr = currentExercise?.sets ?? [];
-    for (let i = 0; i < arr.length; i++) {
-      if (!arr[i].completed) return i;
-    }
-    return -1;
-  }, [currentExercise?.sets]);
-
   if (!currentExercise) return null;
 
   const exConfig = getExerciseConfig(currentExercise.name);
-  const liveSet = liveIndex >= 0 ? currentExercise.sets[liveIndex] : null;
-  const liveGhost =
-    liveIndex >= 0
-      ? (ghostSets[liveIndex] ?? ghostSets[ghostSets.length - 1])
-      : undefined;
-  const weightPlaceholder = ghostString(liveGhost?.weight, exConfig.weightPlaceholder);
-  const repsPlaceholder = ghostString(liveGhost?.reps, exConfig.repPlaceholder);
 
   return (
-    <View style={styles.wrap}>
+    <View>
       <LastSessionRule
         ghostSets={ghostSets}
         lastDate={lastDate}
         topToday={topToday}
       />
 
-      <SetGrid
-        sets={currentExercise.sets}
-        ghostSets={ghostSets}
-        liveIndex={liveIndex}
-      />
+      <View style={workoutStyles.workoutSets}>
+        {currentExercise.sets.map((set: any, setIndex: number) => {
+          const ghost = ghostSets[setIndex];
+          const ghostFallback = ghostSets.length > 0
+            ? ghostSets[Math.min(setIndex, ghostSets.length - 1)]
+            : undefined;
+          const ghostFor = ghost ?? ghostFallback;
+          const weightPlaceholder = ghostString(ghostFor?.weight, exConfig.weightPlaceholder);
+          const repsPlaceholder = ghostString(ghostFor?.reps, exConfig.repPlaceholder);
 
-      {liveSet ? (
-        <View style={styles.liveCard}>
-          <View style={styles.liveHeader}>
-            <Text style={styles.liveLabel}>
-              ENTER SET {liveIndex + 1}
-            </Text>
-            <TouchableOpacity
-              onPress={() =>
-                updateSet(currentExercise.id, liveIndex, 'completed', true)
-              }
-              style={styles.markBtn}
-              accessibilityRole="button"
-              accessibilityLabel={`Mark set ${liveIndex + 1} complete`}
+          return (
+            <View
+              key={set.id}
+              style={[
+                workoutStyles.workoutSet,
+                set.completed && workoutStyles.workoutSetCompleted,
+              ]}
             >
-              <CheckCircle size={18} color={palette.bg} />
-              <Text style={styles.markBtnText}>MARK SET</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.liveControls}>
-            <NumberControl
-              label={exConfig.weightLabel}
-              value={liveSet.weight}
-              step={exConfig.weightStep}
-              placeholder={weightPlaceholder}
-              onChange={(val: any) =>
-                updateSet(currentExercise.id, liveIndex, 'weight', val)
-              }
-            />
-            <NumberControl
-              label={exConfig.repLabel}
-              value={liveSet.reps}
-              step={exConfig.repStep}
-              placeholder={repsPlaceholder}
-              onChange={(val: any) =>
-                updateSet(currentExercise.id, liveIndex, 'reps', val)
-              }
-            />
-          </View>
-        </View>
-      ) : (
-        <View style={styles.allDone}>
-          <CheckCircle size={20} color={accent.sessionUp} />
-          <Text style={styles.allDoneText}>ALL SETS DONE</Text>
-        </View>
-      )}
+              <View style={workoutStyles.workoutSetHeader}>
+                <View
+                  style={[
+                    workoutStyles.workoutSetNumber,
+                    set.completed && workoutStyles.workoutSetNumberCompleted,
+                  ]}
+                >
+                  <Text style={workoutStyles.workoutSetNumberText}>{setIndex + 1}</Text>
+                </View>
+                <View style={workoutStyles.workoutSetDivider} />
+                <TouchableOpacity
+                  onPress={() =>
+                    updateSet(currentExercise.id, setIndex, 'completed', !set.completed)
+                  }
+                  style={[
+                    workoutStyles.workoutSetCheck,
+                    set.completed && workoutStyles.workoutSetCheckCompleted,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={
+                    set.completed ? `Mark set ${setIndex + 1} incomplete` : `Mark set ${setIndex + 1} complete`
+                  }
+                >
+                  <CheckCircle size={22} color={set.completed ? palette.bg : text.tertiary} />
+                </TouchableOpacity>
+              </View>
+              {!set.completed && (
+                <View style={workoutStyles.workoutSetControls}>
+                  <NumberControl
+                    label={exConfig.weightLabel}
+                    value={set.weight}
+                    step={exConfig.weightStep}
+                    placeholder={weightPlaceholder}
+                    onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'weight', val)}
+                  />
+                  <NumberControl
+                    label={exConfig.repLabel}
+                    value={set.reps}
+                    step={exConfig.repStep}
+                    placeholder={repsPlaceholder}
+                    onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'reps', val)}
+                  />
+                </View>
+              )}
+              {set.completed && (
+                <View style={workoutStyles.workoutSetCompletedInfo}>
+                  <Text style={workoutStyles.workoutSetCompletedText}>
+                    {set.weight || 0} {exConfig.weightLabel === 'LBS' ? 'LBS' : ''}
+                  </Text>
+                  <Text style={workoutStyles.workoutSetCompletedText}>
+                    {set.reps || 0} {exConfig.repLabel === 'REPS' ? 'REPS' : 'SEC'}
+                  </Text>
+                  {typeof set.restSeconds === 'number' && (
+                    <Text style={workoutStyles.workoutSetCompletedText}>
+                      Rest: {set.restSeconds}s
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  wrap: {
-    gap: 0,
-  },
-  liveCard: {
-    marginTop: space.xl,
-    paddingTop: space.lg,
-    borderTopWidth: 1,
-    borderColor: palette.borderSubtle,
-  },
-  liveHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: space.md,
-  },
-  liveLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: accent.lift,
-    letterSpacing: 1.8,
-  },
-  markBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.sm,
-    paddingHorizontal: space.md,
-    paddingVertical: space.sm,
-    borderRadius: radii.sm,
-    backgroundColor: accent.lift,
-  },
-  markBtnText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: palette.bg,
-    letterSpacing: 1.4,
-  },
-  liveControls: {
-    flexDirection: 'row',
-    gap: space.lg,
-  },
-  allDone: {
-    marginTop: space.xl,
-    paddingTop: space.lg,
-    borderTopWidth: 1,
-    borderColor: palette.borderSubtle,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: space.sm,
-  },
-  allDoneText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: accent.sessionUp,
-    letterSpacing: 2,
-  },
-});
 
 export default WorkoutFocusSets;
