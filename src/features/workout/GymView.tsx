@@ -89,7 +89,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { usePlanActions } from './hooks/usePlanActions';
-import { fetchWorkoutPlanDetails, createUserWorkoutPlan, updateUserWorkoutPlan, fetchExercises } from '../../services/workoutService';
+import { fetchWorkoutPlanDetails, createUserWorkoutPlan, updateUserWorkoutPlan, deactivateUserWorkoutPlans, fetchExercises } from '../../services/workoutService';
 import { confirmAction, showError, showSuccess } from '../../utils/alerts';
 import { ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE } from '../../constants/text';
 
@@ -898,12 +898,10 @@ const GymView = ({
                 const userPlans = data.userWorkoutPlans || [];
                 const existingUserPlan = userPlans.find((p: any) => p.planId === plan.id);
 
-                // Deactivate any currently active plans in DB
-                await Promise.all(
-                  userPlans
-                    .filter((p: any) => p.isActive && p.planId !== plan.id && p.id)
-                    .map((p: any) => updateUserWorkoutPlan(p.id, { is_active: false }))
-                );
+                // Deactivate any currently active plans in DB based on
+                // server state, not local cache, so the unique partial
+                // index can't collide on stale userPlans.
+                await deactivateUserWorkoutPlans(user?.id || userId, plan.id);
 
                 let userPlanId = existingUserPlan?.id;
 

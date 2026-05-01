@@ -3,6 +3,7 @@ import { Alert } from 'react-native';
 import {
   createUserWorkoutPlan,
   createWorkoutPlan,
+  deactivateUserWorkoutPlans,
   fetchWorkoutPlanDetails,
   rotatePlanShareCode,
   setPlanReviewStatus,
@@ -56,11 +57,10 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
           planDetails = await fetchWorkoutPlanDetails(planId);
         }
 
-        await Promise.all(
-          userPlans
-            .filter((p) => p.isActive && p.planId !== planId && p.id)
-            .map((p) => updateUserWorkoutPlan(p.id, { is_active: false }))
-        );
+        // Deactivate every other active row for this user server-side so
+        // the unique partial index (one is_active row per user) can't
+        // collide on a stale local cache.
+        await deactivateUserWorkoutPlans(userId, planId);
 
         let activePlanRecordId = targetPlan?.id;
         if (targetPlan?.id) {
