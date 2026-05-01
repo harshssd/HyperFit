@@ -26,6 +26,8 @@ type WorkoutSession = {
   notes?: string | null;
   exercise_count?: number;
   set_count?: number;
+  plan_id?: string | null;
+  session_id?: string | null;
 };
 
 type WorkoutLog = {
@@ -85,94 +87,47 @@ const HistoryAnalyticsView = () => {
         setLoading(true);
       }
 
-      // Fetch all workout logs for the user (client-side aggregation)
-      const { data: logs, error } = await supabase
-        .from('workout_log')
-        .select(`
-          workout_date,
-          session_name,
-          start_time,
-          end_time,
-          plan_id,
-          session_id,
-          set_number,
-          weight,
-          reps,
-          rpe,
-          completed,
-          exercise_id
-        `)
-        .eq('user_id', user.id)
-        .order('workout_date', { ascending: false })
-        .order('start_time', { ascending: false })
-        .order('order_index', { ascending: true })
-        .order('set_number', { ascending: true });
+      // session_summary_view does the aggregation server-side. Range-based
+      // pagination keeps the client from pulling all rows when the user has
+      // hundreds of sessions.
+      const from = (currentPage - 1) * ITEMS_PER_PAGE;
+      const to = from + ITEMS_PER_PAGE - 1;
+
+      const [{ data: rows, error }, { count, error: countError }] = await Promise.all([
+        supabase
+          .from('session_summary_view')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('workout_date', { ascending: false })
+          .order('start_time', { ascending: false, nullsFirst: false })
+          .range(from, to),
+        supabase
+          .from('session_summary_view')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id),
+      ]);
 
       if (error) throw error;
+      if (countError) throw countError;
 
-      // Group by session and aggregate data client-side
-      const sessionsMap = new Map();
-
-      logs?.forEach((log: any) => {
-        const key = `${log.workout_date}-${log.session_name}`;
-        if (!sessionsMap.has(key)) {
-          sessionsMap.set(key, {
-            id: key,
-            name: log.session_name,
-            date: log.workout_date,
-            start_time: log.start_time,
-            end_time: log.end_time,
-            duration_seconds: log.start_time && log.end_time ?
-              Math.floor((new Date(log.end_time).getTime() - new Date(log.start_time).getTime()) / 1000) : null,
-            volume_load: 0,
-            status: 'completed', // Will be updated based on completion status
-            notes: null,
-            exercise_count: 0,
-            set_count: 0,
-            plan_id: log.plan_id,
-            session_id: log.session_id,
-            exercises: new Set(), // Track unique exercises
-            all_completed: true // Assume completed until we find incomplete sets
-          });
-        }
-
-        const session = sessionsMap.get(key);
-
-        // Track unique exercises
-        if (log.exercise_id) {
-          session.exercises.add(log.exercise_id);
-        }
-
-        // Aggregate volume
-        if (log.weight && log.reps) {
-          session.volume_load += (log.weight * log.reps);
-        }
-
-        // Count sets
-        session.set_count += 1;
-
-        // Check completion status
-        if (!log.completed) {
-          session.all_completed = false;
-          session.status = 'incomplete';
-        }
-      });
-
-      // Convert exercises sets to counts and finalize sessions
-      const allSessions = Array.from(sessionsMap.values()).map(session => ({
-        ...session,
-        exercise_count: session.exercises.size,
-        status: session.all_completed ? 'completed' : 'incomplete'
+      const paginatedSessions = (rows ?? []).map((r: any) => ({
+        id: r.id,
+        name: r.session_name,
+        date: r.workout_date,
+        start_time: r.start_time,
+        end_time: r.end_time,
+        duration_seconds: r.duration_seconds,
+        volume_load: Number(r.volume_load) || 0,
+        status: r.status,
+        notes: r.notes,
+        exercise_count: r.exercise_count,
+        set_count: r.total_sets,
+        plan_id: r.plan_id,
+        session_id: r.plan_session_id,
       }));
 
-      // Apply client-side pagination
-      const from = (currentPage - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE;
-      const paginatedSessions = allSessions.slice(from, to);
-
-      console.log('Loaded sessions:', paginatedSessions.length, 'Total:', allSessions.length);
       setSessions(paginatedSessions);
-      setTotalCount(allSessions.length);
+      setTotalCount(count ?? paginatedSessions.length);
       setLoadError(null);
     } catch (error) {
       console.error('Error loading sessions:', error);
@@ -192,86 +147,60 @@ const HistoryAnalyticsView = () => {
     console.log('Loading session details for:', sessionId);
 
     try {
-      // Parse session ID (format: "YYYY-MM-DD-Session Name")
-      const [date, ...nameParts] = sessionId.split('-');
-      const sessionName = nameParts.join('-');
+      // sessionId is now the workout_sessions.id UUID directly.
+      const [{ data: parent, error: parentError }, { data: sets, error: setsError }] =
+        await Promise.all([
+          supabase
+            .from('session_summary_view')
+            .select('*')
+            .eq('id', sessionId)
+            .eq('user_id', user.id)
+            .single(),
+          supabase
+            .from('workout_sets')
+            .select('*, exercise:exercises(id, name)')
+            .eq('session_id', sessionId)
+            .order('order_index', { ascending: true })
+            .order('set_number', { ascending: true }),
+        ]);
 
-      if (!date || !sessionName) {
-        throw new Error('Invalid session ID format');
-      }
+      if (parentError) throw parentError;
+      if (setsError) throw setsError;
+      if (!parent) throw new Error('Session not found');
 
-      // Fetch workout logs for this session with exercise names
-      const { data: logsData, error: logsError } = await supabase
-        .from('workout_log')
-        .select(`
-          *,
-          exercises (
-            id,
-            name
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('workout_date', date)
-        .eq('session_name', sessionName)
-        .order('order_index')
-        .order('set_number');
-
-      if (logsError) {
-        console.error('Error fetching logs:', logsError);
-        throw logsError;
-      }
-
-      console.log('Logs loaded:', logsData?.length, 'logs');
-
-      if (!logsData || logsData.length === 0) {
-        throw new Error('No workout data found for this session');
-      }
-
-      // Create session data from the first log entry
-      const firstLog = logsData[0];
-      const sessionData = {
-        id: sessionId,
-        name: firstLog.session_name,
-        date: firstLog.workout_date,
-        start_time: firstLog.start_time,
-        end_time: firstLog.end_time,
-        duration_seconds: firstLog.start_time && firstLog.end_time ?
-          Math.floor((new Date(firstLog.end_time).getTime() - new Date(firstLog.start_time).getTime()) / 1000) : null,
-        volume_load: logsData.reduce((sum, log) => sum + ((log.weight || 0) * (log.reps || 0)), 0),
-        status: 'completed',
-        notes: null,
-        plan_id: firstLog.plan_id,
-        session_id: firstLog.session_id
-      };
-
-      // Transform logs to include exercise names
-      const transformedLogs = (logsData || []).map((log: any) => ({
-        id: `${log.id}`, // Convert to string for compatibility
+      const transformedLogs = (sets ?? []).map((row: any) => ({
+        id: row.id,
         session_id: sessionId,
-        exercise_id: log.exercise_id,
-        order_index: log.order_index,
-        set_number: log.set_number,
-        weight: log.weight,
-        reps: log.reps,
-        completed: log.completed,
-        notes: log.notes,
-        exercise_name: log.exercises?.name || 'Unknown Exercise',
+        exercise_id: row.exercise_id,
+        order_index: row.order_index,
+        set_number: row.set_number,
+        weight: row.weight,
+        reps: row.reps,
+        completed: row.completed,
+        notes: undefined,
+        exercise_name: row.exercise?.name || 'Unknown Exercise',
       }));
 
-      const uniqueExercises = new Set(transformedLogs.map((l: any) => l.exercise_id));
-
       const sessionWithLogs: SessionWithLogs = {
-        ...sessionData,
-        exercise_count: uniqueExercises.size,
-        set_count: transformedLogs.length,
+        id: parent.id,
+        name: parent.session_name,
+        date: parent.workout_date,
+        start_time: parent.start_time,
+        end_time: parent.end_time,
+        duration_seconds: parent.duration_seconds,
+        volume_load: Number(parent.volume_load) || 0,
+        status: parent.status,
+        notes: parent.notes,
+        plan_id: parent.plan_id,
+        session_id: parent.plan_session_id,
+        exercise_count: parent.exercise_count,
+        set_count: parent.total_sets,
         logs: transformedLogs,
       };
 
-      console.log('Setting selected session:', sessionWithLogs.name);
       setSelectedSession(sessionWithLogs);
     } catch (error) {
       console.error('Error loading session details:', error);
-      // Show error to user
       alert(`Failed to load session details: ${error}`);
     }
   };

@@ -42,8 +42,6 @@ type TemplateType = {
   icon?: string;
   tags?: string[];
   user_id?: string;
-  is_standard?: boolean;
-  created_by_username?: string;
 };
 
 type TemplatePickerModalProps = {
@@ -250,7 +248,8 @@ const TemplatePickerModal = ({
                   const isFavorite = favorites.has(template.id);
                   const folder = folders.find((f) => f.id === template.folder_id);
                   const isUserTemplate = template.user_id === userId;
-                  const isStandard = template.is_standard;
+                  // System / shared templates have no user_id; surface that as a "STANDARD" badge.
+                  const isStandard = !template.user_id;
 
                   return (
                     <GlassCard key={template.id} style={workoutStyles.templateCard}>
@@ -285,10 +284,10 @@ const TemplatePickerModal = ({
                                 <Text style={workoutStyles.templateBadgeText}>STANDARD</Text>
                               </View>
                             )}
-                            {!isStandard && template.created_by_username && (
+                            {!isStandard && !isUserTemplate && (
                               <View style={workoutStyles.templateBadge}>
                                 <User size={10} color="#64748b" />
-                                <Text style={workoutStyles.templateBadgeText}>{template.created_by_username}</Text>
+                                <Text style={workoutStyles.templateBadgeText}>SHARED</Text>
                               </View>
                             )}
                             {folder && (
