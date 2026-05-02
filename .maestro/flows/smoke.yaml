@@ -1,0 +1,11 @@
+appId: com.hyperfocused.hyperfit
+---
+# Smoke: launches the app and verifies first-run UI is reachable.
+# Doesn't depend on auth credentials — useful as the always-on canary.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-screen"
+    timeout: 20000
+- assertVisible: "HYPER"

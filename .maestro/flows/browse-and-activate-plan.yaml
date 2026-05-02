@@ -1,0 +1,34 @@
+appId: com.hyperfocused.hyperfit
+---
+# Sign in (if needed), open Plans tab, browse the plan library, and tap
+# the first plan's ACTIVATE button. Asserts that the active badge appears
+# afterwards.
+- launchApp
+- runFlow: _auth-if-needed.yaml
+
+- tapOn:
+    id: "tab-gym"
+- extendedWaitUntil:
+    visible:
+      id: "planner-browse-library-button"
+    timeout: 10000
+- tapOn:
+    id: "planner-browse-library-button"
+
+# Wait for the library modal, then activate the first plan card.
+- extendedWaitUntil:
+    visible: "PLAN LIBRARY"
+    timeout: 8000
+
+# The first plan-card-* activate button is whichever plan ranks first by
+# relevance. Maestro's regex selector picks any matching testID.
+- tapOn:
+    id: "plan-card-.*-activate"
+    index: 0
+
+# Confirm the active state — either the inline ACTIVE badge on the card or
+# the disabled "ACTIVE" CTA. Both render the `plan-badge-active` testID.
+- extendedWaitUntil:
+    visible:
+      id: "plan-badge-active"
+    timeout: 8000

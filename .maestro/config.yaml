@@ -1,0 +1,12 @@
+# Maestro project config for HyperFit (Expo iOS / Android).
+# Run `maestro test .maestro/flows/<name>.yaml` from the repo root.
+#
+# `appId` matches the iOS bundle identifier and Android package in app.json.
+# When running through Expo Go (development), Maestro launches the host
+# Expo Go app instead — set MAESTRO_APP_ID=host.exp.Exponent before invoking
+# maestro and update individual flows' `appId` if you go that route.
+appId: com.hyperfocused.hyperfit
+
+# Disabled by default — flip on for shared snapshots in CI.
+# executionOrder:
+#   continueOnFailure: false

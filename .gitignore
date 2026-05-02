@@ -45,6 +45,7 @@ web-build/
 .env
 .env.local
 .env.*.local
+.maestro/.env
 
 # Firebase
 firebase-debug.log

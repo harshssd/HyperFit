@@ -1,0 +1,28 @@
+appId: com.hyperfocused.hyperfit
+---
+# Sign in with the configured test account, assert HomeView is visible.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-screen"
+    timeout: 20000
+- tapOn:
+    id: "login-email-input"
+- inputText: ${MAESTRO_EMAIL}
+- tapOn:
+    id: "login-password-input"
+- inputText: ${MAESTRO_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: "login-submit-button"
+- extendedWaitUntil:
+    visible:
+      id: "tab-home"
+    timeout: 15000
+- assertVisible:
+    id: "home-stats"
+- assertVisible:
+    id: "home-streak-value"
+- assertVisible:
+    id: "home-xp-value"

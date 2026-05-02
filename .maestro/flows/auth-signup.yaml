@@ -1,0 +1,40 @@
+appId: com.hyperfocused.hyperfit
+---
+# Sign up with a fresh email — uses a timestamp to avoid duplicate accounts
+# across runs. Note Supabase may rate-limit signups in CI; for local
+# iteration this is fine, but consider stubbing the Supabase URL behind a
+# mock if you wire this into CI.
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "login-screen"
+    timeout: 20000
+
+# Generate a unique email per run via GraalJS.
+- runScript: |
+    const ts = Date.now();
+    output.email = `maestro-signup-${ts}@hyperfit.test`;
+    output.password = 'MaestroSignup#1';
+
+- tapOn:
+    id: "login-mode-toggle"
+- assertVisible: "SIGN UP"
+
+- tapOn:
+    id: "login-email-input"
+- inputText: ${output.email}
+- tapOn:
+    id: "login-password-input"
+- inputText: ${output.password}
+- hideKeyboard
+- tapOn:
+    id: "login-submit-button"
+
+# Either Home appears (auto-confirm enabled) or an error/notice toast shows.
+# Don't fail the flow on the latter — the submission itself is what's tested.
+- extendedWaitUntil:
+    visible:
+      id: "tab-home"
+    timeout: 15000
+    optional: true

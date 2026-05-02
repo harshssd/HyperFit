@@ -1,0 +1,23 @@
+appId: com.hyperfocused.hyperfit
+---
+# Sub-flow: sign in only if the login screen is visible.
+# Adaptive auth pattern from the maestro-mobile-testing skill — flows can
+# call this without caring whether the previous run left a session behind.
+- runFlow:
+    when:
+      visible:
+        id: "login-screen"
+    commands:
+      - tapOn:
+          id: "login-email-input"
+      - inputText: ${MAESTRO_EMAIL}
+      - tapOn:
+          id: "login-password-input"
+      - inputText: ${MAESTRO_PASSWORD}
+      - hideKeyboard
+      - tapOn:
+          id: "login-submit-button"
+      - extendedWaitUntil:
+          visible:
+            id: "tab-home"
+          timeout: 15000

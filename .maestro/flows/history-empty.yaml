@@ -1,0 +1,16 @@
+appId: com.hyperfocused.hyperfit
+---
+# Sign in, open History tab — for a fresh test account this should render
+# the empty state. If the test account has logged sessions, this flow
+# is expected to fail (use a clean test account in CI).
+- launchApp
+- runFlow: _auth-if-needed.yaml
+
+- tapOn:
+    id: "tab-history"
+
+- extendedWaitUntil:
+    visible:
+      id: "history-empty-state"
+    timeout: 10000
+- assertVisible: "No workout history yet"

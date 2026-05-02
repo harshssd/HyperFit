@@ -1,0 +1,29 @@
+appId: com.hyperfocused.hyperfit
+---
+# Sign in, navigate to Calendar tab, cycle through next/previous month
+# and back to today. Asserts the month label changes between steps using
+# the cached label as a sentinel.
+- launchApp
+- runFlow: _auth-if-needed.yaml
+
+- tapOn:
+    id: "tab-calendar"
+- extendedWaitUntil:
+    visible:
+      id: "calendar-month-label"
+    timeout: 8000
+
+# Capture the starting month label, then advance.
+- copyTextFrom:
+    id: "calendar-month-label"
+- tapOn:
+    id: "calendar-next-month"
+- assertNotVisible: ${maestro.copiedText}
+
+- tapOn:
+    id: "calendar-prev-month"
+- assertVisible: ${maestro.copiedText}
+
+- tapOn:
+    id: "calendar-today-button"
+- assertVisible: ${maestro.copiedText}

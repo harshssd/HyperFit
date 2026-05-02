@@ -1,0 +1,42 @@
+appId: com.hyperfocused.hyperfit
+---
+# Sign in, open Plans tab, tap CREATE NEW PLAN, fill the form, save.
+- launchApp
+- runFlow: _auth-if-needed.yaml
+
+- tapOn:
+    id: "tab-gym"
+- extendedWaitUntil:
+    visible:
+      id: "planner-create-plan-button"
+    timeout: 10000
+- tapOn:
+    id: "planner-create-plan-button"
+
+# Plan creator modal opens with one blank session pre-seeded.
+- extendedWaitUntil:
+    visible:
+      id: "plan-creator-name-input"
+    timeout: 8000
+
+- runScript: |
+    output.planName = `Maestro Plan ${Date.now()}`;
+
+- tapOn:
+    id: "plan-creator-name-input"
+- inputText: ${output.planName}
+- tapOn:
+    id: "plan-creator-description-input"
+- inputText: "Created by maestro e2e"
+- hideKeyboard
+
+# Schedule the (auto-created) first session on Monday so validation passes.
+- tapOn:
+    id: "plan-creator-day-monday"
+    optional: true
+
+# Save — note: this flow does NOT add an exercise (validation will block
+# saving until at least one exists). For a complete green-path test, extend
+# with an exercise picker step using the SessionCard text input.
+- tapOn:
+    id: "plan-creator-save-button"
