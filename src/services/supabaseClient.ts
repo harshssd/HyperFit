@@ -24,9 +24,6 @@ export const signInWithGoogle = (redirectTo: string) =>
     options: { redirectTo, skipBrowserRedirect: true },
   });
 
-export const setSessionFromTokens = (access_token: string, refresh_token: string) =>
-  supabase.auth.setSession({ access_token, refresh_token });
-
 export const signOut = () => supabase.auth.signOut();
 
 /**
