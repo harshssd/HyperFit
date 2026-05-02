@@ -15,6 +15,7 @@ type NeonButtonProps = AccessibilityProps & {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
   style?: StyleProp<ViewStyle>;
   disabled?: boolean;
+  testID?: string;
 };
 
 const NeonButton = ({
@@ -23,6 +24,7 @@ const NeonButton = ({
   variant = 'primary',
   style,
   disabled,
+  testID,
   ...a11y
 }: NeonButtonProps) => {
   const baseStyle = [buttonStyles.neonButton, buttonStyles.neonButtonBase];
@@ -35,6 +37,7 @@ const NeonButton = ({
 
   return (
     <TouchableOpacity
+      testID={testID}
       onPress={onPress}
       disabled={disabled}
       style={[baseStyle, variants[variant], disabled && buttonStyles.neonButtonDisabled, style]}

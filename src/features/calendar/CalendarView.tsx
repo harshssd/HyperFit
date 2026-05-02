@@ -65,20 +65,20 @@ const CalendarView = () => {
     >
       {/* Month header */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-        <TouchableOpacity onPress={goPrev} accessibilityLabel="Previous month" style={{ padding: 8 }}>
+        <TouchableOpacity testID="calendar-prev-month" onPress={goPrev} accessibilityLabel="Previous month" style={{ padding: 8 }}>
           <ChevronLeft size={20} color={text.primary} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
-          <Text style={{ color: text.primary, fontFamily: 'monospace', fontSize: 13, fontWeight: '700', letterSpacing: 1.6 }}>
+          <Text testID="calendar-month-label" style={{ color: text.primary, fontFamily: 'monospace', fontSize: 13, fontWeight: '700', letterSpacing: 1.6 }}>
             {MONTH_NAMES[month.getMonth()]} {month.getFullYear()}
           </Text>
-          <TouchableOpacity onPress={jumpToday} style={{ marginTop: 2 }}>
+          <TouchableOpacity testID="calendar-today-button" onPress={jumpToday} style={{ marginTop: 2 }}>
             <Text style={{ color: accent.lift, fontFamily: 'monospace', fontSize: 10, fontWeight: '700', letterSpacing: 1.4 }}>
               TODAY
             </Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity onPress={goNext} accessibilityLabel="Next month" style={{ padding: 8 }}>
+        <TouchableOpacity testID="calendar-next-month" onPress={goNext} accessibilityLabel="Next month" style={{ padding: 8 }}>
           <ChevronRight size={20} color={text.primary} />
         </TouchableOpacity>
       </View>

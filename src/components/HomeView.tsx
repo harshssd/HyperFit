@@ -127,15 +127,15 @@ const HomeView = ({ data, onChangeView, streak, xp }: HomeViewProps) => {
   return (
     <ScrollView style={homeStyles.homeView} contentContainerStyle={homeStyles.homeViewContent}>
       {/* Header Stats */}
-      <View style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl }}>
+      <View testID="home-stats" style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl }}>
         <GlassCard style={{ flex: 1, padding: spacing.lg, alignItems: 'center' }}>
           <TrendingUp size={20} color={accent.lift} />
-          <Text style={{ color: text.primary, fontSize: 22, fontWeight: '900', marginTop: spacing.sm, letterSpacing: -0.4 }}>{streak}</Text>
+          <Text testID="home-streak-value" style={{ color: text.primary, fontSize: 22, fontWeight: '900', marginTop: spacing.sm, letterSpacing: -0.4 }}>{streak}</Text>
           <Text style={{ color: text.quaternary, fontSize: 10, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>Day Streak</Text>
         </GlassCard>
         <GlassCard style={{ flex: 1, padding: spacing.lg, alignItems: 'center' }}>
           <BarChart2 size={20} color={text.secondary} />
-          <Text style={{ color: text.primary, fontSize: 22, fontWeight: '900', marginTop: spacing.sm, letterSpacing: -0.4 }}>{xp}</Text>
+          <Text testID="home-xp-value" style={{ color: text.primary, fontSize: 22, fontWeight: '900', marginTop: spacing.sm, letterSpacing: -0.4 }}>{xp}</Text>
           <Text style={{ color: text.quaternary, fontSize: 10, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>Total XP</Text>
         </GlassCard>
       </View>

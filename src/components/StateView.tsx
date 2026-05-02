@@ -62,13 +62,15 @@ export const EmptyState = ({
   message,
   icon,
   action,
+  testID,
 }: {
   title: string;
   message?: string;
   icon?: ReactNode;
   action?: { label: string; onPress: () => void };
+  testID?: string;
 }) => (
-  <View style={styles.container}>
+  <View testID={testID} style={styles.container}>
     {icon}
     <Text style={styles.title}>{title}</Text>
     {message ? <Text style={styles.message}>{message}</Text> : null}

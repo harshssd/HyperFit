@@ -63,6 +63,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
 
   return (
     <ImageBackground
+      testID="login-screen"
       source={{ uri: ASSETS.background }}
       style={loginStyles.loginContainer}
       resizeMode="cover"
@@ -96,6 +97,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
 
             <Text style={loginStyles.loginLabel}>EMAIL</Text>
             <TextInput
+              testID="login-email-input"
               style={loginStyles.loginInput}
               placeholder="your.email@example.com"
               placeholderTextColor={text.disabled}
@@ -109,6 +111,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
 
             <Text style={loginStyles.loginLabel}>PASSWORD</Text>
             <TextInput
+              testID="login-password-input"
               style={loginStyles.loginInput}
               placeholder="Enter password"
               placeholderTextColor={text.disabled}
@@ -122,6 +125,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
             />
 
             <NeonButton
+              testID="login-submit-button"
               onPress={handleEmailAuth}
               disabled={isLoading}
               style={loginStyles.loginButton}
@@ -136,6 +140,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
             </NeonButton>
 
             <TouchableOpacity
+              testID="login-mode-toggle"
               onPress={() => setIsSignUp(!isSignUp)}
               style={loginStyles.loginToggle}
               accessibilityRole="button"
@@ -153,6 +158,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
             </View>
 
             <TouchableOpacity
+              testID="login-google-button"
               onPress={handleGoogleLogin}
               disabled={isLoading}
               style={[loginStyles.googleButton, isLoading && loginStyles.googleButtonDisabled]}

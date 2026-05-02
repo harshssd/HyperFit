@@ -262,12 +262,13 @@ const WorkoutPlanner = ({
 
               {!activePlan ? (
                 <View>
-                  <NeonButton onPress={() => onCreatePlan()} style={{ width: '100%', marginBottom: spacing.md }}>
+                  <NeonButton testID="planner-create-plan-button" onPress={() => onCreatePlan()} style={{ width: '100%', marginBottom: spacing.md }}>
                     <PlusCircle size={20} color="#0f172a" />
                     <Text style={{ marginLeft: spacing.sm, fontSize: 16, fontWeight: 'bold' }}>CREATE NEW PLAN</Text>
                   </NeonButton>
 
                   <TouchableOpacity
+                    testID="planner-browse-library-button"
                     onPress={onBrowsePlans}
                     style={{
                       flexDirection: 'row',

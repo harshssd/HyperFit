@@ -370,6 +370,7 @@ export const SlimPlanCreator = ({
           {/* Name + description */}
           <Text style={labelStyle}>NAME</Text>
           <TextInput
+            testID="plan-creator-name-input"
             value={name}
             onChangeText={setName}
             placeholder="My plan"
@@ -379,6 +380,7 @@ export const SlimPlanCreator = ({
 
           <Text style={[labelStyle, { marginTop: spacing.md }]}>DESCRIPTION</Text>
           <TextInput
+            testID="plan-creator-description-input"
             value={description}
             onChangeText={setDescription}
             placeholder="What is this plan about?"
@@ -391,6 +393,7 @@ export const SlimPlanCreator = ({
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl, marginBottom: spacing.sm }}>
             <Text style={labelStyle}>SESSIONS</Text>
             <TouchableOpacity
+              testID="plan-creator-add-session"
               onPress={addSession}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
               accessibilityLabel="Add session"
@@ -424,7 +427,7 @@ export const SlimPlanCreator = ({
           )}
 
           <View style={{ marginTop: spacing.xl }}>
-            <NeonButton onPress={handleSave} disabled={saving} style={{ width: '100%' }}>
+            <NeonButton testID="plan-creator-save-button" onPress={handleSave} disabled={saving} style={{ width: '100%' }}>
               <Text style={{ fontSize: 15, fontWeight: '800', letterSpacing: 0.6 }}>
                 {saving ? 'SAVING…' : (mode === 'edit' ? 'UPDATE PLAN' : 'SAVE PLAN')}
               </Text>
@@ -532,6 +535,7 @@ const SessionCard = ({
               return (
                 <TouchableOpacity
                   key={d.key}
+                  testID={`plan-creator-day-${d.key}`}
                   onPress={() => onToggleDay(d.key)}
                   style={[dayChipStyle, on && dayChipActiveStyle]}
                   accessibilityLabel={`Toggle ${d.key}`}

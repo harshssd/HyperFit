@@ -23,7 +23,7 @@ type Props = {
 const PlanStatusBadge = ({ kind }: Props) => {
   const config = badgeConfig[kind];
   return (
-    <View style={[styles.badge, config.containerStyle]}>
+    <View testID={`plan-badge-${kind}`} style={[styles.badge, config.containerStyle]}>
       <Text style={[styles.label, { color: config.color }]}>{config.label}</Text>
     </View>
   );

@@ -170,6 +170,7 @@ const WorkoutPlansLibrary = ({
     return (
     <GlassCard
       key={plan.id}
+      testID={`plan-card-${plan.id}`}
       style={{
         marginBottom: spacing.md,
         padding: spacing.md,
@@ -246,6 +247,7 @@ const WorkoutPlansLibrary = ({
 
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
         <TouchableOpacity
+          testID={`plan-card-${plan.id}-activate`}
           onPress={() => {
             if (isActive && selectionMode === 'activate') return;
             onSelectPlan(plan);
@@ -299,6 +301,7 @@ const WorkoutPlansLibrary = ({
 
         {onDuplicatePlan && (
           <TouchableOpacity
+            testID={`plan-card-${plan.id}-duplicate`}
             onPress={() => onDuplicatePlan(plan)}
             style={{
               backgroundColor: 'rgba(148, 163, 184, 0.12)',

@@ -7,10 +7,12 @@ type GlassCardProps = {
   style?: StyleProp<ViewStyle>;
   onPress?: () => void;
   noPadding?: boolean;
+  testID?: string;
 };
 
-const GlassCard = ({ children, style, onPress, noPadding = false }: GlassCardProps) => (
+const GlassCard = ({ children, style, onPress, noPadding = false, testID }: GlassCardProps) => (
   <TouchableOpacity
+    testID={testID}
     onPress={onPress}
     activeOpacity={0.9}
     style={[

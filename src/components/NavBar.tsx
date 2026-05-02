@@ -12,6 +12,9 @@ type NavItemConfig = {
   icon: IconType;
 };
 
+// Stable testID per tab — tests use `tab-{id}` (e.g. tab-home, tab-gym).
+// Keep these even if NAV_ITEMS labels change.
+
 type NavBarProps = {
   activeTab: string;
   items: NavItemConfig[];
@@ -19,17 +22,20 @@ type NavBarProps = {
 };
 
 const NavItem = ({
+  id,
   label,
   icon: Icon,
   isActive,
   onPress,
 }: {
+  id: string;
   label: string;
   icon: IconType;
   isActive: boolean;
   onPress: () => void;
 }) => (
   <TouchableOpacity
+    testID={`tab-${id}`}
     onPress={onPress}
     style={navbarStyles.navItem}
     accessibilityRole="tab"
@@ -60,6 +66,7 @@ const NavBar = ({ activeTab, items, onChange }: NavBarProps) => {
       {items.map(item => (
         <NavItem
           key={item.id}
+          id={item.id}
           label={item.label}
           icon={item.icon}
           isActive={activeTab === item.id}

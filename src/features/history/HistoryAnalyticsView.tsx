@@ -252,6 +252,7 @@ const HistoryAnalyticsView = () => {
     if (sessions.length === 0) {
       return (
         <EmptyState
+          testID="history-empty-state"
           icon={<Dumbbell size={48} color={colors.muted} style={{ opacity: 0.5 }} />}
           title="No workout history yet"
           message="Finish a workout in Gym and it'll show up here."
