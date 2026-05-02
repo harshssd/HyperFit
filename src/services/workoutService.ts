@@ -297,7 +297,24 @@ export const fetchUserWorkoutPlans = async (userId: string) => {
     .eq('user_id', userId);
 
   if (error) throw error;
-  return data;
+
+  // Convert DB snake_case to the camelCase UserWorkoutPlan shape the rest of
+  // the app expects. Without this, code like
+  // `data.userWorkoutPlans.find(p => p.isActive)` quietly returns undefined
+  // even when the DB has is_active=true — the symptom users see is "No
+  // Active Plan" on the Plans tab right after activating from Browse.
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    userId: row.user_id,
+    planId: row.plan_id,
+    planData: row.plan ?? undefined,
+    customName: row.custom_name ?? undefined,
+    startedAt: row.started_at,
+    endsAt: row.ends_at ?? undefined,
+    isActive: !!row.is_active,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at ?? undefined,
+  }));
 };
 
 export const createUserWorkoutPlan = async (userPlan: Tables['user_workout_plans']['Insert']) => {
