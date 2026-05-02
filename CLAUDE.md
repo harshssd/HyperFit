@@ -81,5 +81,5 @@ Always read `DESIGN.md` before making any visual or UI decision. All color, type
 
 - Supabase URL and anon key come from `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env` (see `.env.example`). `src/services/supabase.ts` throws at startup if either is missing.
 - `src/types/supabase.ts` is hand-maintained against the migrations. Regenerate with `supabase gen types typescript` after schema changes.
-- iOS bundle id and health-data usage strings are configured in `app.json` — keep them in sync with App Store Connect.
+- iOS bundle id is `com.hyperfocused.hyperfit` (portfolio convention `com.hyperfocused.<slug>`); health-data usage strings live in `app.json` — keep both in sync with App Store Connect.
 - Expo SDK is pinned to 54 (per global preferences) for Expo Go compatibility; do not bump without an explicit ask.

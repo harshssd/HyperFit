@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.hyperfit.app",
+      "bundleIdentifier": "com.hyperfocused.hyperfit",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSHealthShareUsageDescription": "HyperFit needs access to your health data to track your fitness progress.",
@@ -23,7 +23,7 @@
       "scheme": "hyperfit"
     },
     "android": {
-      "package": "com.hyperfit.app",
+      "package": "com.hyperfocused.hyperfit",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -72,9 +72,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "637e7157-3eb7-4677-baa1-d32c3f60f509"
+        "projectId": "e55449c8-0270-46a3-809f-88a9fbed963f"
       }
     },
-    "owner": "harshssd"
+    "owner": "hyperfocused"
   }
 }
