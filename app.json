@@ -15,8 +15,8 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.hyperfit.app",
-      "buildNumber": "1",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSHealthShareUsageDescription": "HyperFit needs access to your health data to track your fitness progress.",
         "NSHealthUpdateUsageDescription": "HyperFit needs to update your health data to sync your workouts."
       },
@@ -74,6 +74,7 @@
       "eas": {
         "projectId": "637e7157-3eb7-4677-baa1-d32c3f60f509"
       }
-    }
+    },
+    "owner": "hyperfocused"
   }
 }

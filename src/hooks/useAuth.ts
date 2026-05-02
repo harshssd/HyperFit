@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 import type { User } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import Constants from 'expo-constants';
+import { supabase } from '../services/supabase';
 import {
   getInitialSession,
   onAuthStateChange,
   signInWithEmail as svcSignInWithEmail,
   signUpWithEmail as svcSignUpWithEmail,
   signInWithGoogle as svcSignInWithGoogle,
-  setSessionFromTokens,
   signOut as svcSignOut,
 } from '../services/supabaseClient';
 
@@ -59,10 +60,12 @@ export const useAuth = (): UseAuthReturn => {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    const redirectUrl = AuthSession.makeRedirectUri({
-      scheme: 'hyperfit',
-      path: 'auth/callback',
-    });
+    // Expo Go doesn't register custom URI schemes — fall back to exp:// in Expo Go,
+    // and use the hyperfit:// scheme in dev/standalone builds.
+    const isExpoGo = Constants.appOwnership === 'expo';
+    const redirectUrl = AuthSession.makeRedirectUri(
+      isExpoGo ? undefined : { scheme: 'hyperfit' },
+    );
 
     const { data, error } = await svcSignInWithGoogle(redirectUrl);
     if (error) throw new Error(error.message);
@@ -71,13 +74,32 @@ export const useAuth = (): UseAuthReturn => {
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
     if (result.type !== 'success') return;
 
-    const url = new URL(result.url);
-    const accessToken = url.searchParams.get('access_token');
-    const refreshToken = url.searchParams.get('refresh_token');
-    if (!accessToken || !refreshToken) return;
-
-    const { error: sessionError } = await setSessionFromTokens(accessToken, refreshToken);
-    if (sessionError) throw new Error(sessionError.message);
+    // PKCE flow: ?code=... → exchange for session.
+    // Implicit flow (legacy): #access_token=... → set session directly.
+    const url = result.url;
+    const queryStart = url.indexOf('?');
+    if (queryStart !== -1) {
+      const queryStr = url.slice(queryStart + 1).split('#')[0];
+      const code = new URLSearchParams(queryStr).get('code');
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) throw new Error(exchangeError.message);
+        return;
+      }
+    }
+    const hashPart = url.split('#')[1];
+    if (hashPart) {
+      const params = new URLSearchParams(hashPart);
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      if (access_token && refresh_token) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token,
+          refresh_token,
+        });
+        if (sessionError) throw new Error(sessionError.message);
+      }
+    }
   }, []);
 
   const signOut = useCallback(async () => {

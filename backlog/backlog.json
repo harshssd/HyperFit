@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updatedAt": "2026-05-01T23:14:58.822Z",
+    "updatedAt": "2026-05-02T01:55:58.270Z",
     "source": "managed via scripts/backlog.js"
   },
   "items": [
@@ -80,6 +80,20 @@
       "status": "done",
       "category": "product",
       "notes": "Single calendar surface that shows: (a) past dates with logged workouts (link to session detail), and (b) upcoming dates with the active plan's scheduled sessions per plan_schedule. Likely a dedicated tab or screen, not a modal — the heatmap on History only shows volume, not a day-by-day workout-name view. Source data: workout_sessions for past, active user_workout_plan + plan_schedule for future. Probably wants month + week views."
+    },
+    {
+      "id": "BL-12",
+      "title": "Login + Onboarding UI polish",
+      "status": "todo",
+      "category": "product",
+      "notes": "Tighten the login screen to match the honest-mirror design system (anthracite base, mono caps, strava-orange CTA) and add a 2-3 screen onboarding flow for first-time signups. Onboarding: (a) intro/value prop, (b) optional goal pick (strength/hypertrophy/general), (c) jump straight into Browse Plans with the 4 standard plans pre-filtered. Login screen items: Apple sign-in button (iOS), Google button styling once OAuth is enabled in Supabase, password reset flow, helpful errors instead of raw Supabase messages. See feedback_pr_workflow / DESIGN.md for tokens."
+    },
+    {
+      "id": "BL-13",
+      "title": "Auth integration automation toolkit",
+      "status": "todo",
+      "category": "infra",
+      "notes": "Reduce per-project auth setup to a single command. Today every new app repeats: configure Google/Apple OAuth client in their consoles, add redirect URIs, paste client IDs into Supabase Auth providers, set Supabase Site URL + Redirect allow-list to the app scheme, wire useAuth + expo-auth-session, add Apple sign-in entitlement, handle deep-link callback. Goal: a hyperfit-auth-kit (script + template) that (a) prompts for app scheme + bundle id, (b) generates the useAuth hook + login screen pre-styled per DESIGN.md, (c) writes the correct Supabase URL config via the management API, (d) optionally provisions Google OAuth client via gcloud + Apple service ID via App Store Connect API, (e) writes .env.example entries and app.json scheme/entitlements. Stretch: a doctor command that diagnoses the localhost-redirect class of bugs by reading Supabase config + app.json and reporting mismatches. Reference: this project's hyperfit:// scheme, EXPO_PUBLIC_SUPABASE_* env vars, src/hooks/useAuth.ts."
     }
   ]
 }

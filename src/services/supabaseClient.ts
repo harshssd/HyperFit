@@ -21,7 +21,7 @@ export const signUpWithEmail = (email: string, password: string) =>
 export const signInWithGoogle = (redirectTo: string) =>
   supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo, skipBrowserRedirect: false },
+    options: { redirectTo, skipBrowserRedirect: true },
   });
 
 export const setSessionFromTokens = (access_token: string, refresh_token: string) =>
