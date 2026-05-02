@@ -1,0 +1,58 @@
+name: Maestro E2E
+
+# Scaffolding for Maestro E2E tests on PR. Disabled by default — Maestro
+# needs an iOS simulator (or Android emulator) and a built app artifact,
+# neither of which is wired up here yet. To turn this on:
+#
+#   1. Provision a macOS or self-hosted runner with Xcode + Android SDK.
+#   2. Add a `build` job that runs `eas build --local` (or `expo run:ios
+#      --no-build-cache`) and uploads the .app/.apk as an artifact.
+#   3. Have the `e2e` job download that artifact and `xcrun simctl install`
+#      it before invoking maestro.
+#   4. Set the `if: false` guard below to `if: github.event_name == 'pull_request'`
+#      (or similar) and add MAESTRO_EMAIL / MAESTRO_PASSWORD as repo secrets.
+#
+# Until then, the workflow is intentionally inert so it lands as one
+# commit and flips on with a one-line edit.
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    name: Maestro flows
+    if: false  # See header comment — intentionally disabled.
+    runs-on: macos-14
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      # TODO: build + install the app on a simulator before running flows.
+      # See header comment for the steps.
+
+      - name: Run Maestro flows
+        env:
+          MAESTRO_EMAIL: ${{ secrets.MAESTRO_EMAIL }}
+          MAESTRO_PASSWORD: ${{ secrets.MAESTRO_PASSWORD }}
+        run: maestro test .maestro/flows/
