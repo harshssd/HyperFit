@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updatedAt": "2026-05-02T01:55:58.270Z",
+    "updatedAt": "2026-05-02T13:25:16.315Z",
     "source": "managed via scripts/backlog.js"
   },
   "items": [
@@ -63,7 +63,7 @@
     {
       "id": "BL-9",
       "title": "Test runner + unit tests (helpers, services)",
-      "status": "todo",
+      "status": "done",
       "category": "infra",
       "notes": "Wire jest-expo + @testing-library/react-native, add npm test script + CI step. First batch: pure helpers in src/features/workout/helpers.ts (finishWorkoutState, startNewSessionState, updateSetValue, XP/rank math). Then services. BL-1 covers the broader CI/lint/E2E story; this is the test-runner foundation it depends on."
     },
