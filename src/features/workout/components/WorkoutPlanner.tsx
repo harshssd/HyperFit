@@ -429,13 +429,14 @@ const WorkoutPlanner = ({
                 key={index}
                 onPress={() => setSelectedDate(day.date)}
                 style={{
+                  flex: 1,
                   alignItems: 'center',
-                  padding: spacing.sm,
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: 2,
                   backgroundColor: isSelected ? 'rgba(249, 115, 22, 0.15)' : 'transparent',
                   borderRadius: radii.md,
                   borderWidth: isSelected ? 2 : 0,
                   borderColor: colors.primary,
-                  minWidth: 44
                 }}
               >
                 <Text style={{ 

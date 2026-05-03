@@ -287,26 +287,54 @@ export const useWorkoutSession = ({
         session_id: sessionContext.planSessionId,
       };
 
-      const exercisesPayload = sessionExercises.map((ex, i) => ({
-        exercise: {
-          exercise_id: ex.exerciseId ?? null,
-          user_id: userId ?? '',
-          order_index: i,
-          notes: '',
-        },
-        sets: ex.sets.map((s, si) => ({
-          set_number: si + 1,
-          weight: Number(s.weight) || 0,
-          reps: Number(s.reps) || 0,
-          rpe: 0,
-          completed: s.completed || false,
-        })),
-      }));
+      // "If it's added (with values), it's done." Drop empty rows the user
+      // never filled in — those are noise, not "incomplete sets". Persisted
+      // sets are always completed=true; the column stays for schema compat
+      // until BL-17 drops it.
+      const exercisesPayload = sessionExercises
+        .map((ex, i) => {
+          const validSets = ex.sets
+            .filter((s) => {
+              const w = Number(s.weight);
+              const r = Number(s.reps);
+              return (Number.isFinite(w) && w > 0) || (Number.isFinite(r) && r > 0);
+            })
+            .map((s, si) => ({
+              set_number: si + 1,
+              weight: Number(s.weight) || 0,
+              reps: Number(s.reps) || 0,
+              rpe: 0,
+              completed: true,
+            }));
+          return {
+            exercise: {
+              exercise_id: ex.exerciseId ?? null,
+              user_id: userId ?? '',
+              order_index: i,
+              notes: '',
+            },
+            sets: validSets,
+          };
+        })
+        .filter((ex) => ex.sets.length > 0);
 
       // unused: keeps callers' total volume API while service computes its own.
       void totalVolume;
 
-      await logWorkoutSession(sessionPayload, exercisesPayload);
+      // After filtering, every exercise had zero valid sets. Service would
+      // no-op and return null; we'd previously still flip "saved" + show a
+      // success toast and create a phantom finished-state UI. Bail with a
+      // hint so the user stays in the session and can log something.
+      if (exercisesPayload.length === 0) {
+        showError('Add at least one set before finishing.');
+        return;
+      }
+
+      const result = await logWorkoutSession(sessionPayload, exercisesPayload);
+      if (!result) {
+        showError('Could not save the session.');
+        return;
+      }
       setIsSessionFinished(true);
       showSuccess('Workout saved!');
     } catch (e: any) {

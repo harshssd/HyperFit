@@ -51,11 +51,13 @@ const WorkoutHeader = ({
             <List size={18} color="#94a3b8" />
           )}
         </TouchableOpacity>
-        {!isSessionActive && (
-          <TouchableOpacity onPress={onAddExercise} style={workoutStyles.workoutHeaderButton}>
-            <Plus size={18} color="#f97316" />
-          </TouchableOpacity>
-        )}
+        {/* Add Exercise — visible during the active session too so users can
+            extend the workout mid-flight (logging an unscheduled superset,
+            adding finishers, etc.). Previously gated on !isSessionActive,
+            which hid it exactly when most needed. */}
+        <TouchableOpacity onPress={onAddExercise} style={workoutStyles.workoutHeaderButton}>
+          <Plus size={18} color="#f97316" />
+        </TouchableOpacity>
       </View>
     </View>
   );

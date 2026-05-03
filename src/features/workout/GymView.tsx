@@ -48,7 +48,6 @@ import WorkoutOverview from './components/WorkoutOverview';
 import WorkoutListView from './components/WorkoutListView';
 import WorkoutFocusSets from './components/WorkoutFocusSets';
 import WorkoutFocusActions from './components/WorkoutFocusActions';
-import RestTimerBar from './components/RestTimerBar';
 import WorkoutHeader from './components/WorkoutHeader';
 import WorkoutFocusHeader from './components/WorkoutFocusHeader';
 import WorkoutPlanner from './components/WorkoutPlanner';
@@ -152,7 +151,7 @@ const GymView = ({
   // app-level provider so the upcoming ActiveWorkout modal route reads the
   // same instances and so GymView and the provider can't disagree about
   // which plan is active.
-  const { session, restTimer, activeUserPlan } = useActiveWorkoutSession();
+  const { session, activeUserPlan } = useActiveWorkoutSession();
   const {
     sessionExercises,
     sessionStartTime,
@@ -163,10 +162,6 @@ const GymView = ({
 
   // Aliases the rest of GymView reads.
   const visibleWorkout = sessionExercises;
-  const restSeconds = restTimer.restSeconds;
-  const startRestTimer = restTimer.startRest;
-  const skipRest = restTimer.skipRest;
-  const extendRest = restTimer.extendRest;
 
   // Pass-throughs preserved for now so the JSX below doesn't have to change in
   // a single mega-edit; the next PR replaces the call sites with `session.*`
@@ -197,8 +192,6 @@ const GymView = ({
   const [sessionPickVisible, setSessionPickVisible] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null);
-  // restSeconds / startRestTimer / skipRest / extendRest now come from useRestTimer above.
-
   const {
     viewMode,
     currentExIndex,
@@ -275,6 +268,14 @@ const GymView = ({
   const [saveTemplateFolder, setSaveTemplateFolder] = useState<string | null>(null);
   const [saveTemplateTags, setSaveTemplateTags] = useState<string[]>([]);
   const saveTemplateTagInputRef = useRef<TextInput | null>(null);
+  // Synchronously-checked dedupe guard for the Add Exercise overlay. The
+  // visibleWorkout dedupe in selectSuggestion / addExercise reads from
+  // React state, which doesn't flush until the next render — two rapid
+  // taps within a single render both see the pre-add state and slip
+  // through. This ref mutates synchronously inside the handler and
+  // clears on a microtask + a 250ms safety net, so back-to-back taps on
+  // the same name collapse to a single insert.
+  const inFlightAddRef = useRef<Set<string>>(new Set());
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
@@ -332,24 +333,60 @@ const GymView = ({
     loadExercises();
   }, []);
 
+  // When the Add Exercise overlay opens, prime the list with the full library
+  // so users see browsable rows immediately instead of an empty box.
+  useEffect(() => {
+    if (!isAddingExercise) return;
+    setSuggestions(getAllExerciseNames(exerciseOptions));
+  }, [isAddingExercise, exerciseOptions]);
+
   const confirmDeleteTemplate = (templateId: string) => {
     confirmAction('Delete Template', 'Remove this template permanently?', () => deleteTemplate(templateId), 'Delete');
   };
 
+  // The overlay is now scrollable, so we no longer cap at 5 suggestions —
+  // empty query shows the whole library so users can browse, and a partial
+  // query narrows it. The free-text fallback ("Add 'X' as new exercise")
+  // surfaces only when the query is non-empty and has no exact match.
   const handleNameChange = (val: string) => {
     setNewExerciseName(val);
+    const allNames = getAllExerciseNames(exerciseOptions);
     if (val.length > 0) {
-      const allNames = getAllExerciseNames(exerciseOptions);
-      const filtered = allNames.filter(name => name.toLowerCase().includes(val.toLowerCase()));
-      setSuggestions(filtered.slice(0, 5));
+      setSuggestions(
+        allNames.filter((name) => name.toLowerCase().includes(val.toLowerCase())),
+      );
     } else {
-      setSuggestions([]);
+      setSuggestions(allNames);
     }
   };
 
+  // Tap-to-add: previously this just stuffed the name into the input and
+  // forced a second tap on ADD. Tapping a known exercise should add it
+  // directly — the overlay stays open for rapid multi-add.
   const selectSuggestion = (name: string) => {
-    setNewExerciseName(name);
-    setSuggestions([]);
+    const key = name.toLowerCase();
+    // Synchronous in-flight check beats the React-state-only dedupe:
+    // two taps in the same render both saw pre-add visibleWorkout
+    // before this guard was added.
+    if (inFlightAddRef.current.has(key)) {
+      setNewExerciseName('');
+      return;
+    }
+    const exists = visibleWorkout.some(
+      (e: any) => e.name?.toLowerCase() === key,
+    );
+    if (exists) {
+      setNewExerciseName('');
+      return;
+    }
+    inFlightAddRef.current.add(key);
+    setTimeout(() => inFlightAddRef.current.delete(key), 250);
+    addExerciseHook(name, 'bottom');
+    setNewExerciseName('');
+    // Reset suggestions to the full library so the user keeps seeing
+    // browsable rows after picking — without this the filtered list from
+    // before the pick would linger even though the search input is cleared.
+    setSuggestions(getAllExerciseNames(exerciseOptions));
   };
 
   const applyTemplateHandler = (template: any) => {
@@ -432,11 +469,34 @@ const GymView = ({
   };
 
   const addExercise = (position: 'top' | 'bottom' = 'bottom') => {
-    if (!newExerciseName.trim()) return;
-    addExerciseHook(newExerciseName, position);
+    const trimmed = newExerciseName.trim();
+    if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (inFlightAddRef.current.has(key)) {
+      setNewExerciseName('');
+      return;
+    }
+    // Belt-and-suspenders dedupe: the overlay disables ADDED rows, but if
+    // the user types a name already in the session and hits the free-text
+    // path, drop it silently here too. Prevents the "tapped 20 times by
+    // accident" failure mode at the source.
+    const exists = visibleWorkout.some(
+      (e: any) => e.name?.toLowerCase() === key,
+    );
+    if (exists) {
+      setNewExerciseName('');
+      return;
+    }
+    inFlightAddRef.current.add(key);
+    setTimeout(() => inFlightAddRef.current.delete(key), 250);
+    addExerciseHook(trimmed, position);
+    // Clear the input but keep the overlay open so the user can rapid-add
+    // several exercises in one pass. Closing on the first add forced users
+    // to re-open the picker for every exercise — high friction for the
+    // common case of building a multi-exercise manual session.
     setNewExerciseName('');
-    setIsAddingExercise(false);
     setEditingExerciseId(null);
+    setSuggestions(getAllExerciseNames(exerciseOptions));
   };
 
   const startSession = startSessionHandler;
@@ -763,6 +823,7 @@ const GymView = ({
       visible={isAddingExercise}
       newExerciseName={newExerciseName}
       suggestions={suggestions}
+      alreadyAdded={visibleWorkout.map((e: any) => e.name)}
       onChangeName={handleNameChange}
       onSubmit={() => addExercise()}
       onSelectSuggestion={selectSuggestion}
@@ -1227,17 +1288,10 @@ const GymView = ({
       <ScrollView style={workoutStyles.gymView} contentContainerStyle={workoutStyles.gymViewContent}>
         {renderOverview()}
       </ScrollView>
-      {/* Only the modal route owns the rest-timer bar. Otherwise both mounts
-          would pin one to the bottom of the screen and they'd visually stack
-          and steal touches in any uncovered region. */}
-      {mode === 'session' && (
-        <RestTimerBar
-          restSeconds={restSeconds}
-          totalSeconds={restTimer.totalSeconds}
-          onExtend={extendRest}
-          onSkip={skipRest}
-        />
-      )}
+      {/* Rest timer hidden — see BACKLOG BL-18. The auto-fire from
+          commitFilledSets means it pops up unprompted while logging, which
+          isn't the right UX yet. Bring back when intentional rest cues
+          (post-set tap, programmatic rest target) land. */}
     </>
   );
 };

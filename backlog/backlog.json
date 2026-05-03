@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updatedAt": "2026-05-03T15:48:10.878Z",
+    "updatedAt": "2026-05-03T16:56:11.927Z",
     "source": "managed via scripts/backlog.js"
   },
   "items": [
@@ -115,6 +115,20 @@
       "status": "todo",
       "category": "security",
       "notes": "useAuth.signUpWithEmail surfaces alreadyExists:true based on Supabase's empty-identities response, and LoginView shows 'An account with this email already exists.' This is a deliberate UX call (clear feedback for users who forgot they signed up) but defeats Supabase's anti-enumeration default — an attacker can probe whether an email is registered via signup attempts. Acceptable today (Supabase rate-limits signups, low user count, low value as an enumeration target) but worth revisiting if (a) user growth makes the email list more valuable, (b) we add a public registration form without captcha, or (c) compliance review flags it. Mitigations: keep current UX but add captcha/turnstile on signup, OR fall back to generic 'Check your email for a confirmation link' for both cases. Reference: src/hooks/useAuth.ts:62-68, src/components/LoginView.tsx, /gstack-review on PR #48."
+    },
+    {
+      "id": "BL-17",
+      "title": "Rethink rest timer UX",
+      "status": "todo",
+      "category": "product",
+      "notes": "Hidden in this PR — auto-firing on every commitFilledSets meant the bar appeared unprompted while logging, stealing focus and screen real estate. Restore once we have an explicit trigger model: (a) per-set tap-to-rest, (b) plan-defined rest targets, or (c) a long-press to start. Reference: src/features/workout/components/RestTimerBar.tsx + GymView.tsx commit removing the bar."
+    },
+    {
+      "id": "BL-18",
+      "title": "Drop workout_sets.completed column",
+      "status": "todo",
+      "category": "data",
+      "notes": "UI no longer surfaces a completed concept (every persisted set is implicitly complete; empty sets get filtered at write time). Column is still written as true for compatibility. Migration: drop the column, drop the not-null default, regenerate src/types/supabase.ts. Reference: useWorkoutSession persist filter + HistoryAnalyticsView ✓ column removal."
     }
   ]
 }

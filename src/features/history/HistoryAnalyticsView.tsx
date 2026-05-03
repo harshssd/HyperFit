@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal, ActivityIndicator, RefreshControl, SafeAreaView } from 'react-native';
 import { 
   ChevronRight, Calendar, Dumbbell, X, Clock, Target, TrendingUp, 
-  BarChart2, History, Filter, ChevronDown, CheckCircle
+  BarChart2, History
 } from 'lucide-react-native';
 import GlassCard from '../../components/GlassCard';
 import NeonButton from '../../components/NeonButton';
@@ -44,7 +44,6 @@ type WorkoutLog = {
   weight: number | null;
   reps: number | null;
   rpe?: number | null;
-  completed: boolean;
   notes?: string;
   exercise_name?: string; // Added from join with exercises table
   rest_duration_seconds?: number;
@@ -68,8 +67,6 @@ const HistoryAnalyticsView = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [filterStatus, setFilterStatus] = useState<string>('all'); // 'all', 'completed', 'incomplete'
-  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
@@ -82,7 +79,7 @@ const HistoryAnalyticsView = () => {
     if (user?.id && viewMode === 'history') {
       loadSessions();
     }
-  }, [user, currentPage, filterStatus, viewMode]);
+  }, [user, currentPage, viewMode]);
 
   const loadSessions = async (isRefresh = false) => {
     if (!user?.id) {
@@ -188,7 +185,6 @@ const HistoryAnalyticsView = () => {
         set_number: row.set_number,
         weight: row.weight,
         reps: row.reps,
-        completed: row.completed,
         notes: undefined,
         exercise_name: row.exercise?.name || 'Unknown Exercise',
       }));
@@ -278,73 +274,6 @@ const HistoryAnalyticsView = () => {
           />
         }
       >
-        {/* Filter Bar */}
-        <View style={{ marginBottom: spacing.lg }}>
-          <TouchableOpacity
-            onPress={() => setShowFilterMenu(!showFilterMenu)}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: spacing.md,
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              borderRadius: radii.md,
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-              <Filter size={16} color={colors.primary} />
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: 'bold' }}>
-                {filterStatus === 'all' ? 'All Sessions' : 
-                 filterStatus === 'completed' ? 'Completed' : 'Incomplete'}
-              </Text>
-            </View>
-            <ChevronDown size={16} color={colors.muted} />
-          </TouchableOpacity>
-
-          {/* Filter Menu */}
-          {showFilterMenu && (
-            <View style={{
-              marginTop: spacing.xs,
-              backgroundColor: 'rgba(15, 23, 42, 0.98)',
-              borderRadius: radii.md,
-              padding: spacing.xs,
-              borderWidth: 1,
-              borderColor: 'rgba(255,255,255,0.1)',
-            }}>
-              {['all', 'completed', 'incomplete'].map((status) => (
-                <TouchableOpacity
-                  key={status}
-                  onPress={() => {
-                    setFilterStatus(status);
-                    setCurrentPage(1);
-                    setShowFilterMenu(false);
-                  }}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: spacing.md,
-                    backgroundColor: filterStatus === status ? 'rgba(249, 115, 22, 0.1)' : 'transparent',
-                    borderRadius: radii.sm,
-                  }}
-                >
-                  <Text style={{
-                    color: filterStatus === status ? colors.primary : '#fff',
-                    fontSize: 14,
-                    fontWeight: filterStatus === status ? 'bold' : 'normal',
-                  }}>
-                    {status === 'all' ? 'All Sessions' :
-                     status === 'completed' ? 'Completed' : 'Incomplete'}
-                  </Text>
-                  {filterStatus === status && (
-                    <CheckCircle size={16} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
         {/* Sessions list — dense rows, inline sparkline + trend dot per row.
             See DESIGN.md "honest mirror" — trajectory belongs in the list,
             not buried in a separate analytics tab. */}
@@ -365,6 +294,10 @@ const HistoryAnalyticsView = () => {
                 date={session.date}
                 name={session.name}
                 volumeLoad={session.volume_load}
+                startTime={session.start_time}
+                durationSeconds={session.duration_seconds}
+                exerciseCount={session.exercise_count}
+                setCount={session.set_count}
                 trajectory={trajectories.byId[session.id]}
                 onPress={() => loadSessionDetails(session.id)}
               />
@@ -507,27 +440,17 @@ const HistoryAnalyticsView = () => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Header with Toggle */}
-      <View style={{ 
-        padding: spacing.xl,
+    <View style={{ flex: 1 }}>
+      {/* History/Analytics toggle. Sits inside the standard ScreenLayout
+          shell — no self-painted bg, no extra heading. Padding matches
+          Home and Plans (spacing.xl) so all tabs feel unified. */}
+      <View style={{
+        paddingHorizontal: spacing.xl,
+        paddingTop: spacing.xl,
         paddingBottom: spacing.md,
-        borderBottomWidth: 1,
-        borderBottomColor: 'rgba(255,255,255,0.08)'
       }}>
-        <Text style={{ 
-          color: '#fff', 
-          fontSize: 24, 
-          fontWeight: 'bold', 
-          marginBottom: spacing.lg,
-          letterSpacing: 1
-        }}>
-          HISTORY & ANALYTICS
-        </Text>
-
-        {/* Toggle Buttons */}
-        <View style={{ 
-          flexDirection: 'row', 
+        <View style={{
+          flexDirection: 'row',
           backgroundColor: 'rgba(255,255,255,0.05)',
           borderRadius: radii.md,
           padding: 4,
@@ -682,7 +605,6 @@ const HistoryAnalyticsView = () => {
                           <Text style={{ color: colors.muted, fontSize: 11, fontWeight: 'bold', width: 40 }}>SET</Text>
                           <Text style={{ color: colors.muted, fontSize: 11, fontWeight: 'bold', flex: 1, textAlign: 'center' }}>WEIGHT</Text>
                           <Text style={{ color: colors.muted, fontSize: 11, fontWeight: 'bold', flex: 1, textAlign: 'center' }}>REPS</Text>
-                          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: 'bold', width: 40, textAlign: 'center' }}>✓</Text>
                         </View>
 
                         {/* Rows */}
@@ -694,9 +616,6 @@ const HistoryAnalyticsView = () => {
                             </Text>
                             <Text style={{ color: '#fff', fontSize: 14, flex: 1, textAlign: 'center' }}>
                               {log.reps || '-'}
-                            </Text>
-                            <Text style={{ color: log.completed ? colors.success : colors.muted, fontSize: 14, width: 40, textAlign: 'center' }}>
-                              {log.completed ? '✓' : '-'}
                             </Text>
                           </View>
                         ))}
