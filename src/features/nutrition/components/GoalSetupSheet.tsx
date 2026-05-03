@@ -37,6 +37,18 @@ const DEFAULTS = {
   water_unit: 'ml' as const,
 };
 
+// 1 fl oz (US) = 29.5735 ml. Match the rounding used by formatVolume so the
+// displayed value here lines up with the WaterControls readout.
+const ML_PER_OZ = 29.5735;
+const mlToOzStr = (ml: number) => String(Math.round(ml / ML_PER_OZ));
+const ozStrToMl = (oz: string, fallback: number) => {
+  const n = parseInt(oz, 10);
+  if (!n || isNaN(n)) return fallback;
+  return Math.round(n * ML_PER_OZ);
+};
+const seedWaterStr = (ml: number, unit: 'ml' | 'oz') =>
+  unit === 'oz' ? mlToOzStr(ml) : String(ml);
+
 export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => {
   const seed = initial ?? DEFAULTS;
   const [kcal, setKcal] = useState(String(seed.kcal_target));
@@ -45,9 +57,9 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
   const [fat, setFat] = useState(String(seed.fat_target_g));
   const [fiber, setFiber] = useState(String(seed.fiber_target_g));
   const [cheats, setCheats] = useState(String(seed.cheat_days_per_week));
-  const [waterTarget, setWaterTarget] = useState(String(seed.water_target_ml));
-  const [waterCup, setWaterCup] = useState(String(seed.water_cup_ml));
-  const [waterBottle, setWaterBottle] = useState(String(seed.water_bottle_ml));
+  const [waterTarget, setWaterTarget] = useState(seedWaterStr(seed.water_target_ml, seed.water_unit));
+  const [waterCup, setWaterCup] = useState(seedWaterStr(seed.water_cup_ml, seed.water_unit));
+  const [waterBottle, setWaterBottle] = useState(seedWaterStr(seed.water_bottle_ml, seed.water_unit));
   const [waterUnit, setWaterUnit] = useState<'ml' | 'oz'>(seed.water_unit);
   const [saving, setSaving] = useState(false);
 
@@ -62,11 +74,30 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
     setFat(String(s.fat_target_g));
     setFiber(String(s.fiber_target_g));
     setCheats(String(s.cheat_days_per_week));
-    setWaterTarget(String(s.water_target_ml));
-    setWaterCup(String(s.water_cup_ml));
-    setWaterBottle(String(s.water_bottle_ml));
+    setWaterTarget(seedWaterStr(s.water_target_ml, s.water_unit));
+    setWaterCup(seedWaterStr(s.water_cup_ml, s.water_unit));
+    setWaterBottle(seedWaterStr(s.water_bottle_ml, s.water_unit));
     setWaterUnit(s.water_unit);
   }, [visible, initial]);
+
+  // Inputs are displayed in the user's chosen unit; storage is always ml.
+  const toMlFromInput = (s: string, fallback: number) => {
+    if (waterUnit === 'oz') return ozStrToMl(s, fallback);
+    return parseInt(s, 10) || fallback;
+  };
+
+  // Toggle unit: re-render the three water fields in the new unit so the
+  // user sees consistent numbers. Converts via ml as the canonical pivot.
+  const handleUnitChange = (next: 'ml' | 'oz') => {
+    if (next === waterUnit) return;
+    const tMl = toMlFromInput(waterTarget, DEFAULTS.water_target_ml);
+    const cMl = toMlFromInput(waterCup, DEFAULTS.water_cup_ml);
+    const bMl = toMlFromInput(waterBottle, DEFAULTS.water_bottle_ml);
+    setWaterTarget(seedWaterStr(tMl, next));
+    setWaterCup(seedWaterStr(cMl, next));
+    setWaterBottle(seedWaterStr(bMl, next));
+    setWaterUnit(next);
+  };
 
   const handleSave = async () => {
     if (saving) return;
@@ -79,9 +110,9 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
         fat_target_g: parseInt(fat, 10) || DEFAULTS.fat_target_g,
         fiber_target_g: parseInt(fiber, 10) || DEFAULTS.fiber_target_g,
         cheat_days_per_week: parseInt(cheats, 10) || DEFAULTS.cheat_days_per_week,
-        water_target_ml: parseInt(waterTarget, 10) || DEFAULTS.water_target_ml,
-        water_cup_ml: parseInt(waterCup, 10) || DEFAULTS.water_cup_ml,
-        water_bottle_ml: parseInt(waterBottle, 10) || DEFAULTS.water_bottle_ml,
+        water_target_ml: toMlFromInput(waterTarget, DEFAULTS.water_target_ml),
+        water_cup_ml: toMlFromInput(waterCup, DEFAULTS.water_cup_ml),
+        water_bottle_ml: toMlFromInput(waterBottle, DEFAULTS.water_bottle_ml),
         water_unit: waterUnit,
       });
       onClose();
@@ -145,9 +176,9 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
           <Field label="Cheat days / week" unit="" value={cheats} onChange={setCheats} />
 
           <SectionLabel>Water</SectionLabel>
-          <Field label="Daily target" unit="ml" value={waterTarget} onChange={setWaterTarget} />
-          <Field label="Cup size"     unit="ml" value={waterCup} onChange={setWaterCup} />
-          <Field label="Bottle size"  unit="ml" value={waterBottle} onChange={setWaterBottle} />
+          <Field label="Daily target" unit={waterUnit} value={waterTarget} onChange={setWaterTarget} />
+          <Field label="Cup size"     unit={waterUnit} value={waterCup} onChange={setWaterCup} />
+          <Field label="Bottle size"  unit={waterUnit} value={waterBottle} onChange={setWaterBottle} />
 
           <View>
             <SmallLabel>Display unit</SmallLabel>
@@ -157,7 +188,7 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
                 return (
                   <TouchableOpacity
                     key={u}
-                    onPress={() => setWaterUnit(u)}
+                    onPress={() => handleUnitChange(u)}
                     style={{
                       flex: 1,
                       paddingVertical: spacing.md,
