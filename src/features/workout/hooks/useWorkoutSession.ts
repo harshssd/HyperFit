@@ -321,7 +321,20 @@ export const useWorkoutSession = ({
       // unused: keeps callers' total volume API while service computes its own.
       void totalVolume;
 
-      await logWorkoutSession(sessionPayload, exercisesPayload);
+      // After filtering, every exercise had zero valid sets. Service would
+      // no-op and return null; we'd previously still flip "saved" + show a
+      // success toast and create a phantom finished-state UI. Bail with a
+      // hint so the user stays in the session and can log something.
+      if (exercisesPayload.length === 0) {
+        showError('Add at least one set before finishing.');
+        return;
+      }
+
+      const result = await logWorkoutSession(sessionPayload, exercisesPayload);
+      if (!result) {
+        showError('Could not save the session.');
+        return;
+      }
       setIsSessionFinished(true);
       showSuccess('Workout saved!');
     } catch (e: any) {

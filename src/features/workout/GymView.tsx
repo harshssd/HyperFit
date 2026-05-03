@@ -151,7 +151,7 @@ const GymView = ({
   // app-level provider so the upcoming ActiveWorkout modal route reads the
   // same instances and so GymView and the provider can't disagree about
   // which plan is active.
-  const { session, restTimer, activeUserPlan } = useActiveWorkoutSession();
+  const { session, activeUserPlan } = useActiveWorkoutSession();
   const {
     sessionExercises,
     sessionStartTime,
@@ -162,10 +162,6 @@ const GymView = ({
 
   // Aliases the rest of GymView reads.
   const visibleWorkout = sessionExercises;
-  const restSeconds = restTimer.restSeconds;
-  const startRestTimer = restTimer.startRest;
-  const skipRest = restTimer.skipRest;
-  const extendRest = restTimer.extendRest;
 
   // Pass-throughs preserved for now so the JSX below doesn't have to change in
   // a single mega-edit; the next PR replaces the call sites with `session.*`
@@ -196,8 +192,6 @@ const GymView = ({
   const [sessionPickVisible, setSessionPickVisible] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null);
-  // restSeconds / startRestTimer / skipRest / extendRest now come from useRestTimer above.
-
   const {
     viewMode,
     currentExIndex,
