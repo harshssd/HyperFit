@@ -7,12 +7,13 @@ import {
   UseWorkoutSessionReturn,
 } from '../features/workout/hooks/useWorkoutSession';
 import { useSessionPersistence } from '../features/workout/hooks/useSessionPersistence';
+import type { UserWorkoutPlan } from '../types/workout';
 
 type WorkoutSessionContextValue = {
   session: UseWorkoutSessionReturn;
   restTimer: UseRestTimerReturn;
   /** The user's currently active plan instance (or undefined if none). */
-  activeUserPlan: any;
+  activeUserPlan: UserWorkoutPlan | undefined;
 };
 
 const WorkoutSessionContext = createContext<WorkoutSessionContextValue | undefined>(undefined);
@@ -31,7 +32,7 @@ export const WorkoutSessionProvider = ({ children }: { children: ReactNode }) =>
   const { data } = useAppData();
 
   const activeUserPlan = useMemo(
-    () => (data.userWorkoutPlans || []).find((plan: any) => plan.isActive),
+    () => (data.userWorkoutPlans || []).find(plan => plan.isActive),
     [data.userWorkoutPlans]
   );
 
