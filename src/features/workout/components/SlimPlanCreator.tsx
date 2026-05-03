@@ -12,37 +12,23 @@ import {
 import { ChevronLeft, Plus, Trash2, X, Library, Search, Check } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
-import { palette, text, accent, spacing, radii, fonts } from '../../../styles/theme';
+import { palette, text, accent, spacing, radii } from '../../../styles/theme';
 import { ensureExercise, fetchExercises } from '../../../services/workoutService';
 import type {
   DayOfWeek,
   PlanSession,
   ScheduledSession,
   SessionExercise,
-  SessionFocus,
   WorkoutPlan,
 } from '../../../types/workout';
-
-const DAYS: { key: DayOfWeek; short: string }[] = [
-  { key: 'monday',    short: 'M'  },
-  { key: 'tuesday',   short: 'T'  },
-  { key: 'wednesday', short: 'W'  },
-  { key: 'thursday',  short: 'Th' },
-  { key: 'friday',    short: 'F'  },
-  { key: 'saturday',  short: 'Sa' },
-  { key: 'sunday',    short: 'Su' },
-];
-
-const FOCUS_OPTIONS: { key: SessionFocus; label: string }[] = [
-  { key: 'push',         label: 'PUSH' },
-  { key: 'pull',         label: 'PULL' },
-  { key: 'legs',         label: 'LEGS' },
-  { key: 'upper',        label: 'UPPER' },
-  { key: 'lower',        label: 'LOWER' },
-  { key: 'full-body',    label: 'FULL' },
-  { key: 'conditioning', label: 'COND' },
-  { key: 'other',        label: 'OTHER' },
-];
+import {
+  DayPicker,
+  FocusPicker,
+  PlanBasicInfo,
+  SessionExerciseEditor,
+  labelStyle,
+  inputStyle,
+} from './plan-creator';
 
 export type SlimPlanCreatorMode = 'create' | 'edit' | 'duplicate';
 
@@ -434,26 +420,11 @@ export const SlimPlanCreator = ({
           contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Name + description */}
-          <Text style={labelStyle}>NAME</Text>
-          <TextInput
-            testID="plan-creator-name-input"
-            value={name}
-            onChangeText={setName}
-            placeholder="My plan"
-            placeholderTextColor={text.quaternary}
-            style={inputStyle}
-          />
-
-          <Text style={[labelStyle, { marginTop: spacing.md }]}>DESCRIPTION</Text>
-          <TextInput
-            testID="plan-creator-description-input"
-            value={description}
-            onChangeText={setDescription}
-            placeholder="What is this plan about?"
-            placeholderTextColor={text.quaternary}
-            multiline
-            style={[inputStyle, { minHeight: 60, textAlignVertical: 'top' }]}
+          <PlanBasicInfo
+            name={name}
+            description={description}
+            onChangeName={setName}
+            onChangeDescription={setDescription}
           />
 
           {/* Sessions */}
@@ -708,62 +679,21 @@ const SessionCard = ({
 
           {/* Focus chips */}
           <Text style={[labelStyle, { marginTop: spacing.md }]}>FOCUS</Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
-            {FOCUS_OPTIONS.map((f) => (
-              <TouchableOpacity
-                key={f.key}
-                onPress={() => onChange({ focus: f.key })}
-                style={[chipStyle, session.focus === f.key && chipActiveStyle]}
-              >
-                <Text style={[chipTextStyle, session.focus === f.key && chipTextActiveStyle]}>
-                  {f.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+          <FocusPicker selected={session.focus} onChange={(focus) => onChange({ focus })} />
 
           {/* Day chips */}
           <Text style={[labelStyle, { marginTop: spacing.md }]}>SCHEDULE</Text>
-          <View style={{ flexDirection: 'row', gap: spacing.xs }}>
-            {DAYS.map((d) => {
-              const on = session.days.includes(d.key);
-              return (
-                <TouchableOpacity
-                  key={d.key}
-                  testID={`plan-creator-day-${d.key}`}
-                  onPress={() => onToggleDay(d.key)}
-                  style={[dayChipStyle, on && dayChipActiveStyle]}
-                  accessibilityLabel={`Toggle ${d.key}`}
-                >
-                  <Text style={[dayChipTextStyle, on && dayChipTextActiveStyle]}>{d.short}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <DayPicker selected={session.days} onToggle={onToggleDay} />
 
           {/* Exercises */}
           <Text style={[labelStyle, { marginTop: spacing.md }]}>EXERCISES</Text>
           {session.exercises.map((ex) => (
-            <View key={ex.id} style={{ marginBottom: spacing.sm, padding: spacing.sm, borderWidth: 1, borderColor: palette.borderSubtle, borderRadius: radii.sm }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <TextInput
-                  value={ex.name}
-                  onChangeText={(v) => onUpdateExercise(ex.id, { name: v })}
-                  placeholder="Exercise name"
-                  placeholderTextColor={text.quaternary}
-                  style={[inputStyle, { flex: 1, marginRight: spacing.sm, marginBottom: 0 }]}
-                />
-                <TouchableOpacity onPress={() => onRemoveExercise(ex.id)} accessibilityLabel="Remove exercise">
-                  <X size={16} color={text.quaternary} />
-                </TouchableOpacity>
-              </View>
-              <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
-                <NumField label="SETS" value={ex.sets} onChange={(n) => onUpdateExercise(ex.id, { sets: n })} />
-                <NumField label="MIN" value={ex.repRange.min} onChange={(n) => onUpdateExercise(ex.id, { repRange: { ...ex.repRange, min: n } })} />
-                <NumField label="MAX" value={ex.repRange.max} onChange={(n) => onUpdateExercise(ex.id, { repRange: { ...ex.repRange, max: n } })} />
-                <NumField label="REST" value={ex.restSeconds || 0} onChange={(n) => onUpdateExercise(ex.id, { restSeconds: n })} />
-              </View>
-            </View>
+            <SessionExerciseEditor
+              key={ex.id}
+              exercise={ex}
+              onUpdate={(patch) => onUpdateExercise(ex.id, patch)}
+              onRemove={() => onRemoveExercise(ex.id)}
+            />
           ))}
 
           {/* Add exercise: browse library OR type to search/create */}
@@ -828,105 +758,6 @@ const SessionCard = ({
       )}
     </GlassCard>
   );
-};
-
-const NumField = ({
-  label, value, onChange,
-}: { label: string; value: number; onChange: (n: number) => void }) => (
-  <View style={{ flex: 1 }}>
-    <Text style={[labelStyle, { fontSize: 9, marginBottom: 2 }]}>{label}</Text>
-    <TextInput
-      value={String(value)}
-      onChangeText={(v) => {
-        const n = parseInt(v, 10);
-        onChange(Number.isFinite(n) && n >= 0 ? n : 0);
-      }}
-      keyboardType="number-pad"
-      style={[inputStyle, {
-        fontVariant: fonts.tabularNums as any,
-        textAlign: 'center',
-        marginBottom: 0,
-        paddingVertical: spacing.xs,
-        paddingHorizontal: spacing.xs,
-      }]}
-    />
-  </View>
-);
-
-// ---------------------------------------------------------------------------
-// Local style tokens (kept inline; this is the only consumer).
-// ---------------------------------------------------------------------------
-
-const labelStyle = {
-  color: text.tertiary,
-  fontFamily: 'monospace' as const,
-  fontSize: 10,
-  fontWeight: '700' as const,
-  letterSpacing: 1.4,
-  marginBottom: 4,
-};
-
-const inputStyle = {
-  color: text.primary,
-  backgroundColor: palette.surface,
-  borderWidth: 1,
-  borderColor: palette.borderSubtle,
-  borderRadius: radii.sm,
-  paddingHorizontal: spacing.md,
-  paddingVertical: spacing.sm,
-  fontSize: 14,
-  marginBottom: spacing.xs,
-};
-
-const chipStyle = {
-  paddingHorizontal: spacing.sm,
-  paddingVertical: 4,
-  borderRadius: radii.sm,
-  borderWidth: 1,
-  borderColor: palette.borderSubtle,
-};
-
-const chipActiveStyle = {
-  borderColor: accent.lift,
-  backgroundColor: 'rgba(252, 76, 2, 0.08)',
-};
-
-const chipTextStyle = {
-  color: text.tertiary,
-  fontFamily: 'monospace' as const,
-  fontSize: 10,
-  fontWeight: '700' as const,
-  letterSpacing: 1.2,
-};
-
-const chipTextActiveStyle = {
-  color: accent.lift,
-};
-
-const dayChipStyle = {
-  width: 36,
-  height: 36,
-  borderRadius: radii.sm,
-  borderWidth: 1,
-  borderColor: palette.borderSubtle,
-  alignItems: 'center' as const,
-  justifyContent: 'center' as const,
-};
-
-const dayChipActiveStyle = {
-  borderColor: accent.lift,
-  backgroundColor: 'rgba(252, 76, 2, 0.12)',
-};
-
-const dayChipTextStyle = {
-  color: text.tertiary,
-  fontFamily: 'monospace' as const,
-  fontSize: 11,
-  fontWeight: '700' as const,
-};
-
-const dayChipTextActiveStyle = {
-  color: accent.lift,
 };
 
 export default SlimPlanCreator;
