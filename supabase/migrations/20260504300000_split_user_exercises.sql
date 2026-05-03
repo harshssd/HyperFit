@@ -69,23 +69,25 @@ alter table public.template_exercises
 -- 4. Now safe to remove the migrated rows from public.exercises.
 delete from public.exercises where user_id is not null;
 
--- 5. Remove the user_id column from exercises entirely. With it goes
+-- 5. Drop policies that reference user_id BEFORE dropping the column
+--    (Postgres refuses with 2BP01 otherwise).
+drop policy if exists "exercises_read"  on public.exercises;
+drop policy if exists "exercises_write" on public.exercises;
+
+-- 6. Remove the user_id column from exercises entirely. With it goes
 --    the (user_id, name) unique constraint; recreate as just (name)
 --    since the master library is now public-only.
 alter table public.exercises drop constraint if exists exercises_user_id_name_key;
 alter table public.exercises drop column user_id;
 alter table public.exercises add constraint exercises_name_key unique (name);
 
--- 6. Reset RLS for the now-public-only library. Read is open; writes
+-- 7. Reset RLS for the now-public-only library. Read is open; writes
 --    happen via the seed function under elevated privileges.
-drop policy if exists "exercises_read"  on public.exercises;
-drop policy if exists "exercises_write" on public.exercises;
-
 create policy "exercises_read"
   on public.exercises for select
   using (true);
 
--- 7. muscle_volume_view joined exercises directly for muscle_group.
+-- 8. muscle_volume_view joined exercises directly for muscle_group.
 --    Re-create it to source muscle_group from either table.
 drop view if exists public.muscle_volume_view;
 
@@ -112,5 +114,5 @@ where st.completed = true
   and d.muscle_group is not null
 group by s.user_id, s.workout_date, d.muscle_group;
 
--- 8. session_summary_view doesn't reference exercises (just counts
+-- 9. session_summary_view doesn't reference exercises (just counts
 --    distinct exercise_id), so it survives unchanged.
