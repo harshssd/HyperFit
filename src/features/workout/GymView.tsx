@@ -120,6 +120,7 @@ const GymView = ({
     sessionExercises,
     sessionStartTime,
     isSessionFinished,
+    lastSavedSessionId,
     sessionContext,
     setSessionContext,
   } = session;
@@ -1177,6 +1178,9 @@ const GymView = ({
           viewMode={viewMode}
           ghost={ghost}
           isFinished={isFinished}
+          finishedSessionId={lastSavedSessionId}
+          sessionStartTime={sessionStartTime}
+          sessionName={sessionContext.sessionName ?? sessionContext.customName ?? null}
           onBack={() => onDismissSession?.()}
           onToggleViewMode={toggleViewMode}
           onAddExercise={() => setIsAddingExercise(true)}

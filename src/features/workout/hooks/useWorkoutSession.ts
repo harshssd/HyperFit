@@ -58,6 +58,8 @@ export type UseWorkoutSessionReturn = {
   sessionExercises: WorkoutExercise[];
   sessionStartTime: string | null;
   isSessionFinished: boolean;
+  /** Id of the most recently saved workout_sessions row. Set by finishWorkout, cleared by start/abort. */
+  lastSavedSessionId: string | null;
   sessionContext: SessionContext;
   /** Map of lowercased exercise name -> master exercise id (for resolving manual adds). */
   exerciseCache: Map<string, string>;
@@ -111,6 +113,7 @@ export const useWorkoutSession = ({
   const [sessionExercises, setSessionExercises] = useState<WorkoutExercise[]>([]);
   const [sessionStartTime, setSessionStartTime] = useState<string | null>(null);
   const [isSessionFinished, setIsSessionFinished] = useState(false);
+  const [lastSavedSessionId, setLastSavedSessionId] = useState<string | null>(null);
   const [sessionContext, setSessionContext] = useState<SessionContext>({ type: 'manual' });
   const [exerciseCache, setExerciseCache] = useState<Map<string, string>>(new Map());
 
@@ -363,6 +366,7 @@ export const useWorkoutSession = ({
         showError('Could not save the session.');
         return;
       }
+      setLastSavedSessionId(result.id);
       setIsSessionFinished(true);
       showSuccess('Workout saved!');
     } catch (e) {
@@ -377,6 +381,7 @@ export const useWorkoutSession = ({
     setSessionExercises([]);
     setSessionStartTime(null);
     setIsSessionFinished(false);
+    setLastSavedSessionId(null);
     setSessionContext({ type: 'manual' });
     namePromptedRef.current = false;
   }, []);
@@ -385,6 +390,7 @@ export const useWorkoutSession = ({
     setSessionExercises([]);
     setSessionStartTime(null);
     setIsSessionFinished(false);
+    setLastSavedSessionId(null);
     namePromptedRef.current = false;
   }, []);
 
@@ -468,6 +474,7 @@ export const useWorkoutSession = ({
     sessionExercises,
     sessionStartTime,
     isSessionFinished,
+    lastSavedSessionId,
     sessionContext,
     exerciseCache,
     setSessionContext,
