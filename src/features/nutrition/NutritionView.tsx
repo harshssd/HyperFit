@@ -15,6 +15,8 @@ import { GoalSetupSheet } from './components/GoalSetupSheet';
 import { MealCard } from './components/MealCard';
 import { WaterControls } from './components/WaterControls';
 import { CheatDayToggle } from './components/CheatDayToggle';
+import { CheatDayPlanner } from './components/CheatDayPlanner';
+import { WeekRows } from './components/WeekRows';
 import { heroEyebrow, formatKcal } from './helpers';
 import type { MealSlot } from '../../types/supabase';
 
@@ -247,11 +249,23 @@ export const NutritionView = () => {
         </View>
 
         {/* Cheat day toggle — sibling card outside the focus surface */}
-        <CheatDayToggle
-          isCheatDay={isCheat}
-          cheatBudget={cheatBudget}
-          onToggle={day.toggleCheatDay}
+        <View style={{ marginBottom: spacing.xl }}>
+          <CheatDayToggle
+            isCheatDay={isCheat}
+            cheatBudget={cheatBudget}
+            cheatsUsedThisWeek={day.cheatsUsedThisWeek}
+            budgetExhausted={day.cheatBudgetExhausted}
+            onToggle={day.toggleCheatDay}
+          />
+        </View>
+
+        <CheatDayPlanner
+          today={day.date}
+          summaries={day.recentSummaries}
+          onToggle={day.planCheatDay}
         />
+
+        <WeekRows today={day.date} summaries={day.recentSummaries} />
       </ScrollView>
 
       <GoalSetupSheet

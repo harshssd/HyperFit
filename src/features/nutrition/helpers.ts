@@ -59,6 +59,86 @@ export const computeStreak = (
   return { current, bestInWindow };
 };
 
+// -- Date math --------------------------------------------------------------
+
+/**
+ * ISO date (YYYY-MM-DD) of Monday for the week containing `iso`.
+ *
+ * Cheat budget enforcement is calendar-week scoped (per D3): the user
+ * gets N cheats per Mon–Sun window. Rolling 7d would create the weird
+ * case where Sunday's cheat blocks Monday's despite the new week vibe.
+ *
+ * JS getDay(): 0=Sun, 1=Mon, ..., 6=Sat. We shift Sun to 7 so Mon=1
+ * is the smallest, then subtract (day-1) days to land on Mon.
+ */
+export const weekStartIso = (iso: string): string => {
+  const d = new Date(`${iso}T00:00:00`);
+  const dow = d.getDay() === 0 ? 7 : d.getDay();
+  d.setDate(d.getDate() - (dow - 1));
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
+/**
+ * Count cheat days in the week containing `iso` (inclusive of any planned
+ * future cheats within the same week). Used by CheatDayToggle to show
+ * "USED N / N" and disable when the budget is exhausted.
+ *
+ * Reads from summaries which include `is_cheat_day`. Days the user hasn't
+ * touched at all aren't in summaries (the view joins on nutrition_days),
+ * so they can't be cheats. Planned future cheats appear in summaries
+ * because planning creates a nutrition_days row with is_cheat_day=true.
+ */
+export const cheatsInWeek = (
+  summaries: NutritionDaySummary[],
+  iso: string,
+): number => {
+  const weekStart = weekStartIso(iso);
+  // Mon + 6 = Sun
+  const sd = new Date(`${weekStart}T00:00:00`);
+  sd.setDate(sd.getDate() + 6);
+  const yyyy = sd.getFullYear();
+  const mm = String(sd.getMonth() + 1).padStart(2, '0');
+  const dd = String(sd.getDate()).padStart(2, '0');
+  const weekEnd = `${yyyy}-${mm}-${dd}`;
+
+  return summaries.filter(
+    s => s.is_cheat_day && s.date >= weekStart && s.date <= weekEnd,
+  ).length;
+};
+
+/**
+ * Generate N consecutive ISO dates starting from `startIso`. Used by
+ * WeekRows (offset=-6 for "this week"-up-to-today) and CheatDayPlanner
+ * (offset=0 for "today + future"). Returned ASC.
+ */
+export const isoDateRange = (startIso: string, count: number): string[] => {
+  const out: string[] = [];
+  const d = new Date(`${startIso}T00:00:00`);
+  for (let i = 0; i < count; i++) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    out.push(`${yyyy}-${mm}-${dd}`);
+    d.setDate(d.getDate() + 1);
+  }
+  return out;
+};
+
+/**
+ * Subtract N days from an ISO date.
+ */
+export const isoDateMinus = (iso: string, days: number): string => {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() - days);
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+};
+
 // -- Display helpers --------------------------------------------------------
 
 /**

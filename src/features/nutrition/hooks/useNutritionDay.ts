@@ -19,7 +19,7 @@ import {
   type NutritionEntry,
   type NutritionSettings,
 } from '../../../services/nutritionService';
-import { computeStreak } from '../helpers';
+import { cheatsInWeek, computeStreak } from '../helpers';
 
 /**
  * useNutritionDay — owns today's full nutrition state for the Nutrition tab.
@@ -57,6 +57,15 @@ export type UseNutritionDayReturn = {
   streak: number;
   /** True iff the user has saved settings at least once. */
   hasGoal: boolean;
+  /** Folded summaries for the last 30 days (DESC by date). Drives the
+   *  "this week" rows and the cheat-day planner strip. */
+  recentSummaries: NutritionDaySummary[];
+  /** Cheat days used in the current calendar week (Mon–Sun, inclusive
+   *  of planned future cheats within the same week). */
+  cheatsUsedThisWeek: number;
+  /** True when cheatsUsedThisWeek >= cheat_days_per_week budget. The
+   *  toggle uses this to disable + show "USED N / N". */
+  cheatBudgetExhausted: boolean;
 
   refresh: () => Promise<void>;
   saveSettings: (patch: Partial<NutritionSettings>) => Promise<void>;
@@ -65,6 +74,10 @@ export type UseNutritionDayReturn = {
   addWater: (ml: number) => Promise<void>;
   undoLastWater: () => Promise<void>;
   toggleCheatDay: (next: boolean) => Promise<void>;
+  /** Plan a cheat for an arbitrary date (today or future). Future-only
+   *  is enforced by the planner UI; the action itself accepts any ISO
+   *  so the same path can flip today off from the planner strip too. */
+  planCheatDay: (iso: string, on: boolean) => Promise<void>;
 };
 
 export const useNutritionDay = (): UseNutritionDayReturn => {
@@ -77,6 +90,7 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
   const [summary, setSummary] = useState<NutritionDaySummary | null>(null);
   const [entries, setEntries] = useState<NutritionEntry[]>([]);
   const [streak, setStreak] = useState(0);
+  const [recentSummaries, setRecentSummaries] = useState<NutritionDaySummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -95,6 +109,7 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
       setSettings(s);
       setSummary(summ);
       setStreak(computeStreak(recents).current);
+      setRecentSummaries(recents);
 
       // entries depend on having a day_id — pull only after summary lands.
       if (summ?.day_id) {
@@ -188,6 +203,19 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
     [userId, date, refresh],
   );
 
+  const planCheatDay = useCallback(
+    async (iso: string, on: boolean) => {
+      if (!userId) return;
+      await svcToggleCheatDay(userId, iso, on);
+      await refresh();
+    },
+    [userId, refresh],
+  );
+
+  const cheatBudget = settings?.cheat_days_per_week ?? 1;
+  const cheatsUsedThisWeek = cheatsInWeek(recentSummaries, date);
+  const cheatBudgetExhausted = cheatsUsedThisWeek >= cheatBudget;
+
   return {
     date,
     loading,
@@ -198,6 +226,9 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
     entries,
     streak,
     hasGoal: settings !== null,
+    recentSummaries,
+    cheatsUsedThisWeek,
+    cheatBudgetExhausted,
     refresh,
     saveSettings,
     addEntry,
@@ -205,5 +236,6 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
     addWater,
     undoLastWater,
     toggleCheatDay,
+    planCheatDay,
   };
 };
