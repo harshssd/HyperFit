@@ -127,14 +127,14 @@ export const WaterControls = ({
       {expanded ? (
         <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
           <ActionButton
-            label={`+ CUP · ${cupMl}`}
+            label={`+ CUP · ${formatVolume(cupMl, unit)}`}
             tone="primary"
             onPress={() => wrap(() => onAddMl(cupMl))}
             disabled={busy}
             testID="water-add-cup"
           />
           <ActionButton
-            label={`+ BOTTLE · ${bottleMl}`}
+            label={`+ BOTTLE · ${formatVolume(bottleMl, unit)}`}
             tone="primary"
             onPress={() => wrap(() => onAddMl(bottleMl))}
             disabled={busy}
