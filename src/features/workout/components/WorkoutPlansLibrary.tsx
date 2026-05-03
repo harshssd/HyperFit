@@ -268,7 +268,13 @@ const WorkoutPlansLibrary = ({
           }}
           disabled={isActive && selectionMode === 'activate'}
           style={{
-            ...(isUserCreated ? { width: '100%' } : { flex: 1 }),
+            // Templates: share the row 50/50 with USE AS TEMPLATE so labels
+            // never wrap on small screens. User-created plans keep the
+            // full-width primary because their secondary row has 4+ actions
+            // and the activate button anchors them visually.
+            ...(isUserCreated
+              ? { width: '100%' }
+              : { flexBasis: '48%', flexGrow: 1 }),
             backgroundColor: isActive && selectionMode === 'activate'
               ? 'rgba(252, 76, 2, 0.12)'
               : colors.primary,
@@ -276,11 +282,15 @@ const WorkoutPlansLibrary = ({
             paddingHorizontal: spacing.md,
             borderRadius: radii.sm,
             alignItems: 'center',
+            justifyContent: 'center',
             borderWidth: isActive && selectionMode === 'activate' ? 1 : 0,
             borderColor: 'rgba(252, 76, 2, 0.55)',
           }}
         >
           <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
             style={{
               color: isActive && selectionMode === 'activate'
                 ? accent.lift
@@ -333,9 +343,15 @@ const WorkoutPlansLibrary = ({
               alignItems: 'center',
               borderWidth: 1,
               borderColor: 'rgba(148, 163, 184, 0.35)',
+              justifyContent: 'center',
             }}
           >
-            <Text style={{ color: text.secondary, fontSize: 12, fontWeight: 'bold' }}>
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
+              style={{ color: text.secondary, fontSize: 12, fontWeight: 'bold' }}
+            >
               USE AS TEMPLATE
             </Text>
           </TouchableOpacity>
