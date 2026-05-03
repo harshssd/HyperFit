@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert } from 'react-native';
-import { fetchExercises, logWorkoutSession } from '../../../services/workoutService';
+import { ensureExercise, fetchExercises, logWorkoutSession } from '../../../services/workoutService';
 import {
   addSetToExercise,
   calculateTotalVolume,
@@ -295,8 +295,15 @@ export const useWorkoutSession = ({
       // never filled in — those are noise, not "incomplete sets". Persisted
       // sets are always completed=true; the column stays for schema compat
       // until BL-17 drops it.
-      const exercisesPayload = sessionExercises
-        .map((ex, i) => {
+      //
+      // Free-text exercise names that didn't hit the cache get a real id
+      // via ensureExercise (creates a user-scoped row in the master
+      // exercises table on first sight). Without this backfill,
+      // logWorkoutSession's "exercise_id required" guard would silently
+      // drop the row and the user's sets would vanish from history.
+      const newCacheEntries = new Map<string, string>();
+      const exercisesPayloadRaw = await Promise.all(
+        sessionExercises.map(async (ex, i) => {
           const validSets = ex.sets
             .filter((s) => {
               const w = Number(s.weight);
@@ -310,9 +317,21 @@ export const useWorkoutSession = ({
               rpe: 0,
               completed: true,
             }));
+
+          let resolvedId = ex.exerciseId ?? null;
+          if (!resolvedId && validSets.length > 0 && userId && ex.name) {
+            try {
+              const row = await ensureExercise(ex.name, userId);
+              resolvedId = row.id;
+              newCacheEntries.set(row.name.toLowerCase(), row.id);
+            } catch (e) {
+              console.warn('ensureExercise failed; row will be dropped', ex.name, e);
+            }
+          }
+
           return {
             exercise: {
-              exercise_id: ex.exerciseId ?? null,
+              exercise_id: resolvedId,
               user_id: userId ?? '',
               order_index: i,
               notes: '',
@@ -320,7 +339,20 @@ export const useWorkoutSession = ({
             sets: validSets,
           };
         })
-        .filter((ex) => ex.sets.length > 0);
+      );
+      const exercisesPayload = exercisesPayloadRaw.filter(
+        (ex) => ex.sets.length > 0 && ex.exercise.exercise_id,
+      );
+
+      // Hot-merge any newly-created exercises into the cache so the
+      // next overlay open in the same session sees them in autocomplete.
+      if (newCacheEntries.size > 0) {
+        setExerciseCache((prev) => {
+          const merged = new Map(prev);
+          newCacheEntries.forEach((id, name) => merged.set(name, id));
+          return merged;
+        });
+      }
 
       // unused: keeps callers' total volume API while service computes its own.
       void totalVolume;

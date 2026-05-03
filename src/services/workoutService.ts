@@ -34,6 +34,45 @@ export const createExercise = async (exercise: Tables['exercises']['Insert']) =>
   return data;
 };
 
+/**
+ * Resolve a free-text exercise name to a row in the master `exercises`
+ * table, creating a user-scoped row on first sight. Used at session
+ * persist time so the silent-drop guard at logWorkoutSession (which
+ * skips exercises without exercise_id) never fires for typed-in names.
+ *
+ * Lookup is case-insensitive and matches anything the user can read
+ * (public, system, or own). The insert lands under user_id so RLS
+ * keeps the row visible to that user only — the next session's
+ * autocomplete picks it up automatically via fetchExercises.
+ */
+export const ensureExercise = async (
+  rawName: string,
+  userId: string,
+): Promise<{ id: string; name: string }> => {
+  const name = rawName.trim();
+  if (!name) throw new Error('Exercise name required');
+
+  // ilike with no wildcard = case-insensitive equality. Limit 1 because
+  // unique (user_id, name) prevents two same-cased rows per scope, but
+  // a public+user pair could co-exist (different user_id) and either
+  // is fine for the session.
+  const { data: existing, error: selectErr } = await supabase
+    .from('exercises')
+    .select('id, name')
+    .ilike('name', name)
+    .limit(1);
+  if (selectErr) throw selectErr;
+  if (existing && existing.length > 0) return existing[0];
+
+  const { data: created, error: insertErr } = await supabase
+    .from('exercises')
+    .insert({ name, user_id: userId, is_public: false })
+    .select('id, name')
+    .single();
+  if (insertErr) throw insertErr;
+  return created;
+};
+
 // --- Workout Plans ---
 
 export const fetchWorkoutPlans = async () => {
