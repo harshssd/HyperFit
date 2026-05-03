@@ -15,6 +15,7 @@ import { colors } from '../../../styles/theme';
 
 const AnimatedEllipse = Animated.createAnimatedComponent(SvgEllipse);
 const AnimatedRect = Animated.createAnimatedComponent(SvgRect);
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 type Props = {
   view: 'front' | 'back';
@@ -89,14 +90,27 @@ const Region = ({
             />
           );
         }
+        if (shape.kind === 'rect') {
+          return (
+            <AnimatedRect
+              key={`${region.id}-${i}`}
+              x={shape.x}
+              y={shape.y}
+              width={shape.width}
+              height={shape.height}
+              rx={shape.rx ?? 6}
+              fill={fill}
+              fillOpacity={opacity}
+              stroke={SILHOUETTE_STROKE}
+              strokeWidth={1}
+              onPress={onPress}
+            />
+          );
+        }
         return (
-          <AnimatedRect
+          <AnimatedPath
             key={`${region.id}-${i}`}
-            x={shape.x}
-            y={shape.y}
-            width={shape.width}
-            height={shape.height}
-            rx={shape.rx ?? 6}
+            d={shape.d}
             fill={fill}
             fillOpacity={opacity}
             stroke={SILHOUETTE_STROKE}
