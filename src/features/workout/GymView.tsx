@@ -19,58 +19,21 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Modal } from 'react-native';
-import {
-  CheckCircle,
-  ChevronLeft,
-  ChevronRight,
-  Edit3,
-  Folder,
-  FolderPlus,
-  Heart,
-  Layout,
-  Maximize2,
-  Medal,
-  Play,
-  Plus,
-  PlusCircle,
-  RotateCcw,
-  Search,
-  Tag,
-  Trash2,
-  User,
-} from 'lucide-react-native';
+import { ChevronRight, Play } from 'lucide-react-native';
 import TemplatePickerModal from '../../components/TemplatePickerModal';
 import AddExerciseOverlay from '../../components/AddExerciseOverlay';
 import SaveTemplateModal from '../../components/SaveTemplateModal';
 import CreateFolderModal from '../../components/CreateFolderModal';
 import SharePlanModal from '../../components/SharePlanModal';
 import WorkoutOverview from './components/WorkoutOverview';
-import WorkoutListView from './components/WorkoutListView';
-import WorkoutFocusSets from './components/WorkoutFocusSets';
-import WorkoutFocusActions from './components/WorkoutFocusActions';
-import WorkoutHeader from './components/WorkoutHeader';
-import WorkoutFocusHeader from './components/WorkoutFocusHeader';
 import WorkoutPlanner from './components/WorkoutPlanner';
-import FinishedSessionView from './components/FinishedSessionView';
-import NeonButton from '../../components/NeonButton';
-import GlassCard from '../../components/GlassCard';
+import ActiveSessionView from './components/ActiveSessionView';
 import workoutStyles from '../../styles/workout';
 import { colors, spacing, radii } from '../../styles/theme';
 import { getAllExerciseNames } from './workoutConfig';
 import { useUser } from '../../contexts/UserContext';
-import { logWorkoutSession } from '../../services/workoutService';
-import { WorkoutExercise, WorkoutPlan } from '../../types/workout';
-import { 
-  calculateTotalVolume, 
-  getExerciseConfig, 
-  renameExercise,
-  moveExerciseInWorkout,
-  deleteExerciseFromWorkout,
-  addSetToExercise,
-  updateSetValue,
-  isExerciseEmpty,
-  getNextScheduledWorkout
-} from './helpers';
+import { WorkoutPlan } from '../../types/workout';
+import { calculateTotalVolume, getNextScheduledWorkout } from './helpers';
 
 import { useSessionView } from './hooks/useSessionView';
 import { useTemplates } from './hooks/useTemplates';
@@ -857,51 +820,6 @@ const GymView = ({
     />
   );
 
-  const renderWorkoutList = () => (
-    <WorkoutListView
-      visibleWorkout={visibleWorkout}
-      onSelectExercise={(i) => selectExercise(i)}
-      onFinish={finishWorkout}
-      onAbort={abortSession}
-    />
-  );
-
-  const renderWorkoutFocus = () => (
-    <View style={workoutStyles.workoutFocus}>
-      <WorkoutFocusHeader
-        currentExerciseName={currentExercise?.name}
-        currentIndex={currentExIndex}
-        totalExercises={visibleWorkout.length}
-        onPrev={prevExercise}
-        onNext={nextExerciseWithCommit}
-      />
-
-      <WorkoutFocusSets
-        currentExercise={currentExercise}
-        getExerciseConfig={getExerciseConfig}
-        updateSet={updateSet}
-        ghostSets={ghost.sets}
-        lastDate={ghost.date}
-      />
-
-      <TouchableOpacity
-        onPress={() => currentExercise && addSet(currentExercise.id)}
-        style={workoutStyles.addSetButton}
-        disabled={!currentExercise}
-      >
-        <Plus size={16} color="#64748b" />
-        <Text style={workoutStyles.addSetButtonText}>ADD SET</Text>
-      </TouchableOpacity>
-
-      <WorkoutFocusActions
-        hasNext={currentExIndex < visibleWorkout.length - 1}
-        onNext={nextExerciseWithCommit}
-        onFinish={finishWorkout}
-        onAbort={abortSession}
-      />
-    </View>
-  );
-
   // Defensive auto-dismiss: if the modal mounts (or stays mounted) without a
   // session, kick the user back to the planner. Done in an effect — calling
   // navigation.goBack() during render warns and can loop.
@@ -930,30 +848,6 @@ const GymView = ({
   }, [mode, visibleWorkout.length, showOverview, setShowOverview]);
 
   const renderOverview = () => {
-    // SESSION MODE — skip every planner surface; only show the active workout.
-    if (mode === 'session') {
-      if (visibleWorkout.length === 0) {
-        // Effect above handles the dismiss; render nothing in the meantime.
-        return null;
-      }
-      return (
-        <View style={workoutStyles.workoutContainer}>
-          <WorkoutHeader
-            isSessionActive={true}
-            viewMode={viewMode}
-            currentIndex={currentExIndex}
-            totalExercises={visibleWorkout.length}
-            onBackToOverview={() => {
-              if (onDismissSession) onDismissSession();
-            }}
-            onToggleViewMode={toggleViewMode}
-            onAddExercise={() => setIsAddingExercise(true)}
-          />
-          {viewMode === 'list' ? renderWorkoutList() : renderWorkoutFocus()}
-        </View>
-      );
-    }
-
     // PLANNER MODE — show WorkoutOverview / WorkoutPlanner / Resume CTA.
     if (showOverview && !isSessionActive) {
       return (
@@ -1263,20 +1157,36 @@ const GymView = ({
     if (mode === 'session' && onDismissSession) onDismissSession();
   };
 
-  const renderFinished = () => (
-    <FinishedSessionView
-      visibleWorkout={visibleWorkout}
-      calculateTotalVolume={calculateTotalVolumeLocal}
-      onStartNewSession={startNewSession}
-      onUndo={undoFinish}
-      onClose={handleCloseFinished}
-    />
-  );
-
-  // FinishedSessionView only renders in session mode (the modal). In planner
-  // mode the user has to re-open the modal via the Resume CTA to acknowledge.
-  if (isFinished && mode === 'session') {
-    return renderFinished();
+  // SESSION MODE — delegate the entire focused/list/finished surface to
+  // ActiveSessionView. Add Exercise overlay still mounts at the GymView
+  // level so it works in both modes from the same state machine.
+  if (mode === 'session') {
+    return (
+      <>
+        {renderAddExerciseOverlay()}
+        <ActiveSessionView
+          visibleWorkout={visibleWorkout}
+          currentExercise={currentExercise}
+          currentExIndex={currentExIndex}
+          viewMode={viewMode}
+          ghost={ghost}
+          isFinished={isFinished}
+          onBack={() => onDismissSession?.()}
+          onToggleViewMode={toggleViewMode}
+          onAddExercise={() => setIsAddingExercise(true)}
+          onSelectExercise={selectExercise}
+          onPrev={prevExercise}
+          onNext={nextExerciseWithCommit}
+          onAddSet={addSet}
+          onUpdateSet={updateSet}
+          onFinish={finishWorkout}
+          onAbort={abortSession}
+          onStartNewSession={startNewSession}
+          onUndoFinish={undoFinish}
+          calculateTotalVolume={calculateTotalVolumeLocal}
+        />
+      </>
+    );
   }
 
   return (
