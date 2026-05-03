@@ -268,6 +268,14 @@ const GymView = ({
   const [saveTemplateFolder, setSaveTemplateFolder] = useState<string | null>(null);
   const [saveTemplateTags, setSaveTemplateTags] = useState<string[]>([]);
   const saveTemplateTagInputRef = useRef<TextInput | null>(null);
+  // Synchronously-checked dedupe guard for the Add Exercise overlay. The
+  // visibleWorkout dedupe in selectSuggestion / addExercise reads from
+  // React state, which doesn't flush until the next render — two rapid
+  // taps within a single render both see the pre-add state and slip
+  // through. This ref mutates synchronously inside the handler and
+  // clears on a microtask + a 250ms safety net, so back-to-back taps on
+  // the same name collapse to a single insert.
+  const inFlightAddRef = useRef<Set<string>>(new Set());
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
 
@@ -356,15 +364,23 @@ const GymView = ({
   // forced a second tap on ADD. Tapping a known exercise should add it
   // directly — the overlay stays open for rapid multi-add.
   const selectSuggestion = (name: string) => {
-    // Dedupe at the source — overlay also disables ADDED rows, but a stale
-    // tap or race could still get through. Drop instead of duplicating.
+    const key = name.toLowerCase();
+    // Synchronous in-flight check beats the React-state-only dedupe:
+    // two taps in the same render both saw pre-add visibleWorkout
+    // before this guard was added.
+    if (inFlightAddRef.current.has(key)) {
+      setNewExerciseName('');
+      return;
+    }
     const exists = visibleWorkout.some(
-      (e: any) => e.name?.toLowerCase() === name.toLowerCase(),
+      (e: any) => e.name?.toLowerCase() === key,
     );
     if (exists) {
       setNewExerciseName('');
       return;
     }
+    inFlightAddRef.current.add(key);
+    setTimeout(() => inFlightAddRef.current.delete(key), 250);
     addExerciseHook(name, 'bottom');
     setNewExerciseName('');
     // Reset suggestions to the full library so the user keeps seeing
@@ -455,17 +471,24 @@ const GymView = ({
   const addExercise = (position: 'top' | 'bottom' = 'bottom') => {
     const trimmed = newExerciseName.trim();
     if (!trimmed) return;
+    const key = trimmed.toLowerCase();
+    if (inFlightAddRef.current.has(key)) {
+      setNewExerciseName('');
+      return;
+    }
     // Belt-and-suspenders dedupe: the overlay disables ADDED rows, but if
     // the user types a name already in the session and hits the free-text
     // path, drop it silently here too. Prevents the "tapped 20 times by
     // accident" failure mode at the source.
     const exists = visibleWorkout.some(
-      (e: any) => e.name?.toLowerCase() === trimmed.toLowerCase(),
+      (e: any) => e.name?.toLowerCase() === key,
     );
     if (exists) {
       setNewExerciseName('');
       return;
     }
+    inFlightAddRef.current.add(key);
+    setTimeout(() => inFlightAddRef.current.delete(key), 250);
     addExerciseHook(trimmed, position);
     // Clear the input but keep the overlay open so the user can rapid-add
     // several exercises in one pass. Closing on the first add forced users

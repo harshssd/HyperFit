@@ -110,9 +110,13 @@ export const calculateTotalVolume = (workout: WorkoutExercise[]) => {
     return (
       acc +
       ex.sets.reduce((sAcc, s) => {
+        // parseInt('') / parseInt('  ') return NaN. Previously masked by
+        // the s.completed gate; now we have to guard explicitly so a
+        // half-typed input doesn't NaN-poison the entire session total.
         const weight = s.weight ? parseInt(String(s.weight), 10) : 0;
         const reps = s.reps ? parseInt(String(s.reps), 10) : 0;
-        return sAcc + weight * reps;
+        const v = weight * reps;
+        return sAcc + (Number.isFinite(v) ? v : 0);
       }, 0)
     );
   }, 0);

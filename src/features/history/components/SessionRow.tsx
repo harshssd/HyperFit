@@ -34,10 +34,14 @@ const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const formatRelativeDate = (raw: string): string => {
   const d = new Date(raw.length <= 10 ? raw + 'T00:00:00' : raw);
   if (Number.isNaN(d.getTime())) return raw;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const target = new Date(d);
-  target.setHours(0, 0, 0, 0);
+  // Use local Y/M/D components on both sides so a session timestamp in
+  // UTC ('Z') still compares against the user's local calendar day. The
+  // prior epoch-ms diff broke for late-night logs whose UTC date had
+  // already rolled to "tomorrow" while the user was still on yesterday.
+  // Local-component subtraction is also DST-immune (no 23h/25h skew).
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const dayDiff = Math.round((today.getTime() - target.getTime()) / 86_400_000);
   if (dayDiff === 0) return 'TODAY';
   if (dayDiff === 1) return 'YESTERDAY';
