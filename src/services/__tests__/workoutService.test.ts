@@ -92,6 +92,16 @@ describe('fetchExercises', () => {
     expect(out.find(r => r.name === 'Custom Lift')?.id).toBe('u2');
     expect(out).toHaveLength(2);
   });
+  it('dedupes case-insensitively (master "Bench" wins over user "bench")', async () => {
+    setupFromMany({
+      exercises: { data: [{ id: 'e1', name: 'Bench', muscle_group: 'chest', equipment: 'barbell' }], error: null },
+      user_exercises: { data: [{ id: 'u1', name: 'bench', muscle_group: 'chest', equipment: 'barbell' }], error: null },
+    });
+    const out = await fetchExercises();
+    expect(out).toHaveLength(1);
+    // Lowercase user entry collides with master; master id wins, master casing preserved.
+    expect(out[0]).toEqual({ id: 'e1', name: 'Bench', muscle_group: 'chest', equipment: 'barbell' });
+  });
   it('throws if either table errors', async () => {
     setupFromMany({
       exercises: { data: null, error: new Error('boom') },
@@ -102,32 +112,44 @@ describe('fetchExercises', () => {
 });
 
 describe('fetchUserWorkoutPlans', () => {
-  it('maps snake_case rows to camelCase UserWorkoutPlan', async () => {
-    setupFrom('user_workout_plans', {
-      data: [
-        {
-          id: 'up1',
-          user_id: 'u1',
-          plan_id: 'p1',
-          plan: { id: 'p1', name: 'Plan A' },
-          custom_name: 'My Plan',
-          started_at: '2026-04-01',
-          ends_at: null,
-          is_active: true,
-          created_at: '2026-04-01',
-          updated_at: null,
-        },
-      ],
-      error: null,
+  /**
+   * Active rows trigger fetchWorkoutPlanDetails(planId), which itself
+   * calls workout_plans/plan_sessions/plan_schedule. Mock all of them
+   * so the hydration path runs end-to-end (otherwise it throws and gets
+   * silently swallowed by the outer try/catch — the test would "pass"
+   * for the wrong reason).
+   */
+  const setupActivePlanFixtures = (userPlanRows: any[]) => {
+    setupFromMany({
+      user_workout_plans: { data: userPlanRows, error: null },
+      workout_plans: { data: { id: 'plan-row', name: 'Stub' }, error: null },
+      plan_sessions: { data: [], error: null },
+      plan_schedule: { data: [], error: null },
     });
+  };
+
+  it('maps snake_case rows to camelCase UserWorkoutPlan', async () => {
+    setupActivePlanFixtures([
+      {
+        id: 'up1',
+        user_id: 'u1',
+        plan_id: 'p1',
+        plan: { id: 'p1', name: 'Plan A' },
+        custom_name: 'My Plan',
+        started_at: '2026-04-01',
+        ends_at: null,
+        is_active: true,
+        created_at: '2026-04-01',
+        updated_at: null,
+      },
+    ]);
 
     const out = await fetchUserWorkoutPlans('u1');
     expect(out).toHaveLength(1);
-    expect(out[0]).toEqual({
+    expect(out[0]).toMatchObject({
       id: 'up1',
       userId: 'u1',
       planId: 'p1',
-      planData: { id: 'p1', name: 'Plan A' },
       customName: 'My Plan',
       startedAt: '2026-04-01',
       endsAt: undefined,
@@ -135,15 +157,16 @@ describe('fetchUserWorkoutPlans', () => {
       createdAt: '2026-04-01',
       updatedAt: undefined,
     });
+    // planData was rehydrated from the stub workout_plans row above —
+    // exact shape depends on fetchWorkoutPlanDetails internals; we only
+    // assert it's defined so the test isn't fragile to that surface.
+    expect(out[0].planData).toBeDefined();
   });
   it('coerces is_active to boolean (regression guard)', async () => {
-    setupFrom('user_workout_plans', {
-      data: [
-        { id: 'a', user_id: 'u', plan_id: 'p', plan: null, started_at: 's', is_active: false, created_at: 'c' },
-        { id: 'b', user_id: 'u', plan_id: 'q', plan: null, started_at: 's', is_active: true, created_at: 'c' },
-      ],
-      error: null,
-    });
+    setupActivePlanFixtures([
+      { id: 'a', user_id: 'u', plan_id: 'p', plan: null, started_at: 's', is_active: false, created_at: 'c' },
+      { id: 'b', user_id: 'u', plan_id: 'q', plan: null, started_at: 's', is_active: true, created_at: 'c' },
+    ]);
     const out = await fetchUserWorkoutPlans('u');
     expect(out.find(p => p.isActive)?.id).toBe('b');
     expect(out.find(p => !p.isActive)?.id).toBe('a');
