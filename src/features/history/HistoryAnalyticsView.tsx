@@ -12,47 +12,18 @@ import { MuscleHeatmap } from '../analytics/heatmap/MuscleHeatmap';
 import { colors, spacing, radii, palette, text, accent, fonts } from '../../styles/theme';
 import { useUser } from '../../contexts/UserContext';
 import { useAppData } from '../../contexts/AppDataContext';
-import { supabase } from '../../services/supabase';
-import { resolveExerciseDirectory } from '../../services/workoutService';
+import {
+  fetchUserSessions,
+  fetchSessionDetails,
+  type WorkoutSession,
+  type WorkoutLog,
+  type SessionWithLogs,
+} from '../../services/historyService';
 import { calculateXP } from '../workout/helpers';
 import SessionRow from './components/SessionRow';
 import { useSessionTrajectories } from './hooks/useSessionTrajectories';
 
 type ViewMode = 'history' | 'analytics';
-
-type WorkoutSession = {
-  id: string;
-  name: string;
-  date: string;
-  start_time: string | null;
-  end_time: string | null;
-  duration_seconds: number | null;
-  volume_load: number;
-  status: string;
-  notes?: string | null;
-  exercise_count?: number;
-  set_count?: number;
-  plan_id?: string | null;
-  session_id?: string | null;
-};
-
-type WorkoutLog = {
-  id: string;
-  session_id: string;
-  exercise_id: string | null;
-  order_index: number;
-  set_number: number;
-  weight: number | null;
-  reps: number | null;
-  rpe?: number | null;
-  notes?: string;
-  exercise_name?: string; // Added from join with exercises table
-  rest_duration_seconds?: number;
-};
-
-type SessionWithLogs = WorkoutSession & {
-  logs: WorkoutLog[];
-};
 
 const ITEMS_PER_PAGE = 10;
 
@@ -88,8 +59,6 @@ const HistoryAnalyticsView = () => {
       return;
     }
 
-    console.log('Loading sessions for user:', user.id, 'Page:', currentPage);
-
     try {
       if (isRefresh) {
         setRefreshing(true);
@@ -97,47 +66,14 @@ const HistoryAnalyticsView = () => {
         setLoading(true);
       }
 
-      // session_summary_view does the aggregation server-side. Range-based
-      // pagination keeps the client from pulling all rows when the user has
-      // hundreds of sessions.
-      const from = (currentPage - 1) * ITEMS_PER_PAGE;
-      const to = from + ITEMS_PER_PAGE - 1;
-
-      const [{ data: rows, error }, { count, error: countError }] = await Promise.all([
-        supabase
-          .from('session_summary_view')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('workout_date', { ascending: false })
-          .order('start_time', { ascending: false, nullsFirst: false })
-          .range(from, to),
-        supabase
-          .from('session_summary_view')
-          .select('id', { count: 'exact', head: true })
-          .eq('user_id', user.id),
-      ]);
-
-      if (error) throw error;
-      if (countError) throw countError;
-
-      const paginatedSessions = (rows ?? []).map((r: any) => ({
-        id: r.id,
-        name: r.session_name,
-        date: r.workout_date,
-        start_time: r.start_time,
-        end_time: r.end_time,
-        duration_seconds: r.duration_seconds,
-        volume_load: Number(r.volume_load) || 0,
-        status: r.status,
-        notes: r.notes,
-        exercise_count: r.exercise_count,
-        set_count: r.total_sets,
-        plan_id: r.plan_id,
-        session_id: r.plan_session_id,
-      }));
+      const { sessions: paginatedSessions, totalCount: count } = await fetchUserSessions(
+        user.id,
+        currentPage,
+        ITEMS_PER_PAGE,
+      );
 
       setSessions(paginatedSessions);
-      setTotalCount(count ?? paginatedSessions.length);
+      setTotalCount(count);
       setLoadError(null);
     } catch (error) {
       console.error('Error loading sessions:', error);
@@ -154,66 +90,8 @@ const HistoryAnalyticsView = () => {
       return;
     }
 
-    console.log('Loading session details for:', sessionId);
-
     try {
-      // sessionId is now the workout_sessions.id UUID directly.
-      const [{ data: parent, error: parentError }, { data: sets, error: setsError }] =
-        await Promise.all([
-          supabase
-            .from('session_summary_view')
-            .select('*')
-            .eq('id', sessionId)
-            .eq('user_id', user.id)
-            .single(),
-          supabase
-            .from('workout_sets')
-            .select('*')
-            .eq('session_id', sessionId)
-            .order('order_index', { ascending: true })
-            .order('set_number', { ascending: true }),
-        ]);
-
-      if (parentError) throw parentError;
-      if (setsError) throw setsError;
-      if (!parent) throw new Error('Session not found');
-
-      // FK on workout_sets.exercise_id was dropped (rows can point at
-      // master `exercises` or per-user `user_exercises`), so resolve
-      // names manually from both tables.
-      const dir = await resolveExerciseDirectory(
-        (sets ?? []).map((r: any) => r.exercise_id),
-      );
-
-      const transformedLogs = (sets ?? []).map((row: any) => ({
-        id: row.id,
-        session_id: sessionId,
-        exercise_id: row.exercise_id,
-        order_index: row.order_index,
-        set_number: row.set_number,
-        weight: row.weight,
-        reps: row.reps,
-        notes: undefined,
-        exercise_name: dir.get(row.exercise_id)?.name || 'Unknown Exercise',
-      }));
-
-      const sessionWithLogs: SessionWithLogs = {
-        id: parent.id,
-        name: parent.session_name,
-        date: parent.workout_date,
-        start_time: parent.start_time,
-        end_time: parent.end_time,
-        duration_seconds: parent.duration_seconds,
-        volume_load: Number(parent.volume_load) || 0,
-        status: parent.status,
-        notes: parent.notes,
-        plan_id: parent.plan_id,
-        session_id: parent.plan_session_id,
-        exercise_count: parent.exercise_count,
-        set_count: parent.total_sets,
-        logs: transformedLogs,
-      };
-
+      const sessionWithLogs = await fetchSessionDetails(sessionId, user.id);
       setSelectedSession(sessionWithLogs);
     } catch (error) {
       console.error('Error loading session details:', error);
