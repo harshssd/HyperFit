@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updatedAt": "2026-05-03T15:41:51.519Z",
+    "updatedAt": "2026-05-03T15:48:10.878Z",
     "source": "managed via scripts/backlog.js"
   },
   "items": [
@@ -101,6 +101,20 @@
       "status": "todo",
       "category": "infra",
       "notes": "When a user taps PUBLISH on their plan, it flips review_status from 'private' to 'pending_review' but there is no surface to act on the queue. Build: (a) admin-only listing of workout_plans where review_status='pending_review' (RPC list_pending_plans or a view + admin RLS), (b) approve_plan(plan_id) RPC that sets review_status='approved' + is_public=true, (c) reject_plan(plan_id, reason) RPC that sets review_status='rejected' + writes review_notes, (d) minimal admin UI (in-app dev screen guarded by an admin claim, or a Supabase SQL snippet/CLI script for now). Today plans submitted via PUBLISH pile up forever. Reference: src/services/workoutService.ts setPlanReviewStatus + usePlanActions submitForReview/withdrawFromReview. UI side: WorkoutPlansLibrary already shows PUBLISH/RESUBMIT/WITHDRAW buttons keyed off review_status, so once the backend exists no client work is needed for the basic flow."
+    },
+    {
+      "id": "BL-15",
+      "title": "Refresh DESIGN.md after home/plans restructure",
+      "status": "todo",
+      "category": "docs",
+      "notes": "DESIGN.md is behind the new 3-tab nav (Home/Plans/Nutrition/History), the BROWSE PLAN LIBRARY signpost on Plans, the CheckCircle ACTIVE PLAN pill in plan details, and the Templates/MyPlans tab split in the library. Document the new BannerRow pattern (Home secondary actions) and the multi-select Browse Exercises modal in the plan creator. Run /document-release once these PRs settle. Reference: PR #48."
+    },
+    {
+      "id": "BL-16",
+      "title": "Revisit signup enumeration UX vs anti-enumeration tradeoff",
+      "status": "todo",
+      "category": "security",
+      "notes": "useAuth.signUpWithEmail surfaces alreadyExists:true based on Supabase's empty-identities response, and LoginView shows 'An account with this email already exists.' This is a deliberate UX call (clear feedback for users who forgot they signed up) but defeats Supabase's anti-enumeration default — an attacker can probe whether an email is registered via signup attempts. Acceptable today (Supabase rate-limits signups, low user count, low value as an enumeration target) but worth revisiting if (a) user growth makes the email list more valuable, (b) we add a public registration form without captcha, or (c) compliance review flags it. Mitigations: keep current UX but add captcha/turnstile on signup, OR fall back to generic 'Check your email for a confirmation link' for both cases. Reference: src/hooks/useAuth.ts:62-68, src/components/LoginView.tsx, /gstack-review on PR #48."
     }
   ]
 }
