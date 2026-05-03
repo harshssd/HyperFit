@@ -11,7 +11,7 @@ import {
   VIEWBOX_HEIGHT,
   VIEWBOX_WIDTH,
 } from './muscleRegions';
-import { colors } from '../../../styles/theme';
+import { palette } from '../../../styles/theme';
 
 const AnimatedEllipse = Animated.createAnimatedComponent(SvgEllipse);
 const AnimatedRect = Animated.createAnimatedComponent(SvgRect);
@@ -27,14 +27,18 @@ type Props = {
   size?: number;
 };
 
-// Monochrome heatmap — single hue (white) ramping in opacity. The heatmap
-// communicates *cadence* (where you trained) rather than decorative intensity.
-// See DESIGN.md "honest mirror" direction.
-const SILHOUETTE_FILL = '#0a0a0a'; // matches anthracite background
-const SILHOUETTE_STROKE = colors.borderStrong;
-const COLD = '#ffffff'; // light intensity = same hue, lower opacity
-const HOT = '#ffffff';  // heavy intensity = same hue, higher opacity (via fillOpacity below)
-const UNTOUCHED = colors.surface;
+// Heatmap palette — strava-orange for lift signal, per DESIGN.md "honest mirror".
+// Hue carries intensity (Light vs Heavy reads at a glance) rather than opacity
+// alone. Stroke ramps in lockstep so every active muscle gets a defined rim.
+const SILHOUETTE_FILL = '#0a0a0a';                  // matches anthracite bg
+const SILHOUETTE_STROKE = palette.textQuaternary;   // body outline (#71717a)
+const REGION_BORDER_REST = palette.surfaceAlt;      // untouched region rim
+const REGION_BORDER_LIGHT = '#7a2400';              // dark-orange rim at light load
+const REGION_BORDER_HEAVY = '#ff6a2b';              // bright primary rim at heavy load
+const FILL_UNTOUCHED = palette.surface;             // #18181b — same as legend "None"
+const FILL_LIGHT = '#3a1d0a';                       // dim ember (just-trained)
+const FILL_MID = '#a13208';                         // mid load — saturated burnt orange
+const FILL_HEAVY = palette.liftActive;              // #fc4c02 — full strava orange
 
 /** Renders one region's shapes. Animates both fill color and opacity. */
 const Region = ({
@@ -56,19 +60,18 @@ const Region = ({
     }).start();
   }, [intensity, fadeAnim]);
 
-  // Untouched regions stay surface-grey; trained regions fade in white as a
-  // function of intensity. Single hue keeps the heatmap honest — "you trained"
-  // is signalled by opacity, not by warm/cool color theatre.
+  // Fill ramps through 4 stops — untouched grey, dim ember (Light), burnt
+  // orange (Mid), bright strava (Heavy). Letting hue carry intensity makes
+  // Light vs Heavy distinguishable at a glance, not just "more opaque white".
   const fill = fadeAnim.interpolate({
-    inputRange: [0, 0.001, 1],
-    outputRange: [UNTOUCHED, COLD, HOT],
+    inputRange: [0, 0.001, 0.5, 1],
+    outputRange: [FILL_UNTOUCHED, FILL_LIGHT, FILL_MID, FILL_HEAVY],
   });
-  // Fill opacity encodes intensity: 0 = full untouched grey, 0.001 = barely
-  // visible white, 1 = full white. The Animated.timing duration handles the
-  // smooth fade-in.
-  const opacity = fadeAnim.interpolate({
+  // Stroke ramps in lockstep so every lit muscle gets a defined rim — without
+  // it, the active fills bleed into the silhouette outline.
+  const stroke = fadeAnim.interpolate({
     inputRange: [0, 0.001, 1],
-    outputRange: [1, 0.18, 1],
+    outputRange: [REGION_BORDER_REST, REGION_BORDER_LIGHT, REGION_BORDER_HEAVY],
   });
 
   return (
@@ -83,9 +86,8 @@ const Region = ({
               rx={shape.rx}
               ry={shape.ry}
               fill={fill}
-              fillOpacity={opacity}
-              stroke={SILHOUETTE_STROKE}
-              strokeWidth={1}
+              stroke={stroke}
+              strokeWidth={1.25}
               onPress={onPress}
             />
           );
@@ -100,9 +102,8 @@ const Region = ({
               height={shape.height}
               rx={shape.rx ?? 6}
               fill={fill}
-              fillOpacity={opacity}
-              stroke={SILHOUETTE_STROKE}
-              strokeWidth={1}
+              stroke={stroke}
+              strokeWidth={1.25}
               onPress={onPress}
             />
           );
@@ -112,9 +113,8 @@ const Region = ({
             key={`${region.id}-${i}`}
             d={shape.d}
             fill={fill}
-            fillOpacity={opacity}
-            stroke={SILHOUETTE_STROKE}
-            strokeWidth={1}
+            stroke={stroke}
+            strokeWidth={1.25}
             onPress={onPress}
           />
         );
@@ -130,8 +130,9 @@ export const BodySilhouette = ({ view, intensities, onPressRegion, size = 180 }:
 
   return (
     <Svg width={size} height={height} viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}>
-      {/* Body outline (head + torso + limbs) */}
-      <Path d={outline} fill={SILHOUETTE_FILL} stroke={SILHOUETTE_STROKE} strokeWidth={1.5} />
+      {/* Body outline (head + torso + limbs) — slightly heavier stroke so the
+          silhouette frames the heatmap rather than disappearing behind it. */}
+      <Path d={outline} fill={SILHOUETTE_FILL} stroke={SILHOUETTE_STROKE} strokeWidth={2} />
       {/* Heatmap regions on top */}
       {regions.map(region => (
         <Region
