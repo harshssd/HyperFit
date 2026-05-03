@@ -59,22 +59,44 @@ const setupFrom = (table: string, terminal: any) => {
   return { chain, calls };
 };
 
+/**
+ * For functions that hit multiple tables (e.g., fetchExercises now reads
+ * `exercises` + `user_exercises` after the user_exercises split), route
+ * each table to its own chain.
+ */
+const setupFromMany = (terminals: Record<string, any>) => {
+  const map: Record<string, { chain: any; calls: any[] }> = {};
+  Object.entries(terminals).forEach(([table, terminal]) => {
+    map[table] = makeChain(terminal);
+  });
+  (supabase as any).from = jest.fn((t: string) => {
+    if (!map[t]) throw new Error(`Unexpected from(${t})`);
+    return map[t].chain;
+  });
+  return map;
+};
+
 afterEach(() => {
   jest.clearAllMocks();
 });
 
 describe('fetchExercises', () => {
-  it('selects all exercises ordered by name', async () => {
-    const { calls } = setupFrom('exercises', { data: [{ id: 'e1', name: 'Bench' }], error: null });
+  it('merges master `exercises` + per-user `user_exercises`, deduped by name', async () => {
+    setupFromMany({
+      exercises: { data: [{ id: 'e1', name: 'Bench', muscle_group: 'chest', equipment: 'barbell' }], error: null },
+      user_exercises: { data: [{ id: 'u1', name: 'Bench', muscle_group: 'chest', equipment: 'barbell' }, { id: 'u2', name: 'Custom Lift', muscle_group: null, equipment: null }], error: null },
+    });
     const out = await fetchExercises();
-    expect(out).toEqual([{ id: 'e1', name: 'Bench' }]);
-    const methods = calls.map(c => c.method);
-    expect(methods).toEqual(['select', 'order']);
-    expect(calls[0].args[0]).toBe('*');
-    expect(calls[1].args[0]).toBe('name');
+    // Master row wins on name collision; "Bench" should resolve to e1.
+    expect(out.find(r => r.name === 'Bench')?.id).toBe('e1');
+    expect(out.find(r => r.name === 'Custom Lift')?.id).toBe('u2');
+    expect(out).toHaveLength(2);
   });
-  it('throws on error', async () => {
-    setupFrom('exercises', { data: null, error: new Error('boom') });
+  it('throws if either table errors', async () => {
+    setupFromMany({
+      exercises: { data: null, error: new Error('boom') },
+      user_exercises: { data: [], error: null },
+    });
     await expect(fetchExercises()).rejects.toThrow('boom');
   });
 });
