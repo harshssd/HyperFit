@@ -25,6 +25,8 @@ export interface Database {
           muscle_group: string | null;
           equipment: string | null;
           is_public: boolean;
+          primary_muscles: string[];
+          secondary_muscles: string[];
           created_at: Timestamp;
           updated_at: Timestamp;
         };
@@ -34,6 +36,8 @@ export interface Database {
           muscle_group?: string | null;
           equipment?: string | null;
           is_public?: boolean;
+          primary_muscles?: string[];
+          secondary_muscles?: string[];
           created_at?: Timestamp;
           updated_at?: Timestamp;
         };
@@ -47,6 +51,8 @@ export interface Database {
           name: string;
           muscle_group: string | null;
           equipment: string | null;
+          primary_muscles: string[];
+          secondary_muscles: string[];
           created_at: Timestamp;
           updated_at: Timestamp;
         };
@@ -56,6 +62,8 @@ export interface Database {
           name: string;
           muscle_group?: string | null;
           equipment?: string | null;
+          primary_muscles?: string[];
+          secondary_muscles?: string[];
           created_at?: Timestamp;
           updated_at?: Timestamp;
         };
@@ -357,6 +365,18 @@ export interface Database {
           muscle_group: string;
           volume: number;
           set_count: number;
+        };
+      };
+
+      muscle_volume_v2_view: {
+        Row: {
+          user_id: string;
+          workout_session_id: string;
+          workout_date: string;
+          muscle_id: string;
+          effective_volume: number;
+          effective_sets: number;
+          raw_set_count: number;
         };
       };
     };
