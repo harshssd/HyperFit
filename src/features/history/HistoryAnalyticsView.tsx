@@ -263,9 +263,15 @@ const HistoryAnalyticsView = () => {
     }
 
     return (
-      <ScrollView 
+      <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: spacing.xl, paddingBottom: spacing.xxl }}
+        // Toggle wrapper above already provides the top spacing.xl edge —
+        // only push horizontal + bottom here so first card sits one
+        // spacing.md below the toggle, matching Home/Plans rhythm.
+        contentContainerStyle={{
+          paddingHorizontal: spacing.xl,
+          paddingBottom: spacing.xxl,
+        }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -386,7 +392,13 @@ const HistoryAnalyticsView = () => {
     const streak = data.gymLogs?.length ?? 0;
     const xp = calculateXP(data);
     return (
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.xl }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.xl,
+          paddingBottom: spacing.xxl,
+        }}
+      >
         {/* Streak + XP — moved here from Home so the daily glance metric (streak)
             stays in the header, while retrospective totals live with analytics. */}
         <View testID="analytics-stats" style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl }}>

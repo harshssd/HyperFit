@@ -5,8 +5,11 @@ const homeStyles = StyleSheet.create({
   homeView: {
     flex: 1,
   },
+  // Owned scroll surface for the Home tab. Uses the same padding values
+  // as Plans and History so the four tabs feel like one shell.
   homeViewContent: {
-    paddingBottom: spacing.xl,
+    padding: spacing.xl,
+    paddingBottom: 100,
   },
   homeCard: {
     padding: spacing.xl,

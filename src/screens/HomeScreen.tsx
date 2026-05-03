@@ -53,8 +53,10 @@ export const HomeScreen = () => {
     navigation.navigate('Plans', { intent: 'pick' });
   };
 
+  // HomeView owns its own ScrollView; opt out of the layout wrapper so we
+  // don't nest scroll surfaces (matches Plans and History).
   return (
-    <ScreenLayout errorLabel="Error in Home">
+    <ScreenLayout scroll={false} errorLabel="Error in Home">
       <HomeView
         data={data}
         streak={data.gymLogs.length}
