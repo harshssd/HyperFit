@@ -72,7 +72,7 @@ export const useRecentWorkouts = (
         if (rowsErr) throw rowsErr;
         if (cancelled) return;
 
-        const mapped: RecentWorkout[] = (rows ?? []).map((r: any) => {
+        const mapped: RecentWorkout[] = (rows ?? []).map(r => {
           const count = Number(r.exercise_count) || 0;
           const baseName: string = r.session_name || 'Workout';
           return {
