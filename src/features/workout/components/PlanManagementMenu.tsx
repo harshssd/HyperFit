@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
-import { Edit, RotateCcw, X, FileText, Trash2 } from 'lucide-react-native';
+import { RotateCcw, X, FileText, Trash2 } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import { colors, spacing, radii } from '../../../styles/theme';
@@ -10,18 +10,19 @@ type PlanManagementMenuProps = {
   visible: boolean;
   activePlan: WorkoutPlan | undefined;
   onClose: () => void;
-  onEditPlan?: () => void;
   onChangePlan: () => void;
   onEndPlan: () => void;
   onCreateFromExisting: () => void;
   onCleanupPlans?: () => void;
 };
 
+// Edit Current Plan is intentionally absent. Standard (official) plans
+// are not user-editable; user-authored plans get edited via the Plan
+// Library → EDIT button. A duplicate entry-point here was a dead button.
 const PlanManagementMenu = ({
   visible,
   activePlan,
   onClose,
-  onEditPlan = () => {},
   onChangePlan,
   onEndPlan,
   onCreateFromExisting,
@@ -30,13 +31,6 @@ const PlanManagementMenu = ({
   if (!visible || !activePlan) return null;
 
   const menuOptions = [
-    {
-      icon: Edit,
-      label: 'Edit Current Plan',
-      description: 'Modify sessions and schedule',
-      action: onEditPlan,
-      color: colors.primary,
-    },
     {
       icon: RotateCcw,
       label: 'Change Plan',
