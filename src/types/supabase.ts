@@ -14,6 +14,8 @@ type Timestamp = string;
 
 export type TemplateKind = 'plan_session' | 'quick';
 export type PlanReviewStatus = 'private' | 'pending_review' | 'approved' | 'rejected';
+export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type NutritionStatus = 'empty' | 'hit' | 'over' | 'under';
 
 export interface Database {
   public: {
@@ -335,6 +337,131 @@ export interface Database {
         };
         Update: Partial<Database['public']['Tables']['user_template_favorites']['Insert']>;
       };
+
+      // -- Nutrition --------------------------------------------------------
+      // Schema: 20260505000000_nutrition_schema.sql + 20260506000000_nutrition_status_no_cheat_shortcut.sql
+
+      user_nutrition_settings: {
+        Row: {
+          user_id: string;
+          kcal_target: number;
+          protein_target_g: number;
+          carb_target_g: number;
+          fat_target_g: number;
+          fiber_target_g: number;
+          cheat_days_per_week: number;
+          water_target_ml: number;
+          water_cup_ml: number;
+          water_bottle_ml: number;
+          water_unit: 'ml' | 'oz';
+          created_at: Timestamp;
+          updated_at: Timestamp;
+        };
+        Insert: {
+          user_id: string;
+          kcal_target?: number;
+          protein_target_g?: number;
+          carb_target_g?: number;
+          fat_target_g?: number;
+          fiber_target_g?: number;
+          cheat_days_per_week?: number;
+          water_target_ml?: number;
+          water_cup_ml?: number;
+          water_bottle_ml?: number;
+          water_unit?: 'ml' | 'oz';
+          created_at?: Timestamp;
+          updated_at?: Timestamp;
+        };
+        Update: Partial<Database['public']['Tables']['user_nutrition_settings']['Insert']>;
+      };
+
+      nutrition_days: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          is_cheat_day: boolean;
+          kcal_target: number | null;
+          protein_target_g: number | null;
+          carb_target_g: number | null;
+          fat_target_g: number | null;
+          fiber_target_g: number | null;
+          note: string | null;
+          created_at: Timestamp;
+          updated_at: Timestamp;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          date: string;
+          is_cheat_day?: boolean;
+          kcal_target?: number | null;
+          protein_target_g?: number | null;
+          carb_target_g?: number | null;
+          fat_target_g?: number | null;
+          fiber_target_g?: number | null;
+          note?: string | null;
+          created_at?: Timestamp;
+          updated_at?: Timestamp;
+        };
+        Update: Partial<Database['public']['Tables']['nutrition_days']['Insert']>;
+      };
+
+      nutrition_entries: {
+        Row: {
+          id: string;
+          user_id: string;
+          day_id: string;
+          meal_slot: MealSlot;
+          name: string | null;
+          kcal: number;
+          protein_g: number;
+          carb_g: number;
+          fat_g: number;
+          fiber_g: number;
+          order_index: number;
+          logged_at: Timestamp;
+          created_at: Timestamp;
+          updated_at: Timestamp;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          day_id: string;
+          meal_slot: MealSlot;
+          name?: string | null;
+          kcal?: number;
+          protein_g?: number;
+          carb_g?: number;
+          fat_g?: number;
+          fiber_g?: number;
+          order_index?: number;
+          logged_at?: Timestamp;
+          created_at?: Timestamp;
+          updated_at?: Timestamp;
+        };
+        Update: Partial<Database['public']['Tables']['nutrition_entries']['Insert']>;
+      };
+
+      water_logs: {
+        Row: {
+          id: string;
+          user_id: string;
+          date: string;
+          ml: number;
+          logged_at: Timestamp;
+          created_at: Timestamp;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          date: string;
+          ml: number;
+          logged_at?: Timestamp;
+          created_at?: Timestamp;
+        };
+        Update: Partial<Database['public']['Tables']['water_logs']['Insert']>;
+      };
     };
 
     Views: {
@@ -379,11 +506,34 @@ export interface Database {
           raw_set_count: number;
         };
       };
+
+      nutrition_day_summary_view: {
+        Row: {
+          user_id: string;
+          day_id: string;
+          date: string;
+          is_cheat_day: boolean;
+          kcal_target: number;
+          protein_target_g: number;
+          carb_target_g: number;
+          fat_target_g: number;
+          fiber_target_g: number;
+          kcal_total: number;
+          protein_total_g: number;
+          carb_total_g: number;
+          fat_total_g: number;
+          fiber_total_g: number;
+          entry_count: number;
+          water_total_ml: number;
+          status: NutritionStatus;
+        };
+      };
     };
 
     Enums: {
       template_kind: TemplateKind;
       plan_review_status: PlanReviewStatus;
+      meal_slot: MealSlot;
     };
   };
 }
