@@ -18,12 +18,18 @@ const MONTH_NAMES = [
 ];
 const DOW_LABELS = ['M','T','W','T','F','S','S'];
 
+type CalendarViewProps = {
+  /** When true, render inline (no outer ScrollView, tighter padding) so the
+   *  view can be embedded inside another scrolling parent (e.g. Home). */
+  embedded?: boolean;
+};
+
 /**
  * Calendar tab. Past dates show logged sessions; future dates show what's
  * scheduled by the user's active plan. Tap a past day with a logged session
  * to drill in; tap a future day to see what's planned.
  */
-const CalendarView = () => {
+const CalendarView = ({ embedded = false }: CalendarViewProps) => {
   const navigation = useNavigation<Nav>();
   const { user } = useUser();
   const { data } = useAppData();
@@ -58,11 +64,8 @@ const CalendarView = () => {
     }
   };
 
-  return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bg }}
-      contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}
-    >
+  const body = (
+    <>
       {/* Month header */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
         <TouchableOpacity testID="calendar-prev-month" onPress={goPrev} accessibilityLabel="Previous month" style={{ padding: 8 }}>
@@ -179,6 +182,19 @@ const CalendarView = () => {
           ))}
         </GlassCard>
       )}
+    </>
+  );
+
+  if (embedded) {
+    return <View>{body}</View>;
+  }
+
+  return (
+    <ScrollView
+      style={{ flex: 1, backgroundColor: palette.bg }}
+      contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}
+    >
+      {body}
     </ScrollView>
   );
 };

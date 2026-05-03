@@ -19,7 +19,10 @@ export type UseAuthReturn = {
   user: User | null;
   status: AuthStatus;
   signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (
+    email: string,
+    password: string,
+  ) => Promise<{ needsConfirmation: boolean; alreadyExists: boolean }>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -55,8 +58,14 @@ export const useAuth = (): UseAuthReturn => {
   }, []);
 
   const signUpWithEmail = useCallback(async (email: string, password: string) => {
-    const { error } = await svcSignUpWithEmail(email, password);
+    const { data, error } = await svcSignUpWithEmail(email, password);
     if (error) throw new Error(error.message);
+    // Anti-enumeration tell: Supabase returns a synthetic user with empty
+    // identities (and no session, no error) when the email already exists.
+    const alreadyExists =
+      !!data?.user && (!data.user.identities || data.user.identities.length === 0);
+    // Otherwise: no session means email confirmation is pending.
+    return { needsConfirmation: !data?.session && !alreadyExists, alreadyExists };
   }, []);
 
   const signInWithGoogle = useCallback(async () => {

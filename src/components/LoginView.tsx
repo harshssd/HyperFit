@@ -10,7 +10,7 @@ import {
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { Zap, AlertTriangle } from 'lucide-react-native';
+import { Zap, AlertTriangle, MailCheck } from 'lucide-react-native';
 import NeonButton from './NeonButton';
 import { loginStyles } from '../styles';
 import { palette, text, accent } from '../styles/theme';
@@ -19,7 +19,10 @@ import { ASSETS } from '../constants/appConstants';
 type LoginViewProps = {
   onEmailLogin: (email: string, password: string) => Promise<any>;
   onGoogleLogin: () => Promise<any>;
-  onSignUp: (email: string, password: string) => Promise<any>;
+  onSignUp: (
+    email: string,
+    password: string,
+  ) => Promise<{ needsConfirmation: boolean; alreadyExists: boolean } | void>;
 };
 
 const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) => {
@@ -28,6 +31,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
   const [isLoading, setIsLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
 
   const handleEmailAuth = async () => {
     if (!email.trim() || !password.trim()) {
@@ -36,9 +40,18 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
     }
     setIsLoading(true);
     setError('');
+    setInfo('');
     try {
       if (isSignUp) {
-        await onSignUp(email, password);
+        const result = await onSignUp(email, password);
+        if (result?.alreadyExists) {
+          setError('An account with this email already exists. Try signing in.');
+          setIsSignUp(false);
+        } else if (result?.needsConfirmation) {
+          setInfo(`Check ${email.trim()} to confirm your account, then sign in.`);
+          setIsSignUp(false);
+          setPassword('');
+        }
       } else {
         await onEmailLogin(email, password);
       }
@@ -52,6 +65,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     setError('');
+    setInfo('');
     try {
       await onGoogleLogin();
     } catch (err: any) {
@@ -92,6 +106,13 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
               <View style={loginStyles.loginError}>
                 <AlertTriangle size={16} color={accent.regression} />
                 <Text style={loginStyles.loginErrorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {info ? (
+              <View testID="login-info" style={loginStyles.loginInfo}>
+                <MailCheck size={16} color={accent.sessionUp} />
+                <Text style={loginStyles.loginInfoText}>{info}</Text>
               </View>
             ) : null}
 

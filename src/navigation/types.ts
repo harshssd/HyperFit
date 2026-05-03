@@ -20,8 +20,12 @@ export type AuthStackParamList = {
 
 export type MainTabParamList = {
   Home: undefined;
-  Plans: undefined; // formerly "Gym" — list of user's plans
-  Calendar: undefined;
+  /** formerly "Gym" — list of user's plans. `intent` is a one-shot:
+   *  - 'pick'   → open the plan library in session-pick mode
+   *  - 'manual' → open the empty-workout overview with the exercise picker
+   *  Cleared after consumed so a manual revisit doesn't re-trigger. */
+  Plans: { intent?: 'pick' | 'manual' } | undefined;
+  Nutrition: undefined; // placeholder; macros + food log land here
   History: undefined;
 };
 
@@ -38,6 +42,8 @@ export type RootStackParamList = {
   SessionDetail: { sessionId: string };
   /** Preview + import a plan someone shared with you via a share code. */
   SharedPlan: { code: string };
+  /** Full month schedule — formerly the Calendar tab; now a modal from Home. */
+  Calendar: undefined;
 };
 
 declare global {

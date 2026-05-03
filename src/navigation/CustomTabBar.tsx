@@ -3,11 +3,12 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import NavBar from '../components/NavBar';
 import { NAV_ITEMS } from '../constants/nav';
 
-// nav id <-> route name map. NAV_ITEMS still uses "gym"; the route is "Plans".
+// nav id <-> route name map. NAV_ITEMS uses "gym" (route "Plans") and
+// "nutrition" (route "Nutrition"). Calendar has graduated to a stack modal.
 const ID_TO_ROUTE: Record<string, string> = {
   home: 'Home',
   gym: 'Plans',
-  calendar: 'Calendar',
+  nutrition: 'Nutrition',
   history: 'History',
 };
 const ROUTE_TO_ID: Record<string, string> = Object.fromEntries(

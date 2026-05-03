@@ -146,7 +146,6 @@ export const usePlanActions = ({ userId, data, updateData }: Args) => {
             description: session.description || '',
             focus: session.focus as string,
             order_index: index + 1,
-            original_session_id: (session as any).originalSessionId || null,
           } as any,
           exercises: session.exercises.map((exercise) => ({
             exercise_id: exercise.id,

@@ -14,6 +14,7 @@ import { MainTabs } from './MainTabs';
 import { ActiveWorkoutScreen } from '../screens/ActiveWorkoutScreen';
 import { PlanBuilderScreen } from '../screens/PlanBuilderScreen';
 import { SharedPlanScreen } from '../screens/SharedPlanScreen';
+import { CalendarScreen } from '../screens/CalendarScreen';
 import { linking } from './linking';
 import type { RootStackParamList } from './types';
 
@@ -81,6 +82,7 @@ export const RootNavigator = () => {
                       <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />
                       <Stack.Screen name="SessionDetail" component={PlaceholderModal} />
                       <Stack.Screen name="SharedPlan" component={SharedPlanScreen} />
+                      <Stack.Screen name="Calendar" component={CalendarScreen} />
                     </Stack.Group>
                   </Stack.Group>
                 ) : (

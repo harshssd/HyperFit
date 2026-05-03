@@ -64,21 +64,18 @@ const WorkoutPlanner = ({
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [showPlanMenu, setShowPlanMenu] = React.useState(false);
 
+  // Rolling 7-day strip anchored on today. Today sits at the leftmost cell;
+  // the strip is forward-looking, matching Home's "this week" idiom.
   const getDaysInWeek = () => {
     const days = [];
-    const current = new Date();
-    // Start from Monday of the current week
-    const day = current.getDay();
-    const diff = current.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-    const monday = new Date(current.setDate(diff));
-
+    const today = new Date();
     for (let i = 0; i < 7; i++) {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
       days.push({
         date: d,
         dayName: d.toLocaleDateString('en-US', { weekday: 'short' }),
-        dayNumber: d.getDate()
+        dayNumber: d.getDate(),
       });
     }
     return days;
@@ -91,7 +88,7 @@ const WorkoutPlanner = ({
   return (
     <ScrollView
       style={homeStyles.homeView}
-      contentContainerStyle={homeStyles.homeViewContent}
+      contentContainerStyle={[homeStyles.homeViewContent, { padding: spacing.xl, paddingBottom: 100 }]}
       showsVerticalScrollIndicator={false}
     >
       {/* 🎯 UNIFIED WORKOUT CENTRAL - Hero Section */}
@@ -250,6 +247,28 @@ const WorkoutPlanner = ({
                   </Text>
                 </TouchableOpacity>
               </View>
+
+              {/* Always-visible signpost into the plan catalogue. The Plans
+                  tab is where users come to manage and explore plans, so a
+                  direct entry needs to be evident — not buried behind the
+                  settings cog's "Change Plan" item. */}
+              <TouchableOpacity
+                testID="planner-browse-library-active"
+                onPress={onBrowsePlans}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: spacing.sm,
+                  paddingVertical: spacing.sm,
+                }}
+              >
+                <Layout size={13} color={colors.primary} />
+                <Text style={{ marginLeft: spacing.xs, color: colors.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase' }}>
+                  Browse Plan Library
+                </Text>
+                <ChevronRight size={13} color={colors.primary} style={{ marginLeft: 2 }} />
+              </TouchableOpacity>
             </View>
           ) : (
             /* NO SCHEDULED WORKOUT - QUICK ACTIONS */
@@ -356,6 +375,23 @@ const WorkoutPlanner = ({
                       <Text style={{ color: '#8b5cf6', fontSize: 9, fontWeight: 'bold' }}>SOON</Text>
                     </View>
                   </TouchableOpacity>
+
+                  <TouchableOpacity
+                    testID="planner-browse-library-rest"
+                    onPress={onBrowsePlans}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      paddingVertical: spacing.sm,
+                    }}
+                  >
+                    <Layout size={13} color={colors.primary} />
+                    <Text style={{ marginLeft: spacing.xs, color: colors.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase' }}>
+                      Browse Plan Library
+                    </Text>
+                    <ChevronRight size={13} color={colors.primary} style={{ marginLeft: 2 }} />
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -369,7 +405,7 @@ const WorkoutPlanner = ({
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Calendar size={18} color={colors.primary} />
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: spacing.sm }}>
-              WEEKLY SCHEDULE
+              NEXT 7 DAYS
             </Text>
           </View>
           <Text style={{ color: colors.muted, fontSize: 11, fontWeight: '600' }}>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Modal } from 'react-native';
-import { ChevronLeft, Layout, User, Plus, Search, Calendar, ChevronRight, Info } from 'lucide-react-native';
+import { ChevronLeft, Layout, User, Plus, Search, Calendar, ChevronRight, Info, Play, CheckCircle } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import PlanStatusBadge from './PlanStatusBadge';
 import NeonButton from '../../../components/NeonButton';
@@ -37,6 +37,15 @@ type WorkoutPlansLibraryProps = {
    *  Drives the disabled "ACTIVE" state on the matching card so the user can
    *  see at a glance which plan they're already on. */
   activePlanId?: string;
+  /** Tap-to-start any day's workout from the WEEKLY SCHEDULE list. When
+   *  provided, schedule rows become a Play affordance — letting the user
+   *  load any day's session as an alternate workout without activating the
+   *  whole plan. */
+  onStartSession?: (plan: WorkoutPlan, session: any) => void;
+  /** Optional overlay rendered as a sibling inside this Modal — used so other
+   *  modals (e.g. SharePlanModal) can present on top of the library on iOS,
+   *  where only one Modal can be presented at the parent level at a time. */
+  children?: React.ReactNode;
 };
 
 const WorkoutPlansLibrary = ({
@@ -58,6 +67,8 @@ const WorkoutPlansLibrary = ({
   userFrequency = 3,
   selectionMode = 'activate',
   activePlanId,
+  onStartSession,
+  children,
 }: WorkoutPlansLibraryProps) => {
   const [activeTab, setActiveTab] = useState<'templates' | 'myPlans'>('templates');
   const [templateFilter, setTemplateFilter] = useState<'all' | 'public' | 'local'>('all');
@@ -245,7 +256,10 @@ const WorkoutPlansLibrary = ({
         </View>
       </TouchableOpacity>
 
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+      {/* Official/template plans: ACTIVATE + USE AS TEMPLATE side-by-side.
+          User-created plans have 4+ actions (EDIT, USE AS TEMPLATE, PUBLISH,
+          SHARE, …) — ACTIVATE takes the full first row, secondaries wrap below. */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
         <TouchableOpacity
           testID={`plan-card-${plan.id}-activate`}
           onPress={() => {
@@ -254,7 +268,7 @@ const WorkoutPlansLibrary = ({
           }}
           disabled={isActive && selectionMode === 'activate'}
           style={{
-            flex: 1,
+            ...(isUserCreated ? { width: '100%' } : { flex: 1 }),
             backgroundColor: isActive && selectionMode === 'activate'
               ? 'rgba(252, 76, 2, 0.12)'
               : colors.primary,
@@ -282,10 +296,16 @@ const WorkoutPlansLibrary = ({
           </Text>
         </TouchableOpacity>
 
+        {/* Each secondary action sets flexBasis 48% + flexGrow 1 so two
+            buttons fit per row, a lone button on the last row spans full
+            width, and labels of varying length still align as a tidy grid
+            instead of an uneven flow. */}
         {isUserCreated && onEditPlan && (
           <TouchableOpacity
             onPress={() => onEditPlan(plan)}
             style={{
+              flexBasis: '48%',
+              flexGrow: 1,
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
               paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
@@ -304,6 +324,8 @@ const WorkoutPlansLibrary = ({
             testID={`plan-card-${plan.id}-duplicate`}
             onPress={() => onDuplicatePlan(plan)}
             style={{
+              flexBasis: '48%',
+              flexGrow: 1,
               backgroundColor: 'rgba(148, 163, 184, 0.12)',
               paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
@@ -314,7 +336,7 @@ const WorkoutPlansLibrary = ({
             }}
           >
             <Text style={{ color: text.secondary, fontSize: 12, fontWeight: 'bold' }}>
-              DUPLICATE
+              USE AS TEMPLATE
             </Text>
           </TouchableOpacity>
         )}
@@ -326,6 +348,8 @@ const WorkoutPlansLibrary = ({
             <TouchableOpacity
               onPress={() => onSyncPlan(plan)}
               style={{
+                flexBasis: '48%',
+                flexGrow: 1,
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 paddingVertical: spacing.sm,
                 paddingHorizontal: spacing.md,
@@ -349,6 +373,8 @@ const WorkoutPlansLibrary = ({
               wrapPending(String(plan.id), async () => onSubmitForReview(plan))
             }
             style={{
+              flexBasis: '48%',
+              flexGrow: 1,
               backgroundColor: 'rgba(251, 191, 36, 0.12)',
               paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
@@ -369,6 +395,8 @@ const WorkoutPlansLibrary = ({
           <TouchableOpacity
             onPress={() => onOpenShare(plan)}
             style={{
+              flexBasis: '48%',
+              flexGrow: 1,
               backgroundColor: 'rgba(34, 211, 238, 0.10)',
               paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
@@ -391,6 +419,8 @@ const WorkoutPlansLibrary = ({
               wrapPending(String(plan.id), async () => onWithdrawFromReview(plan))
             }
             style={{
+              flexBasis: '48%',
+              flexGrow: 1,
               backgroundColor: 'rgba(148, 163, 184, 0.12)',
               paddingVertical: spacing.sm,
               paddingHorizontal: spacing.md,
@@ -461,36 +491,69 @@ const WorkoutPlansLibrary = ({
                   const detailsActive = selectionMode === 'activate'
                     && activePlanId != null
                     && selectedPlanDetails.id === activePlanId;
-                  return (
-                    <NeonButton
-                      onPress={() => {
-                        if (detailsActive) return;
-                        onSelectPlan(selectedPlanDetails);
-                      }}
-                      disabled={detailsActive}
-                      style={{ width: '100%' }}
-                    >
-                      <Calendar size={20} color={detailsActive ? accent.lift : '#0f172a'} />
-                      <Text
+
+                  // Active state was previously rendered via a disabled
+                  // NeonButton: orange background + orange text = invisible
+                  // label. Use a tinted bordered pill so the label reads
+                  // and the visual hierarchy makes it obvious the plan is
+                  // already active and not actionable.
+                  if (detailsActive) {
+                    return (
+                      <View
                         style={{
-                          marginLeft: 8,
-                          fontSize: 16,
-                          fontWeight: 'bold',
-                          color: detailsActive ? accent.lift : undefined,
+                          width: '100%',
+                          paddingVertical: spacing.md,
+                          paddingHorizontal: spacing.xl,
+                          borderRadius: radii.md,
+                          borderWidth: 1,
+                          borderColor: accent.lift,
+                          backgroundColor: 'rgba(252, 76, 2, 0.12)',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: spacing.sm,
                         }}
                       >
-                        {selectionMode === 'activate'
-                          ? (detailsActive ? 'ACTIVE PLAN' : 'ACTIVATE THIS PLAN')
-                          : 'SELECT THIS PLAN'}
+                        <CheckCircle size={18} color={accent.lift} />
+                        <Text
+                          style={{
+                            color: accent.lift,
+                            fontSize: 13,
+                            fontWeight: '800',
+                            letterSpacing: 1.2,
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          Active Plan
+                        </Text>
+                      </View>
+                    );
+                  }
+
+                  return (
+                    <NeonButton
+                      onPress={() => onSelectPlan(selectedPlanDetails)}
+                      style={{ width: '100%' }}
+                    >
+                      <Calendar size={20} color={'#0f172a'} />
+                      <Text style={{ marginLeft: 8, fontSize: 16, fontWeight: 'bold' }}>
+                        {selectionMode === 'activate' ? 'ACTIVATE THIS PLAN' : 'SELECT THIS PLAN'}
                       </Text>
                     </NeonButton>
                   );
                 })()}
               </GlassCard>
 
-              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: spacing.md }}>
+              <Text style={{ color: '#fff', fontSize: 18, fontWeight: 'bold', marginBottom: spacing.xs }}>
                 WEEKLY SCHEDULE
               </Text>
+              {onStartSession ? (
+                <Text style={{ color: colors.muted, fontSize: 12, marginBottom: spacing.md }}>
+                  Tap any day to start that workout now — no need to activate the plan.
+                </Text>
+              ) : (
+                <View style={{ marginBottom: spacing.md }} />
+              )}
 
               <View style={{ gap: spacing.md, marginBottom: spacing.xl }}>
             {selectedPlanDetails.schedule && selectedPlanDetails.sessions ? (
@@ -498,13 +561,13 @@ const WorkoutPlansLibrary = ({
                 const schedule = selectedPlanDetails.schedule[day as keyof typeof selectedPlanDetails.schedule];
                 const hasWorkout = schedule && schedule.length > 0;
                 const session = hasWorkout ? selectedPlanDetails.sessions.find(s => s.id === schedule[0].sessionId) : null;
+                const tappable = !!(hasWorkout && session && onStartSession);
 
-              return (
-                <GlassCard key={day} style={{ padding: spacing.md }}>
+                const rowContent = (
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{ 
-                      width: 40, 
-                      alignItems: 'center', 
+                    <View style={{
+                      width: 40,
+                      alignItems: 'center',
                       marginRight: spacing.md,
                       borderRightWidth: 1,
                       borderRightColor: 'rgba(255,255,255,0.1)'
@@ -513,7 +576,7 @@ const WorkoutPlansLibrary = ({
                         {day.substring(0, 3)}
                       </Text>
                     </View>
-                    
+
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: hasWorkout ? '#fff' : colors.muted, fontWeight: hasWorkout ? 'bold' : 'normal' }}>
                         {hasWorkout ? session?.name : 'Rest Day'}
@@ -538,10 +601,46 @@ const WorkoutPlansLibrary = ({
                         </View>
                       )}
                     </View>
+
+                    {tappable && (
+                      <View
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: 'rgba(249, 115, 22, 0.15)',
+                          borderWidth: 1,
+                          borderColor: accent.lift,
+                          marginLeft: spacing.sm,
+                        }}
+                      >
+                        <Play size={14} color={accent.lift} fill={accent.lift} />
+                      </View>
+                    )}
                   </View>
-                </GlassCard>
-              );
-            })
+                );
+
+                if (tappable) {
+                  return (
+                    <GlassCard
+                      key={day}
+                      testID={`plan-schedule-row-${day}`}
+                      style={{ padding: spacing.md }}
+                      onPress={() => onStartSession!(selectedPlanDetails, session)}
+                    >
+                      {rowContent}
+                    </GlassCard>
+                  );
+                }
+
+                return (
+                  <GlassCard key={day} style={{ padding: spacing.md }}>
+                    {rowContent}
+                  </GlassCard>
+                );
+              })
             ) : (
               <GlassCard style={{ padding: spacing.md }}>
                 <View style={{ alignItems: 'center', padding: spacing.md }}>
@@ -614,65 +713,35 @@ const WorkoutPlansLibrary = ({
               </TouchableOpacity>
             </View>
 
-            {/* Template Filter - Only show in templates tab */}
-            {activeTab === 'templates' && (
-              <View style={{ flexDirection: 'row', marginBottom: spacing.lg, gap: spacing.sm }}>
-                {[
-                  { key: 'all', label: 'All' },
-                  { key: 'public', label: 'Public' },
-                  { key: 'local', label: 'My Templates' }
-                ].map(filter => (
-                  <TouchableOpacity
-                    key={filter.key}
-                    onPress={() => setTemplateFilter(filter.key as 'all' | 'public' | 'local')}
-                    style={{
-                      flex: 1,
-                      paddingVertical: spacing.xs,
-                      paddingHorizontal: spacing.sm,
-                      backgroundColor: templateFilter === filter.key ? colors.primary : 'rgba(255,255,255,0.1)',
-                      borderRadius: radii.sm,
-                      alignItems: 'center'
-                    }}
-                  >
-                    <Text style={{
-                      color: templateFilter === filter.key ? '#0f172a' : colors.muted,
-                      fontSize: 12,
-                      fontWeight: 'bold'
-                    }}>
-                      {filter.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+            {/* Templates tab now shows only public/official plans. Removed
+                the All / Public / My Templates sub-filter — "My Templates"
+                duplicated the MY PLANS tab content, which is what made
+                the two tabs look identical. */}
 
             {/* List */}
             <ScrollView showsVerticalScrollIndicator={false}>
               {activeTab === 'templates' ? (
+                /* Public/official catalog only. User-created plans live
+                   under MY PLANS so the two tabs don't overlap. */
                 <View>
-                  {(() => {
-                    let plansToShow: WorkoutPlan[] = [];
-
-                    if (templateFilter === 'all') {
-                      // Show unique plans from both sources
-                      const allPlans = [...publicPlans, ...userCreatedPlans];
-                      // Filter duplicates based on ID
-                      plansToShow = Array.from(new Map(allPlans.map(p => [p.id, p])).values());
-                    } else if (templateFilter === 'public') {
-                      plansToShow = publicPlans;
-                    } else if (templateFilter === 'local') {
-                      plansToShow = userCreatedPlans;
-                    }
-
-                    return sortPlansByRelevance(plansToShow).map(plan => {
-                      const isUserCreated = userCreatedPlans.some(p => p.id === plan.id);
-                      return renderPlanCard(plan, false, isUserCreated);
-                    });
-                  })()}
+                  {publicPlans.length === 0 ? (
+                    <View style={{ alignItems: 'center', padding: spacing.xl, opacity: 0.7 }}>
+                      <Text style={{ color: colors.muted, textAlign: 'center' }}>
+                        No public templates available yet.
+                      </Text>
+                    </View>
+                  ) : (
+                    sortPlansByRelevance(publicPlans).map(plan =>
+                      renderPlanCard(plan, false, false),
+                    )
+                  )}
                 </View>
               ) : (
+                /* MY PLANS = plans the user has authored (drafts, published,
+                   active). Uses isUserCreated=true so the EDIT / USE AS
+                   TEMPLATE / PUBLISH / SHARE actions show. */
                 <View>
-                  {userPlans.length === 0 ? (
+                  {userCreatedPlans.length === 0 ? (
                     <View style={{ alignItems: 'center', padding: spacing.xl, opacity: 0.7 }}>
                       <Text style={{ color: colors.muted, textAlign: 'center', marginBottom: spacing.md }}>
                         You haven't created any custom plans yet.
@@ -689,7 +758,9 @@ const WorkoutPlansLibrary = ({
                       </NeonButton>
                     </View>
                   ) : (
-                    sortPlansByRelevance(userPlans).map(plan => renderPlanCard(plan, true))
+                    sortPlansByRelevance(userCreatedPlans).map(plan =>
+                      renderPlanCard(plan, false, true),
+                    )
                   )}
                 </View>
               )}
@@ -699,6 +770,7 @@ const WorkoutPlansLibrary = ({
           renderPlanDetails()
         )}
       </View>
+      {children}
     </Modal>
   );
 };

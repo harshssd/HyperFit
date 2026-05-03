@@ -106,6 +106,22 @@ const loginStyles = StyleSheet.create({
     fontSize: 12,
     flex: 1,
   },
+  loginInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    backgroundColor: 'rgba(0, 200, 120, 0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(0, 200, 120, 0.30)',
+    borderRadius: radii.md,
+    marginBottom: spacing.md,
+  },
+  loginInfoText: {
+    color: accent.sessionUp,
+    fontSize: 12,
+    flex: 1,
+  },
   loginToggle: {
     marginTop: spacing.md,
     paddingVertical: spacing.sm,

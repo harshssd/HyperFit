@@ -109,6 +109,16 @@ type GymViewProps = {
   onDismissSession?: () => void;
   /** Called from planner when user wants to open the active workout modal. */
   onOpenSession?: () => void;
+  /** One-shot action to perform once on mount (planner mode only). Consumed
+   *  by Home's actions so the user lands directly on the relevant surface
+   *  inside Plans without an extra tap.
+   *  - 'open-library-pick': surface the library in session-pick mode
+   *  - 'open-manual-overview': open the empty workout overview / exercise
+   *    picker (same effect as tapping LOG MANUAL WORKOUT manually) */
+  initialAction?: 'open-library-pick' | 'open-manual-overview';
+  /** Cleared by the parent after `initialAction` is consumed so it doesn't
+   *  fire again on subsequent mounts/focuses. */
+  onConsumeInitialAction?: () => void;
 };
 
 import WorkoutPlansLibrary from './components/WorkoutPlansLibrary';
@@ -120,6 +130,8 @@ const GymView = ({
   mode = 'planner',
   onDismissSession,
   onOpenSession,
+  initialAction,
+  onConsumeInitialAction,
 }: GymViewProps) => {
   const [showPlanLibrary, setShowPlanLibrary] = useState(false);
 
@@ -204,6 +216,20 @@ const GymView = ({
     setViewMode,
     setShowOverview,
   } = useSessionView(visibleWorkout);
+
+  // Consume the one-shot navigation intent on mount/focus. Run once, then
+  // clear via the callback so re-entering the tab manually doesn't re-fire.
+  useEffect(() => {
+    if (mode !== 'planner' || !initialAction) return;
+    if (initialAction === 'open-library-pick') {
+      setPlanSelectionMode('session');
+      setShowPlanLibrary(true);
+    } else if (initialAction === 'open-manual-overview') {
+      setShowOverview(true);
+      setIsAddingExercise(true);
+    }
+    onConsumeInitialAction?.();
+  }, [mode, initialAction, onConsumeInitialAction, setShowOverview]);
 
   const {
     templates,
@@ -424,12 +450,14 @@ const GymView = ({
     if (type === 'push' || type === 'pull' || type === 'legs' || type === 'fullbody') {
       session.startQuickWorkout(type);
       setShowOverview(true);
+      onOpenSession?.();
     }
   };
 
   const handleAISuggestion = () => {
     session.startAISuggestion();
     setShowOverview(true);
+    onOpenSession?.();
   };
 
   // Plan create + activate live in usePlanActions so PlanBuilderScreen and
@@ -448,6 +476,9 @@ const GymView = ({
   ) => {
     session.startSessionFromPlan(planData, sessionId, contextType);
     setShowOverview(true);
+    // Push the ActiveWorkout modal so the user actually lands on the
+    // session overview instead of staring at the Plans tab.
+    onOpenSession?.();
   };
 
   const handleStartScheduledWorkout = (date: Date, workout: any) => {
@@ -813,10 +844,19 @@ const GymView = ({
   // Defensive auto-dismiss: if the modal mounts (or stays mounted) without a
   // session, kick the user back to the planner. Done in an effect — calling
   // navigation.goBack() during render warns and can loop.
+  //
+  // Race guard: when the user starts a session from another surface (e.g.
+  // tap-to-start on a Plan Library schedule row), `navigation.navigate` and
+  // `setSessionExercises` fire in the same handler. ActiveWorkoutScreen can
+  // mount and read stale empty context one tick before the new exercises
+  // propagate. Defer the dismiss; if the new exercises arrive on the next
+  // render, the effect cleanup cancels the timer before it fires.
   useEffect(() => {
-    if (mode === 'session' && visibleWorkout.length === 0 && !isFinished && onDismissSession) {
-      onDismissSession();
-    }
+    if (mode !== 'session') return;
+    if (visibleWorkout.length > 0) return;
+    if (isFinished || !onDismissSession) return;
+    const t = setTimeout(() => onDismissSession(), 0);
+    return () => clearTimeout(t);
   }, [mode, visibleWorkout.length, isFinished, onDismissSession]);
 
   // After a finish flow that clears `sessionExercises`, the planner mount may
@@ -923,6 +963,13 @@ const GymView = ({
             onClose={() => setShowPlanLibrary(false)}
             selectionMode={planSelectionMode}
             activePlanId={activeUserPlan?.planId || data.activePlanId}
+            onStartSession={(plan, session) => {
+              // Tap-to-start from the WEEKLY SCHEDULE list. Loads that day's
+              // workout as an alternate session — no plan activation needed.
+              // startSessionFromPlan handles the ActiveWorkout nav.
+              setShowPlanLibrary(false);
+              startSessionFromPlan(plan, session.id, 'alternate_plan');
+            }}
             onSelectPlan={async (plan) => {
               try {
                 // Always fetch the latest plan details
@@ -1037,21 +1084,24 @@ const GymView = ({
             publicPlans={(data.workoutPlans || []).filter((p: WorkoutPlan) => p.is_public)}
             userEquipment="gym"
             userFrequency={3}
-          />
-
-          <SharePlanModal
-            visible={!!sharePlan}
-            plan={sharePlan}
-            onClose={() => setSharePlan(null)}
-            onToggleShareable={async (p, value) => {
-              const fields = await setShareable(p.id, value);
-              if (fields) setSharePlan({ ...p, ...fields });
-            }}
-            onRotateCode={async (p) => {
-              const code = await rotateShareCode(p.id);
-              if (code) setSharePlan({ ...p, share_code: code });
-            }}
-          />
+          >
+            {/* Nested inside the library Modal so iOS will present it on top.
+                As a sibling it silently failed — UIKit only shows one Modal
+                at a time at any given parent level. */}
+            <SharePlanModal
+              visible={!!sharePlan}
+              plan={sharePlan}
+              onClose={() => setSharePlan(null)}
+              onToggleShareable={async (p, value) => {
+                const fields = await setShareable(p.id, value);
+                if (fields) setSharePlan({ ...p, ...fields });
+              }}
+              onRotateCode={async (p) => {
+                const code = await rotateShareCode(p.id);
+                if (code) setSharePlan({ ...p, share_code: code });
+              }}
+            />
+          </WorkoutPlansLibrary>
 
           <Modal
             visible={sessionPickVisible}

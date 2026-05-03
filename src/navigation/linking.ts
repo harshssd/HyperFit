@@ -20,14 +20,15 @@ export const linking: LinkingOptions<RootStackParamList> = {
         screens: {
           Home: 'home',
           Plans: 'plans',
+          Nutrition: 'fuel',
           History: 'history',
-          Calendar: 'calendar',
         },
       },
       ActiveWorkout: 'session/active',
       PlanBuilder: 'plan/builder',
       SessionDetail: 'session/:sessionId',
       SharedPlan: 'plan/share/:code',
+      Calendar: 'schedule',
     },
   },
 };
