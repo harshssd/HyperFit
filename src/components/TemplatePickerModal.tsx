@@ -34,16 +34,7 @@ type FolderType = {
   icon?: string;
 };
 
-type TemplateType = {
-  id: string;
-  name: string;
-  description?: string;
-  exercises?: any[];
-  folder_id?: string | null;
-  icon?: string;
-  tags?: string[];
-  user_id?: string;
-};
+import type { Template as TemplateType } from '../types/workout';
 
 type TemplatePickerModalProps = {
   visible: boolean;

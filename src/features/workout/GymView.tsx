@@ -32,7 +32,8 @@ import workoutStyles from '../../styles/workout';
 import { colors, spacing, radii } from '../../styles/theme';
 import { getAllExerciseNames } from './workoutConfig';
 import { useUser } from '../../contexts/UserContext';
-import { WorkoutPlan } from '../../types/workout';
+import { Template, UserData, UserWorkoutPlan, WorkoutPlan, WorkoutExercise } from '../../types/workout';
+import type { User } from '@supabase/supabase-js';
 import { calculateTotalVolume, getNextScheduledWorkout } from './helpers';
 
 import { useSessionView } from './hooks/useSessionView';
@@ -56,9 +57,9 @@ import { confirmAction, showError, showSuccess } from '../../utils/alerts';
 import { ABORT_SESSION_TITLE, ABORT_SESSION_MESSAGE } from '../../constants/text';
 
 type GymViewProps = {
-  data: any;
-  updateData: (d: any) => void;
-  user: any;
+  data: UserData;
+  updateData: (d: UserData) => void;
+  user: User | null;
   /**
    * Which surface this mount is rendering:
    * - "planner" (default): the Gym/Plans tab. Plan management, templates,
@@ -151,7 +152,7 @@ const GymView = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [exerciseOptions, setExerciseOptions] = useState<string[]>([]);
   const [planSelectionMode, setPlanSelectionMode] = useState<'activate' | 'session'>('activate');
-  const [sessionPickPlan, setSessionPickPlan] = useState<any | null>(null);
+  const [sessionPickPlan, setSessionPickPlan] = useState<{ name?: string; details: WorkoutPlan } | null>(null);
   const [sessionPickVisible, setSessionPickVisible] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [editingExerciseId, setEditingExerciseId] = useState<number | null>(null);
@@ -271,7 +272,7 @@ const GymView = ({
     setShowSaveTemplateModal(true);
   };
 
-  const handleEditTemplate = (template: any) => {
+  const handleEditTemplate = (template: Template) => {
     setTemplateName(template.name);
     setSaveTemplateFolder(template.folder_id || null);
     setSaveTemplateTags(template.tags || []);
@@ -287,7 +288,7 @@ const GymView = ({
     const loadExercises = async () => {
       try {
         const exercises = await fetchExercises();
-        const names = exercises.map((e: any) => e.name).filter(Boolean);
+        const names = exercises.map(e => e.name).filter(Boolean);
         setExerciseOptions(names);
       } catch (err) {
         console.warn('Failed to load exercises', err);
@@ -336,7 +337,7 @@ const GymView = ({
       return;
     }
     const exists = visibleWorkout.some(
-      (e: any) => e.name?.toLowerCase() === key,
+      e => e.name?.toLowerCase() === key,
     );
     if (exists) {
       setNewExerciseName('');
@@ -352,9 +353,9 @@ const GymView = ({
     setSuggestions(getAllExerciseNames(exerciseOptions));
   };
 
-  const applyTemplateHandler = (template: any) => {
-    const normalized = { ...(template as any), exercises: (template.exercises || []) as string[] };
-    applyTemplate(normalized as any);
+  const applyTemplateHandler = (template: Template) => {
+    const normalized: Template = { ...template, exercises: (template.exercises || []) as string[] };
+    applyTemplate(normalized);
     closePicker();
     setShowOverview(true);
     stopSession();
@@ -370,7 +371,7 @@ const GymView = ({
       return;
     }
     try {
-      const exercises = visibleWorkout.map((ex: any) => ex.name);
+      const exercises = visibleWorkout.map(ex => ex.name);
       await saveTemplateToSupabase(templateName, exercises, saveTemplateFolder, saveTemplateTags);
       Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
       showSuccess('Template saved successfully');
@@ -378,8 +379,8 @@ const GymView = ({
       setSaveTemplateFolder(null);
       setSaveTemplateTags([]);
       setShowSaveTemplateModal(false);
-    } catch (error: any) {
-      showError(error.message || 'Failed to save template');
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Failed to save template');
     }
   };
 
@@ -403,12 +404,12 @@ const GymView = ({
     templates: filteredTemplates,
     favorites,
     userId: user?.id,
-    onApplyTemplate: applyTemplateHandler as any,
+    onApplyTemplate: applyTemplateHandler,
     onToggleFavorite: toggleFavorite,
-    onEditTemplate: handleEditTemplate as any,
+    onEditTemplate: handleEditTemplate,
     onDeleteTemplate: confirmDeleteTemplate,
-    onDuplicateTemplate: duplicateTemplate as any,
-    onShareTemplate: shareTemplate as any,
+    onDuplicateTemplate: duplicateTemplate,
+    onShareTemplate: shareTemplate,
   };
 
   const saveTemplateModalProps = {
@@ -444,7 +445,7 @@ const GymView = ({
     // path, drop it silently here too. Prevents the "tapped 20 times by
     // accident" failure mode at the source.
     const exists = visibleWorkout.some(
-      (e: any) => e.name?.toLowerCase() === key,
+      e => e.name?.toLowerCase() === key,
     );
     if (exists) {
       setNewExerciseName('');
@@ -493,7 +494,7 @@ const GymView = ({
   };
 
   const startSessionFromPlan = (
-    planData: any,
+    planData: WorkoutPlan,
     sessionId: string,
     contextType: 'active_plan' | 'alternate_plan' | 'scheduled' = 'active_plan'
   ) => {
@@ -504,7 +505,7 @@ const GymView = ({
     onOpenSession?.();
   };
 
-  const handleStartScheduledWorkout = (date: Date, workout: any) => {
+  const handleStartScheduledWorkout = (date: Date, _workout: unknown) => {
     if (!activeUserPlan?.planData) return;
 
     // Find the scheduled session for this date
@@ -515,7 +516,7 @@ const GymView = ({
 
     if (dailySchedule.length > 0) {
       const scheduledSession = dailySchedule[0];
-      const session = activeUserPlan.planData.sessions.find((s: any) => s.id === scheduledSession.sessionId);
+      const session = activeUserPlan.planData.sessions.find(s => s.id === scheduledSession.sessionId);
 
       if (session) {
         // Convert the session exercises to workout format and start it
@@ -563,9 +564,9 @@ const GymView = ({
 
   const handleEndPlan = () => {
     if (activeUserPlan) {
-      const updatedUserPlans = (data.userWorkoutPlans || []).map((plan: any) => ({
+      const updatedUserPlans = (data.userWorkoutPlans || []).map(plan => ({
         ...plan,
-        isActive: false
+        isActive: false,
       }));
 
       updateData({
@@ -585,8 +586,8 @@ const GymView = ({
     }
 
     // Group plans by planId to find duplicates
-    const planGroups: { [planId: string]: any[] } = {};
-    data.userWorkoutPlans.forEach((plan: any) => {
+    const planGroups: { [planId: string]: UserWorkoutPlan[] } = {};
+    data.userWorkoutPlans.forEach(plan => {
       const planId = plan.planId;
       if (!planGroups[planId]) {
         planGroups[planId] = [];
@@ -595,10 +596,10 @@ const GymView = ({
     });
 
     // For each group with duplicates, keep only the most recent one
-    const cleanedPlans: any[] = [];
+    const cleanedPlans: UserWorkoutPlan[] = [];
     let duplicatesRemoved = 0;
 
-    Object.values(planGroups).forEach((plans: any[]) => {
+    Object.values(planGroups).forEach(plans => {
       if (plans.length === 1) {
         // No duplicates, keep as is
         cleanedPlans.push(plans[0]);
@@ -616,9 +617,9 @@ const GymView = ({
 
     // Preserve the active plan status
     const currentActiveId = data.activePlanId;
-    const updatedPlans = cleanedPlans.map((plan: any) => ({
+    const updatedPlans = cleanedPlans.map(plan => ({
       ...plan,
-      isActive: plan.planId === currentActiveId
+      isActive: plan.planId === currentActiveId,
     }));
 
     updateData({
@@ -630,7 +631,7 @@ const GymView = ({
   };
 
   const handleDeleteUserPlan = (userPlanId: string) => {
-    const planToDelete = (data.userWorkoutPlans || []).find((p: any) => p.id === userPlanId);
+    const planToDelete = (data.userWorkoutPlans || []).find(p => p.id === userPlanId);
     const planName = planToDelete?.planData?.name || 'this plan';
 
     confirmAction(
@@ -638,10 +639,10 @@ const GymView = ({
       `Are you sure you want to delete your instance of "${planName}"? This will remove all progress tracking for this plan but keep your workout history.`,
       () => {
         // Remove the user plan instance
-        const updatedUserPlans = (data.userWorkoutPlans || []).filter((p: any) => p.id !== userPlanId);
+        const updatedUserPlans = (data.userWorkoutPlans || []).filter(p => p.id !== userPlanId);
 
         // If we deleted the active plan, clear the active plan
-        const deletedPlan = (data.userWorkoutPlans || []).find((p: any) => p.id === userPlanId);
+        const deletedPlan = (data.userWorkoutPlans || []).find(p => p.id === userPlanId);
         const newActivePlanId = deletedPlan?.isActive ? undefined : data.activePlanId;
 
         updateData({
@@ -693,9 +694,9 @@ const GymView = ({
   // React batches them within one event handler, so the user sees a
   // single render.
   const commitFilledSets = (exId: number) => {
-    const exercise = visibleWorkout.find((e: any) => e.id === exId);
+    const exercise = visibleWorkout.find(e => e.id === exId);
     if (!exercise) return;
-    exercise.sets.forEach((set: any, idx: number) => {
+    exercise.sets.forEach((set, idx) => {
       if (set.completed) return;
       const r = Number(set.reps);
       if (!Number.isFinite(r) || r <= 0) return;
@@ -729,7 +730,7 @@ const GymView = ({
 
   const finishWorkout = () => {
     // Catch any last-exercise sets the user filled in but didn't tick.
-    visibleWorkout.forEach((ex: any) => commitFilledSets(ex.id));
+    visibleWorkout.forEach(ex => commitFilledSets(ex.id));
     finishWorkoutHook();
     stopSession();
     setShowOverview(false);
@@ -761,7 +762,7 @@ const GymView = ({
     }, 'Discard');
   };
 
-  const calculateTotalVolumeLocal = () => calculateTotalVolume(visibleWorkout as any);
+  const calculateTotalVolumeLocal = () => calculateTotalVolume(visibleWorkout);
 
   const currentExercise = visibleWorkout[currentExIndex];
 
@@ -769,7 +770,7 @@ const GymView = ({
   // adding from a plan or via addExercise). Fall back to the cache for
   // sessions hydrated before exerciseId was populated.
   const currentExerciseId = currentExercise
-    ? (currentExercise as any).exerciseId
+    ? currentExercise.exerciseId
       ?? session.exerciseCache.get(currentExercise.name.toLowerCase())
       ?? null
     : null;
@@ -786,7 +787,7 @@ const GymView = ({
       visible={isAddingExercise}
       newExerciseName={newExerciseName}
       suggestions={suggestions}
-      alreadyAdded={visibleWorkout.map((e: any) => e.name)}
+      alreadyAdded={visibleWorkout.map(e => e.name)}
       onChangeName={handleNameChange}
       onSubmit={() => addExercise()}
       onSelectSuggestion={selectSuggestion}
@@ -870,7 +871,7 @@ const GymView = ({
     if (visibleWorkout.length === 0) {
       // recentWorkouts now comes from useRecentWorkouts (session_summary_view).
       const workoutPlans: WorkoutPlan[] = data.workoutPlans || [];
-      const userWorkoutPlans: any[] = data.userWorkoutPlans || [];
+      const userWorkoutPlans: UserWorkoutPlan[] = data.userWorkoutPlans || [];
       const activePlan = activeUserPlan?.planData;
       const activePlanForDisplay = activeUserPlan;
       const nextScheduledWorkout = getNextScheduledWorkout(activeUserPlan);
@@ -950,6 +951,10 @@ const GymView = ({
                 // existing (user, plan) row from the DB — local state can
                 // be stale or missing the row entirely.
                 const ownerId = user?.id || userId;
+                if (!ownerId) {
+                  showError('You must be signed in to activate a plan.');
+                  return;
+                }
                 await deactivateUserWorkoutPlans(ownerId);
                 const existingUserPlan = await findUserWorkoutPlan(ownerId, plan.id);
 
@@ -960,7 +965,7 @@ const GymView = ({
                 } else {
                   // Create new record in DB
                   const newUserPlan = await createUserWorkoutPlan({
-                    user_id: user?.id || userId,
+                    user_id: ownerId,
                     plan_id: plan.id,
                     is_active: true,
                     started_at: new Date().toISOString(),
@@ -970,8 +975,8 @@ const GymView = ({
                 }
 
                 // Update local state to reflect activation and store details
-                const updatedUserPlans = [
-                  ...(userPlans || []).map((p: any) => ({
+                const updatedUserPlans: UserWorkoutPlan[] = [
+                  ...(userPlans || []).map(p => ({
                     ...p,
                     isActive: p.planId === plan.id,
                     planData: p.planId === plan.id ? detailedPlan : p.planData,
@@ -979,10 +984,10 @@ const GymView = ({
                 ];
 
                 // If we created a new plan record, add it locally
-                if (!existingUserPlan) {
+                if (!existingUserPlan && userPlanId) {
                   updatedUserPlans.push({
                     id: userPlanId,
-                    userId: user?.id || userId,
+                    userId: ownerId,
                     planId: plan.id,
                     planData: detailedPlan,
                     startedAt: new Date().toISOString(),
@@ -993,7 +998,7 @@ const GymView = ({
                 }
 
                 // Ensure only the selected plan is active locally
-                const normalizedPlans = updatedUserPlans.map((p: any) => ({
+                const normalizedPlans = updatedUserPlans.map(p => ({
                   ...p,
                   isActive: p.planId === plan.id,
                 }));
@@ -1001,9 +1006,10 @@ const GymView = ({
                 updateData({ ...data, userWorkoutPlans: normalizedPlans, activePlanId: plan.id });
                 setShowPlanLibrary(false);
                 showSuccess(`Activated ${plan.name}!`);
-              } catch (error: any) {
+              } catch (error) {
                 console.error('Error selecting plan:', error);
-                if (error?.message?.includes('not found')) {
+                const message = error instanceof Error ? error.message : '';
+                if (message.includes('not found')) {
                   showError(`Plan "${plan.name}" is not available. Please refresh.`);
                 } else {
                   showError('Failed to load plan details. Please try again.');
@@ -1024,7 +1030,7 @@ const GymView = ({
             onSubmitForReview={(p: WorkoutPlan) => submitForReview(p.id)}
             onWithdrawFromReview={(p: WorkoutPlan) => withdrawFromReview(p.id)}
             onOpenShare={(p: WorkoutPlan) => setSharePlan(p)}
-            userPlans={(data.userWorkoutPlans || []).map((p: any) => p.planData).filter(Boolean)}
+            userPlans={(data.userWorkoutPlans || []).map(p => p.planData).filter((pd): pd is WorkoutPlan => Boolean(pd))}
             // Owner-based partition keeps an approved+published user plan in
             // *their* library (so they keep seeing the status badge), while
             // also surfacing it in the public templates list for everyone.
@@ -1074,7 +1080,7 @@ const GymView = ({
                 </Text>
 
                 <ScrollView style={{ maxHeight: 320 }}>
-                  {sessionPickPlan?.details?.sessions?.map((session: any) => (
+                  {sessionPickPlan?.details?.sessions?.map(session => (
                     <TouchableOpacity
                       key={session.id}
                       onPress={() => {
