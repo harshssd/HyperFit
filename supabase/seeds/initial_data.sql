@@ -34,5 +34,35 @@ insert into public.exercises (name, muscle_group, equipment, is_public) values
 
   ('Plank',                  'core',      'bodyweight', true),
   ('Hanging Leg Raise',      'core',      'bodyweight', true),
-  ('Cable Crunch',           'core',      'cable',      true)
+  ('Cable Crunch',           'core',      'cable',      true),
+
+  -- Expanded library (mirrored in
+  -- migrations/20260504100000_expand_exercise_library.sql so existing
+  -- DBs pick these up on next migrate).
+  ('Dumbbell Bench Press',     'chest',     'dumbbell',   true),
+  ('Cable Fly',                'chest',     'cable',      true),
+  ('Dumbbell Row',             'back',      'dumbbell',   true),
+  ('T-Bar Row',                'back',      'barbell',    true),
+  ('Reverse Fly',              'shoulders', 'dumbbell',   true),
+  ('Arnold Press',             'shoulders', 'dumbbell',   true),
+  ('Shrugs',                   'shoulders', 'dumbbell',   true),
+  ('Skullcrusher',             'triceps',   'barbell',    true),
+  ('Overhead Tricep Extension','triceps',   'dumbbell',   true),
+  ('Preacher Curl',            'biceps',    'barbell',    true),
+  ('Cable Curl',               'biceps',    'cable',      true),
+  ('Lunges',                   'quads',     'dumbbell',   true),
+  ('Bulgarian Split Squat',    'quads',     'dumbbell',   true),
+  ('Goblet Squat',             'quads',     'dumbbell',   true),
+  ('Glute Bridge',             'glutes',    'bodyweight', true),
+  ('Russian Twist',            'core',      'bodyweight', true),
+  ('Sit Up',                   'core',      'bodyweight', true),
+  ('Mountain Climbers',        'core',      'bodyweight', true),
+  ('Side Plank',               'core',      'bodyweight', true),
+  ('Kettlebell Swing',         'glutes',    'kettlebell', true),
+  ('Farmers Carry',            'core',      'dumbbell',   true),
+  ('Burpee',                   'core',      'bodyweight', true),
+  ('Treadmill',                'cardio',    'machine',    true),
+  ('Rowing Machine',           'cardio',    'machine',    true),
+  ('Stationary Bike',          'cardio',    'machine',    true),
+  ('Jump Rope',                'cardio',    'bodyweight', true)
 on conflict (user_id, name) do nothing;

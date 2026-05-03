@@ -21,13 +21,17 @@ try {
 }
 
 // Module-scoped so we don't reallocate on every render.
+// Names MUST match the master `exercises` table verbatim (singular form,
+// no hyphens) — buildExercises looks up exerciseId by lowercased name. A
+// mismatch silently drops the row at persist time
+// (workoutService.logWorkoutSession skips exercises without exercise_id).
 const QUICK_TEMPLATES: Record<string, string[]> = {
   push: ['Bench Press', 'Overhead Press', 'Incline Dumbbell Press', 'Tricep Dips', 'Lateral Raises'],
-  pull: ['Deadlift', 'Pull-ups', 'Barbell Rows', 'Face Pulls', 'Bicep Curls'],
-  legs: ['Squats', 'Romanian Deadlift', 'Leg Press', 'Calf Raises', 'Leg Curls'],
-  fullbody: ['Bench Press', 'Squats', 'Pull-ups', 'Overhead Press', 'Barbell Rows'],
+  pull: ['Deadlift', 'Pull Up', 'Barbell Row', 'Face Pulls', 'Bicep Curl'],
+  legs: ['Squat', 'Romanian Deadlift', 'Leg Press', 'Calf Raises', 'Leg Curl'],
+  fullbody: ['Bench Press', 'Squat', 'Pull Up', 'Overhead Press', 'Barbell Row'],
 };
-const AI_SEED = ['Bench Press', 'Squats', 'Pull-ups', 'Overhead Press', 'Plank'];
+const AI_SEED = ['Bench Press', 'Squat', 'Pull Up', 'Overhead Press', 'Plank'];
 
 export type SessionContext = {
   type: 'active_plan' | 'alternate_plan' | 'manual' | 'scheduled';
