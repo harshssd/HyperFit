@@ -1,0 +1,44 @@
+<!--
+  HyperFit app icon — pull-up from behind.
+  Single clean closed silhouette walked clockwise:
+    top-left of L arm → down outer arm → out to L lat tip → down to L waist →
+    across waist → up to R lat tip → up outer R arm → over top of R arm →
+    down inner R arm → trap bridge across to inner L arm → up inner L arm → close.
+  Head + bar drawn on top.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#0a0a0a"/>
+
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#fc4c02" stop-opacity="0.16"/>
+      <stop offset="60%" stop-color="#fc4c02" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#0a0a0a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+
+  <path fill="#ffffff" fill-rule="evenodd" d="
+    M 280 220
+    L 280 540
+    L 200 600
+    L 440 856
+    L 584 856
+    L 824 600
+    L 744 540
+    L 744 220
+    L 624 220
+    L 624 540
+    L 400 540
+    L 400 220
+    Z
+  "/>
+
+  <!-- Head: back of skull, above bar -->
+  <circle cx="512" cy="232" r="80" fill="#ffffff"/>
+
+  <!-- Pull-up bar -->
+  <rect x="64" y="332" width="896" height="46" rx="6" fill="#fc4c02"/>
+  <rect x="48" y="312" width="22" height="86" rx="3" fill="#fc4c02"/>
+  <rect x="954" y="312" width="22" height="86" rx="3" fill="#fc4c02"/>
+</svg>
