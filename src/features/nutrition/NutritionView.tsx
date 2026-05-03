@@ -1,32 +1,279 @@
-import React from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import React, { useState } from 'react';
 import {
-  ChevronRight,
-  Droplet,
-  Plus,
-  Sparkles,
-} from 'lucide-react-native';
+  RefreshControl,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { ChevronRight, Flame } from 'lucide-react-native';
 import { ForkKnifeCrossed } from '../../components/icons/ForkKnifeCrossed';
-import { palette, accent, text, spacing, radii } from '../../styles/theme';
+import { ErrorState, LoadingState } from '../../components/StateView';
+import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
+import { useNutritionDay } from './hooks/useNutritionDay';
+import { GoalSetupSheet } from './components/GoalSetupSheet';
+import { MealCard } from './components/MealCard';
+import { WaterControls } from './components/WaterControls';
+import { CheatDayToggle } from './components/CheatDayToggle';
+import { heroEyebrow, formatKcal } from './helpers';
+import type { MealSlot } from '../../types/supabase';
 
-// Local Eyebrow + BannerRow mirror HomeView so the Nutrition tab reads as a
-// sibling surface, not a different design language. Hoist into a shared
-// component the moment a third surface needs them.
+/**
+ * Nutrition tab — wired to user_nutrition_settings + nutrition_days +
+ * nutrition_entries + water_logs + nutrition_day_summary_view.
+ *
+ * Pattern matches HomeView's "Today's Focus" card: orange-hairline outer
+ * surface (when a goal is set), icon-chip header, compact macro readout,
+ * stack of MealCards + WaterControls inside. CheatDayToggle is a sibling
+ * card below the focus surface.
+ *
+ * State boundary: this component owns presentation; useNutritionDay owns
+ * data + actions. All persistence flows through the hook → service →
+ * Supabase. No imperative refresh from here.
+ */
 
-const Eyebrow = ({
-  children,
-  color = text.quaternary,
-}: {
-  children: React.ReactNode;
-  color?: string;
-}) => (
+const FIBER_COLOR = '#4fb3a8';
+const CHEAT_BORDER = '#a855f7';
+
+const MEAL_LABELS: Record<MealSlot, string> = {
+  breakfast: 'Breakfast',
+  lunch:     'Lunch',
+  dinner:    'Dinner',
+  snack:     'Snack',
+};
+const MEAL_ORDER: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
+
+export const NutritionView = () => {
+  const day = useNutritionDay();
+  const [goalOpen, setGoalOpen] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  if (day.loading) {
+    return <LoadingState label="Loading today" />;
+  }
+
+  if (day.error) {
+    return (
+      <ErrorState
+        message={`Couldn't load nutrition: ${day.error.message}`}
+        onRetry={day.refresh}
+      />
+    );
+  }
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try { await day.refresh(); } finally { setRefreshing(false); }
+  };
+
+  const isCheat = day.summary?.is_cheat_day ?? false;
+  const status = day.summary?.status ?? 'empty';
+  const eyebrow = heroEyebrow(status, isCheat, day.hasGoal);
+
+  // Targets resolve from settings when set; fall back to migration defaults
+  // so the empty-state silhouette still has a shape to fill, with the
+  // eyebrow flagging "NO GOAL SET" so the user knows to tap the header.
+  const kcalTarget    = day.settings?.kcal_target      ?? 2200;
+  const proteinTarget = day.settings?.protein_target_g ?? 160;
+  const carbTarget    = day.settings?.carb_target_g    ?? 250;
+  const fatTarget     = day.settings?.fat_target_g     ?? 70;
+  const fiberTarget   = day.settings?.fiber_target_g   ?? 30;
+  const waterTarget   = day.settings?.water_target_ml  ?? 2000;
+  const waterCup      = day.settings?.water_cup_ml     ?? 250;
+  const waterBottle   = day.settings?.water_bottle_ml  ?? 500;
+  const waterUnit     = day.settings?.water_unit       ?? 'ml';
+  const cheatBudget   = day.settings?.cheat_days_per_week ?? 1;
+
+  const kcalCurrent    = day.summary?.kcal_total      ?? 0;
+  const proteinCurrent = day.summary?.protein_total_g ?? 0;
+  const carbCurrent    = day.summary?.carb_total_g    ?? 0;
+  const fatCurrent     = day.summary?.fat_total_g     ?? 0;
+  const fiberCurrent   = day.summary?.fiber_total_g   ?? 0;
+  const waterCurrent   = day.summary?.water_total_ml  ?? 0;
+
+  const eyebrowColor = isCheat
+    ? CHEAT_BORDER
+    : day.hasGoal
+      ? accent.lift
+      : text.quaternary;
+  const surfaceBorder = isCheat
+    ? CHEAT_BORDER
+    : day.hasGoal
+      ? accent.lift
+      : palette.borderStrong;
+
+  return (
+    <>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: spacing.xl,
+          paddingTop: spacing.lg,
+          paddingBottom: spacing.xxl,
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={text.tertiary}
+          />
+        }
+      >
+        {/* Today's Focus — orange (or purple on cheat day) hairline surface */}
+        <View
+          testID="nutrition-focus"
+          style={{
+            marginBottom: spacing.xl,
+            borderRadius: radii.lg,
+            borderWidth: 1,
+            borderColor: surfaceBorder,
+            backgroundColor: palette.surface,
+            overflow: 'hidden',
+            shadowColor: surfaceBorder,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: day.hasGoal ? 0.15 : 0,
+            shadowRadius: 8,
+          }}
+        >
+          <View style={{ padding: spacing.xl }}>
+            {/* Header: tap-to-edit goal */}
+            <TouchableOpacity
+              testID="nutrition-edit-goal"
+              onPress={() => setGoalOpen(true)}
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.md,
+                paddingBottom: spacing.lg,
+                borderBottomWidth: 1,
+                borderBottomColor: palette.borderStrong,
+                marginBottom: spacing.lg,
+              }}
+            >
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: radii.sm,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(252, 76, 2, 0.12)',
+                  borderWidth: 1,
+                  borderColor: accent.lift,
+                }}
+              >
+                <ForkKnifeCrossed size={16} color={accent.lift} strokeWidth={2} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Eyebrow color={eyebrowColor}>{eyebrow}</Eyebrow>
+                <Text
+                  style={{
+                    color: text.primary,
+                    fontSize: 22,
+                    fontWeight: '900',
+                    letterSpacing: -0.4,
+                    marginTop: 2,
+                    fontVariant: fonts.tabularNums,
+                  }}
+                  numberOfLines={1}
+                >
+                  {formatKcal(kcalCurrent)}
+                  <Text
+                    style={{
+                      color: text.quaternary,
+                      fontWeight: '700',
+                      fontSize: 16,
+                    }}
+                  >
+                    {' / '}
+                    {day.hasGoal ? formatKcal(kcalTarget) : '—'} kcal
+                  </Text>
+                </Text>
+              </View>
+              <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                {day.streak > 0 ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Flame size={12} color={accent.lift} />
+                    <Text
+                      style={{
+                        color: accent.lift,
+                        fontFamily: fonts.family.mono,
+                        fontSize: 12,
+                        fontWeight: '800',
+                        fontVariant: fonts.tabularNums,
+                      }}
+                    >
+                      {day.streak}
+                    </Text>
+                  </View>
+                ) : null}
+                <ChevronRight size={16} color={text.tertiary} />
+              </View>
+            </TouchableOpacity>
+
+            {/* Macro bars row */}
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: spacing.lg }}>
+              <MacroPill label="Protein" current={proteinCurrent} target={proteinTarget} color={accent.lift} />
+              <MacroPill label="Carbs"   current={carbCurrent}    target={carbTarget}    color={accent.sessionUp} />
+              <MacroPill label="Fat"     current={fatCurrent}     target={fatTarget}     color={text.tertiary} />
+              <MacroPill label="Fiber"   current={fiberCurrent}   target={fiberTarget}   color={FIBER_COLOR} />
+            </View>
+
+            {/* Water + meal cards stack */}
+            <View style={{ gap: spacing.sm }}>
+              <WaterControls
+                totalMl={waterCurrent}
+                targetMl={waterTarget}
+                cupMl={waterCup}
+                bottleMl={waterBottle}
+                unit={waterUnit}
+                onAddMl={day.addWater}
+                onUndo={day.undoLastWater}
+              />
+              {MEAL_ORDER.map(slot => (
+                <MealCard
+                  key={slot}
+                  slot={slot}
+                  label={MEAL_LABELS[slot]}
+                  entries={day.entries.filter(e => e.meal_slot === slot)}
+                  onAdd={day.addEntry}
+                  onDelete={day.deleteEntry}
+                />
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* Cheat day toggle — sibling card outside the focus surface */}
+        <CheatDayToggle
+          isCheatDay={isCheat}
+          cheatBudget={cheatBudget}
+          onToggle={day.toggleCheatDay}
+        />
+      </ScrollView>
+
+      <GoalSetupSheet
+        visible={goalOpen}
+        initial={day.settings}
+        onClose={() => setGoalOpen(false)}
+        onSave={day.saveSettings}
+      />
+    </>
+  );
+};
+
+// -- Local UI helpers --------------------------------------------------------
+
+const Eyebrow = ({ children, color }: { children: React.ReactNode; color: string }) => (
   <Text
     style={{
       color,
       fontSize: 11,
       fontWeight: '800',
       letterSpacing: 1.6,
-      fontFamily: 'monospace',
+      fontFamily: fonts.family.mono,
       textTransform: 'uppercase',
     }}
   >
@@ -34,312 +281,55 @@ const Eyebrow = ({
   </Text>
 );
 
-type BannerRowProps = {
-  icon: React.ReactNode;
-  iconTint?: string;
-  iconBorderColor?: string;
-  eyebrow: string;
-  eyebrowColor?: string;
-  title: string;
-  sub?: string;
-  rightSlot?: React.ReactNode;
-  testID?: string;
-};
-
-const BannerRow = ({
-  icon,
-  iconTint = palette.surfaceAlt,
-  iconBorderColor = palette.borderStrong,
-  eyebrow,
-  eyebrowColor,
-  title,
-  sub,
-  rightSlot,
-  testID,
-}: BannerRowProps) => (
-  <View
-    testID={testID}
-    style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.md,
-      padding: spacing.md,
-      borderRadius: radii.md,
-      borderWidth: 1,
-      borderColor: palette.borderStrong,
-      backgroundColor: palette.surfaceAlt,
-    }}
-  >
-    <View
-      style={{
-        width: 32,
-        height: 32,
-        borderRadius: radii.sm,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: iconTint,
-        borderWidth: 1,
-        borderColor: iconBorderColor,
-      }}
-    >
-      {icon}
-    </View>
-    <View style={{ flex: 1, gap: 2 }}>
-      <Eyebrow color={eyebrowColor ?? text.quaternary}>{eyebrow}</Eyebrow>
+const MacroPill = ({
+  label,
+  current,
+  target,
+  color,
+}: {
+  label: string;
+  current: number;
+  target: number;
+  color: string;
+}) => {
+  const pct = target > 0 ? Math.min(1, current / target) : 0;
+  return (
+    <View style={{ flex: 1, gap: 6 }}>
       <Text
         style={{
           color: text.primary,
-          fontSize: 15,
+          fontSize: 14,
           fontWeight: '800',
-          letterSpacing: -0.2,
+          letterSpacing: -0.02,
+          fontVariant: fonts.tabularNums,
+        }}
+      >
+        {current}
+        <Text style={{ color: text.quaternary, fontWeight: '600', fontSize: 12 }}>g</Text>
+      </Text>
+      <View
+        style={{
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: palette.borderStrong,
+          overflow: 'hidden',
+        }}
+      >
+        <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: color }} />
+      </View>
+      <Text
+        style={{
+          fontFamily: fonts.family.mono,
+          fontSize: 9,
+          letterSpacing: 1.6,
+          color: text.quaternary,
+          textTransform: 'uppercase',
+          fontWeight: '700',
         }}
         numberOfLines={1}
       >
-        {title}
+        {label} {target}
       </Text>
-      {sub ? (
-        <Text style={{ color: text.tertiary, fontSize: 12 }}>{sub}</Text>
-      ) : null}
     </View>
-    {rightSlot}
-  </View>
-);
-
-/**
- * Nutrition tab — empty-state shell. Pattern matches HomeView's "Today's
- * Focus" card: orange-hairline outer surface, icon-chip header strip, big
- * title, stack of BannerRows for sub-actions. No radial gradients, no
- * 48px hero numerics — that direction was reverted on the workout side.
- *
- * PR 1 ships visuals only. Logging, water taps, cheat toggle, and the
- * goal-setup sheet land in PR 2.
- */
-export const NutritionView = () => {
-  // Hardcoded for now — wired to user_nutrition_settings in PR 2.
-  const kcalTarget = 2200;
-  const proteinTarget = 160;
-  const carbTarget = 250;
-  const fatTarget = 70;
-  const fiberTarget = 30;
-  const waterTarget = 2000;
-
-  return (
-    <ScrollView
-      style={{ flex: 1 }}
-      contentContainerStyle={{
-        paddingHorizontal: spacing.xl,
-        paddingTop: spacing.lg,
-        paddingBottom: spacing.xxl,
-      }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Today's Focus — orange-hairline outer surface, mirrors HomeView. */}
-      <View
-        style={{
-          marginBottom: spacing.xl,
-          borderRadius: radii.lg,
-          borderWidth: 1,
-          borderColor: accent.lift,
-          backgroundColor: palette.surface,
-          overflow: 'hidden',
-          shadowColor: accent.lift,
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.15,
-          shadowRadius: 8,
-        }}
-      >
-        <View style={{ padding: spacing.xl }}>
-          {/* Header strip: icon chip + DAILY GOAL eyebrow + kcal target +
-              compact macro readout on the right. */}
-          <View
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: spacing.md,
-              paddingBottom: spacing.lg,
-              borderBottomWidth: 1,
-              borderBottomColor: palette.borderStrong,
-              marginBottom: spacing.lg,
-            }}
-          >
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: radii.sm,
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: 'rgba(252, 76, 2, 0.12)',
-                borderWidth: 1,
-                borderColor: accent.lift,
-              }}
-            >
-              <ForkKnifeCrossed size={16} color={accent.lift} strokeWidth={2} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Eyebrow color={accent.lift}>Daily Goal</Eyebrow>
-              <Text
-                style={{
-                  color: text.primary,
-                  fontSize: 18,
-                  fontWeight: '900',
-                  letterSpacing: -0.3,
-                  marginTop: 2,
-                }}
-                numberOfLines={1}
-              >
-                {kcalTarget.toLocaleString()} kcal
-              </Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text
-                style={{
-                  color: text.tertiary,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
-                  letterSpacing: 1.2,
-                }}
-              >
-                {proteinTarget}P · {carbTarget}C · {fatTarget}F
-              </Text>
-              <Text
-                style={{
-                  color: text.quaternary,
-                  fontSize: 11,
-                  fontFamily: 'monospace',
-                  letterSpacing: 1.2,
-                  marginTop: 2,
-                }}
-              >
-                {fiberTarget}g FIBER
-              </Text>
-            </View>
-          </View>
-
-          {/* Empty state — the "REST DAY" parallel: big title + sub. */}
-          <Text
-            style={{
-              color: text.primary,
-              fontSize: 30,
-              fontWeight: '900',
-              letterSpacing: -0.9,
-            }}
-          >
-            NO MEALS YET
-          </Text>
-          <Text
-            style={{
-              color: text.tertiary,
-              fontSize: 14,
-              marginTop: 6,
-              marginBottom: spacing.lg,
-              lineHeight: 20,
-            }}
-          >
-            Log a meal to start tracking today. Water and cheat-day land here next.
-          </Text>
-
-          {/* Stacked BannerRows — Water + four meal slots. Tap-to-log
-              wires up in PR 2; the rows render the silhouette today. */}
-          <View style={{ gap: spacing.sm }}>
-            <BannerRow
-              testID="nutrition-water"
-              icon={<Droplet size={16} color={accent.sessionUp} />}
-              iconTint="rgba(0, 214, 143, 0.10)"
-              iconBorderColor={accent.sessionUp}
-              eyebrow="Water"
-              eyebrowColor={accent.sessionUp}
-              title={`0 / ${waterTarget.toLocaleString()} ml`}
-              sub="Tap a cup or bottle"
-              rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-            />
-            <BannerRow
-              testID="nutrition-add-breakfast"
-              icon={<Plus size={16} color={text.secondary} />}
-              eyebrow="Breakfast"
-              title="Add meal"
-              rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-            />
-            <BannerRow
-              testID="nutrition-add-lunch"
-              icon={<Plus size={16} color={text.secondary} />}
-              eyebrow="Lunch"
-              title="Add meal"
-              rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-            />
-            <BannerRow
-              testID="nutrition-add-dinner"
-              icon={<Plus size={16} color={text.secondary} />}
-              eyebrow="Dinner"
-              title="Add meal"
-              rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-            />
-            <BannerRow
-              testID="nutrition-add-snack"
-              icon={<Plus size={16} color={text.secondary} />}
-              eyebrow="Snack"
-              title="Add meal"
-              rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-            />
-          </View>
-        </View>
-      </View>
-
-      {/* Cheat Day — separate sibling card outside the orange surface, same
-          neutral treatment as Home's "Pick a Workout" / "Custom" footer
-          banners. */}
-      <View
-        style={{
-          marginBottom: spacing.xl,
-          borderRadius: radii.lg,
-          borderWidth: 1,
-          borderColor: palette.borderStrong,
-          backgroundColor: palette.surface,
-          padding: spacing.lg,
-        }}
-      >
-        <BannerRow
-          testID="nutrition-cheat-day"
-          icon={<Sparkles size={16} color={text.tertiary} />}
-          eyebrow="Cheat Day · 1 / wk"
-          title="Off today"
-          sub="Toggle on to skip macro tracking — streak stays intact"
-          rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-        />
-      </View>
-
-      {/* Coming-soon footer — matches the analytics tab's tone for honest
-          "this surface still has more to land" signaling. */}
-      <View
-        style={{
-          alignItems: 'center',
-          justifyContent: 'center',
-          paddingVertical: spacing.xl,
-        }}
-      >
-        <ForkKnifeCrossed size={40} color={text.disabled} strokeWidth={1.6} />
-        <Text
-          style={{
-            color: text.primary,
-            fontSize: 16,
-            fontWeight: 'bold',
-            marginTop: spacing.md,
-          }}
-        >
-          More fuel tracking coming
-        </Text>
-        <Text
-          style={{
-            color: text.quaternary,
-            textAlign: 'center',
-            marginTop: spacing.xs,
-            fontSize: 13,
-            paddingHorizontal: spacing.xl,
-          }}
-        >
-          Quick log, water taps, recents, and the cheat-day calendar arrive in PR 2.
-        </Text>
-      </View>
-    </ScrollView>
   );
 };
