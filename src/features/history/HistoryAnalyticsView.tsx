@@ -13,6 +13,7 @@ import { colors, spacing, radii, palette, text, accent, fonts } from '../../styl
 import { useUser } from '../../contexts/UserContext';
 import { useAppData } from '../../contexts/AppDataContext';
 import { supabase } from '../../services/supabase';
+import { resolveExerciseDirectory } from '../../services/workoutService';
 import { calculateXP } from '../workout/helpers';
 import SessionRow from './components/SessionRow';
 import { useSessionTrajectories } from './hooks/useSessionTrajectories';
@@ -167,7 +168,7 @@ const HistoryAnalyticsView = () => {
             .single(),
           supabase
             .from('workout_sets')
-            .select('*, exercise:exercises(id, name)')
+            .select('*')
             .eq('session_id', sessionId)
             .order('order_index', { ascending: true })
             .order('set_number', { ascending: true }),
@@ -176,6 +177,13 @@ const HistoryAnalyticsView = () => {
       if (parentError) throw parentError;
       if (setsError) throw setsError;
       if (!parent) throw new Error('Session not found');
+
+      // FK on workout_sets.exercise_id was dropped (rows can point at
+      // master `exercises` or per-user `user_exercises`), so resolve
+      // names manually from both tables.
+      const dir = await resolveExerciseDirectory(
+        (sets ?? []).map((r: any) => r.exercise_id),
+      );
 
       const transformedLogs = (sets ?? []).map((row: any) => ({
         id: row.id,
@@ -186,7 +194,7 @@ const HistoryAnalyticsView = () => {
         weight: row.weight,
         reps: row.reps,
         notes: undefined,
-        exercise_name: row.exercise?.name || 'Unknown Exercise',
+        exercise_name: dir.get(row.exercise_id)?.name || 'Unknown Exercise',
       }));
 
       const sessionWithLogs: SessionWithLogs = {

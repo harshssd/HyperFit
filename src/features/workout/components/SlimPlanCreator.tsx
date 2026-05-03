@@ -13,7 +13,7 @@ import { ChevronLeft, Plus, Trash2, X, Library, Search, Check } from 'lucide-rea
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import { palette, text, accent, spacing, radii, fonts } from '../../../styles/theme';
-import { createExercise, fetchExercises } from '../../../services/workoutService';
+import { ensureExercise, fetchExercises } from '../../../services/workoutService';
 import type {
   DayOfWeek,
   PlanSession,
@@ -223,16 +223,11 @@ export const SlimPlanCreator = ({
       return null;
     }
     try {
-      // RLS `exercises_write` requires user_id = auth.uid() on insert. Without
-      // user_id the policy rejects with a confusing 42501 error.
-      const created: any = await createExercise({
-        user_id: userId,
-        name: q,
-        muscle_group: 'other',
-        equipment: 'mixed',
-        is_public: false,
-      } as any);
-      const entry = { id: created.id, name: created.name, muscleGroup: created.muscle_group || 'other' };
+      // ensureExercise checks the master library first then the user's
+      // own user_exercises, inserting on miss. Lands in user_exercises
+      // with the right RLS scope without us hand-rolling the insert.
+      const created = await ensureExercise(q, userId);
+      const entry = { id: created.id, name: created.name, muscleGroup: 'other' };
       setExerciseLibrary((prev) => [...prev, entry]);
       return entry;
     } catch (e: any) {

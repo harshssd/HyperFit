@@ -48,13 +48,36 @@ export const fetchTemplatesForUser = async (userId: string | undefined) => {
       *,
       template_exercises:template_exercises (
         order_index,
-        exercise:exercises (name)
+        exercise_id
       )
     `)
     .eq('kind', 'quick')
     .order('created_at', { ascending: false });
 
   if (error) throw error;
+
+  // FK on template_exercises.exercise_id was dropped (rows can point at
+  // master `exercises` or per-user `user_exercises`), so the embedded
+  // join is gone. Batch-resolve names from both tables.
+  const allIds: string[] = [];
+  (data ?? []).forEach((row: any) =>
+    (row.template_exercises ?? []).forEach((te: any) => {
+      if (te.exercise_id) allIds.push(te.exercise_id);
+    }),
+  );
+  const nameById = new Map<string, string>();
+  if (allIds.length > 0) {
+    const unique = Array.from(new Set(allIds));
+    const [master, custom] = await Promise.all([
+      supabase.from('exercises').select('id, name').in('id', unique),
+      supabase.from('user_exercises').select('id, name').in('id', unique),
+    ]);
+    if (master.error) throw master.error;
+    if (custom.error) throw custom.error;
+    [...(master.data ?? []), ...(custom.data ?? [])].forEach((r: any) =>
+      nameById.set(r.id, r.name),
+    );
+  }
 
   const tagsSet = new Set<string>();
   const templates: Template[] = (data ?? []).map((row: any) => {
@@ -63,8 +86,8 @@ export const fetchTemplatesForUser = async (userId: string | undefined) => {
       (a: any, b: any) => (a.order_index ?? 0) - (b.order_index ?? 0)
     );
     const names: string[] = ordered
-      .map((te: any) => te.exercise?.name)
-      .filter(Boolean);
+      .map((te: any) => nameById.get(te.exercise_id))
+      .filter((n): n is string => Boolean(n));
     return rowToTemplate(row, names);
   });
 
@@ -97,17 +120,25 @@ export const fetchFavoritesForUser = async (userId: string | undefined) => {
 /**
  * Resolves exercise names to IDs (case-insensitive). Returns an array
  * aligned with the input — entries with no match are dropped.
+ *
+ * Looks in both the master `exercises` library and the caller's
+ * `user_exercises` so saved templates referencing custom names still
+ * resolve after the user/master split.
  */
 const resolveExerciseIds = async (names: string[]): Promise<{ id: string; name: string }[]> => {
   if (names.length === 0) return [];
-  const { data, error } = await supabase
-    .from('exercises')
-    .select('id, name')
-    .in('name', names);
-  if (error) throw error;
+  const [master, custom] = await Promise.all([
+    supabase.from('exercises').select('id, name').in('name', names),
+    supabase.from('user_exercises').select('id, name').in('name', names),
+  ]);
+  if (master.error) throw master.error;
+  if (custom.error) throw custom.error;
 
   const byName = new Map<string, string>();
-  (data ?? []).forEach((row: any) => byName.set(row.name.toLowerCase(), row.id));
+  // Master takes precedence so the canonical id wins when both exist.
+  [...(custom.data ?? []), ...(master.data ?? [])].forEach((row: any) =>
+    byName.set(row.name.toLowerCase(), row.id),
+  );
 
   return names
     .map(n => {

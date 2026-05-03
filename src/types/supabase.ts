@@ -21,7 +21,6 @@ export interface Database {
       exercises: {
         Row: {
           id: string;
-          user_id: string | null;
           name: string;
           muscle_group: string | null;
           equipment: string | null;
@@ -31,7 +30,6 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          user_id?: string | null;
           name: string;
           muscle_group?: string | null;
           equipment?: string | null;
@@ -40,6 +38,28 @@ export interface Database {
           updated_at?: Timestamp;
         };
         Update: Partial<Database['public']['Tables']['exercises']['Insert']>;
+      };
+
+      user_exercises: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          muscle_group: string | null;
+          equipment: string | null;
+          created_at: Timestamp;
+          updated_at: Timestamp;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          muscle_group?: string | null;
+          equipment?: string | null;
+          created_at?: Timestamp;
+          updated_at?: Timestamp;
+        };
+        Update: Partial<Database['public']['Tables']['user_exercises']['Insert']>;
       };
 
       workout_plans: {
