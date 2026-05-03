@@ -48,7 +48,6 @@ import WorkoutOverview from './components/WorkoutOverview';
 import WorkoutListView from './components/WorkoutListView';
 import WorkoutFocusSets from './components/WorkoutFocusSets';
 import WorkoutFocusActions from './components/WorkoutFocusActions';
-import RestTimerBar from './components/RestTimerBar';
 import WorkoutHeader from './components/WorkoutHeader';
 import WorkoutFocusHeader from './components/WorkoutFocusHeader';
 import WorkoutPlanner from './components/WorkoutPlanner';
@@ -332,24 +331,52 @@ const GymView = ({
     loadExercises();
   }, []);
 
+  // When the Add Exercise overlay opens, prime the list with the full library
+  // so users see browsable rows immediately instead of an empty box.
+  useEffect(() => {
+    if (!isAddingExercise) return;
+    setSuggestions(getAllExerciseNames(exerciseOptions));
+  }, [isAddingExercise, exerciseOptions]);
+
   const confirmDeleteTemplate = (templateId: string) => {
     confirmAction('Delete Template', 'Remove this template permanently?', () => deleteTemplate(templateId), 'Delete');
   };
 
+  // The overlay is now scrollable, so we no longer cap at 5 suggestions —
+  // empty query shows the whole library so users can browse, and a partial
+  // query narrows it. The free-text fallback ("Add 'X' as new exercise")
+  // surfaces only when the query is non-empty and has no exact match.
   const handleNameChange = (val: string) => {
     setNewExerciseName(val);
+    const allNames = getAllExerciseNames(exerciseOptions);
     if (val.length > 0) {
-      const allNames = getAllExerciseNames(exerciseOptions);
-      const filtered = allNames.filter(name => name.toLowerCase().includes(val.toLowerCase()));
-      setSuggestions(filtered.slice(0, 5));
+      setSuggestions(
+        allNames.filter((name) => name.toLowerCase().includes(val.toLowerCase())),
+      );
     } else {
-      setSuggestions([]);
+      setSuggestions(allNames);
     }
   };
 
+  // Tap-to-add: previously this just stuffed the name into the input and
+  // forced a second tap on ADD. Tapping a known exercise should add it
+  // directly — the overlay stays open for rapid multi-add.
   const selectSuggestion = (name: string) => {
-    setNewExerciseName(name);
-    setSuggestions([]);
+    // Dedupe at the source — overlay also disables ADDED rows, but a stale
+    // tap or race could still get through. Drop instead of duplicating.
+    const exists = visibleWorkout.some(
+      (e: any) => e.name?.toLowerCase() === name.toLowerCase(),
+    );
+    if (exists) {
+      setNewExerciseName('');
+      return;
+    }
+    addExerciseHook(name, 'bottom');
+    setNewExerciseName('');
+    // Reset suggestions to the full library so the user keeps seeing
+    // browsable rows after picking — without this the filtered list from
+    // before the pick would linger even though the search input is cleared.
+    setSuggestions(getAllExerciseNames(exerciseOptions));
   };
 
   const applyTemplateHandler = (template: any) => {
@@ -432,11 +459,27 @@ const GymView = ({
   };
 
   const addExercise = (position: 'top' | 'bottom' = 'bottom') => {
-    if (!newExerciseName.trim()) return;
-    addExerciseHook(newExerciseName, position);
+    const trimmed = newExerciseName.trim();
+    if (!trimmed) return;
+    // Belt-and-suspenders dedupe: the overlay disables ADDED rows, but if
+    // the user types a name already in the session and hits the free-text
+    // path, drop it silently here too. Prevents the "tapped 20 times by
+    // accident" failure mode at the source.
+    const exists = visibleWorkout.some(
+      (e: any) => e.name?.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (exists) {
+      setNewExerciseName('');
+      return;
+    }
+    addExerciseHook(trimmed, position);
+    // Clear the input but keep the overlay open so the user can rapid-add
+    // several exercises in one pass. Closing on the first add forced users
+    // to re-open the picker for every exercise — high friction for the
+    // common case of building a multi-exercise manual session.
     setNewExerciseName('');
-    setIsAddingExercise(false);
     setEditingExerciseId(null);
+    setSuggestions(getAllExerciseNames(exerciseOptions));
   };
 
   const startSession = startSessionHandler;
@@ -763,6 +806,7 @@ const GymView = ({
       visible={isAddingExercise}
       newExerciseName={newExerciseName}
       suggestions={suggestions}
+      alreadyAdded={visibleWorkout.map((e: any) => e.name)}
       onChangeName={handleNameChange}
       onSubmit={() => addExercise()}
       onSelectSuggestion={selectSuggestion}
@@ -1227,17 +1271,10 @@ const GymView = ({
       <ScrollView style={workoutStyles.gymView} contentContainerStyle={workoutStyles.gymViewContent}>
         {renderOverview()}
       </ScrollView>
-      {/* Only the modal route owns the rest-timer bar. Otherwise both mounts
-          would pin one to the bottom of the screen and they'd visually stack
-          and steal touches in any uncovered region. */}
-      {mode === 'session' && (
-        <RestTimerBar
-          restSeconds={restSeconds}
-          totalSeconds={restTimer.totalSeconds}
-          onExtend={extendRest}
-          onSkip={skipRest}
-        />
-      )}
+      {/* Rest timer hidden — see BACKLOG BL-18. The auto-fire from
+          commitFilledSets means it pops up unprompted while logging, which
+          isn't the right UX yet. Bring back when intentional rest cues
+          (post-set tap, programmatic rest target) land. */}
     </>
   );
 };

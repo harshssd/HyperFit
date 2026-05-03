@@ -35,7 +35,6 @@ export const isExerciseEmpty = (exercise: WorkoutExercise) => {
   if (!exercise || !exercise.sets) return true;
   return !exercise.sets.some(
     (s) =>
-      s.completed ||
       (s.weight && String(s.weight).trim() !== '') ||
       (s.reps && String(s.reps).trim() !== '')
   );
@@ -113,7 +112,7 @@ export const calculateTotalVolume = (workout: WorkoutExercise[]) => {
       ex.sets.reduce((sAcc, s) => {
         const weight = s.weight ? parseInt(String(s.weight), 10) : 0;
         const reps = s.reps ? parseInt(String(s.reps), 10) : 0;
-        return sAcc + (s.completed ? weight * reps : 0);
+        return sAcc + weight * reps;
       }, 0)
     );
   }, 0);
@@ -354,7 +353,11 @@ export const validatePlan = (plan: WorkoutPlan): { isValid: boolean; errors: str
 export const calculateWorkoutProgress = (exercises: WorkoutExercise[]) => {
   const totalSets = exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
   const completedSets = exercises.reduce((acc, ex) =>
-    acc + ex.sets.filter(set => set.completed).length, 0
+    acc + ex.sets.filter(set => {
+      const w = Number(set.weight);
+      const r = Number(set.reps);
+      return (Number.isFinite(w) && w > 0) || (Number.isFinite(r) && r > 0);
+    }).length, 0
   );
 
   return {

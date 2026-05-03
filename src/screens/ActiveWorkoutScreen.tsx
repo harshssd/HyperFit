@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { GymView } from '../features/workout';
@@ -6,6 +7,7 @@ import { ScreenLayout } from '../components/ScreenLayout';
 import { useAppData } from '../contexts/AppDataContext';
 import { useUser } from '../contexts/UserContext';
 import { useActiveWorkoutSession } from '../contexts/WorkoutSessionContext';
+import { palette } from '../styles/theme';
 import type { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ActiveWorkout'>;
@@ -35,7 +37,11 @@ export const ActiveWorkoutScreen = () => {
     return unsubscribe;
   }, [navigation, session]);
 
+  // transparentModal route → without an opaque underlay, the planner tab
+  // bleeds through and washes out logged sets. Paint a solid backdrop so the
+  // active workout reads as a real surface, not a translucent scrim.
   return (
+    <View style={{ flex: 1, backgroundColor: palette.bg }}>
     <ScreenLayout scroll={false} errorLabel="Error in workout">
       <GymView
         data={data}
@@ -54,5 +60,6 @@ export const ActiveWorkoutScreen = () => {
         }}
       />
     </ScreenLayout>
+    </View>
   );
 };

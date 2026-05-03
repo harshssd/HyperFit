@@ -1,11 +1,9 @@
 import React, { useMemo } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { CheckCircle } from 'lucide-react-native';
+import { View, Text } from 'react-native';
 import NumberControl from '../../../components/NumberControl';
 import LastSessionRule from './LastSessionRule';
 import workoutStyles from '../../../styles/workout';
 import type { GhostSet } from '../hooks/useLastSessionSets';
-import { palette, text } from '../../../styles/theme';
 
 type WorkoutFocusSetsProps = {
   currentExercise: any;
@@ -27,8 +25,7 @@ const ghostString = (val: number | null | undefined, fallback: string): string =
 const computeTopToday = (sets: any[]): number | null => {
   let top = 0;
   for (const s of sets ?? []) {
-    if (!s?.completed) continue;
-    const w = Number(s.weight ?? 0);
+    const w = Number(s?.weight ?? 0);
     if (Number.isFinite(w) && w > top) top = w;
   }
   return top > 0 ? top : null;
@@ -69,72 +66,29 @@ const WorkoutFocusSets = ({
           const repsPlaceholder = ghostString(ghostFor?.reps, exConfig.repPlaceholder);
 
           return (
-            <View
-              key={set.id}
-              style={[
-                workoutStyles.workoutSet,
-                set.completed && workoutStyles.workoutSetCompleted,
-              ]}
-            >
+            <View key={set.id} style={workoutStyles.workoutSet}>
               <View style={workoutStyles.workoutSetHeader}>
-                <View
-                  style={[
-                    workoutStyles.workoutSetNumber,
-                    set.completed && workoutStyles.workoutSetNumberCompleted,
-                  ]}
-                >
+                <View style={workoutStyles.workoutSetNumber}>
                   <Text style={workoutStyles.workoutSetNumberText}>{setIndex + 1}</Text>
                 </View>
                 <View style={workoutStyles.workoutSetDivider} />
-                <TouchableOpacity
-                  onPress={() =>
-                    updateSet(currentExercise.id, setIndex, 'completed', !set.completed)
-                  }
-                  style={[
-                    workoutStyles.workoutSetCheck,
-                    set.completed && workoutStyles.workoutSetCheckCompleted,
-                  ]}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    set.completed ? `Mark set ${setIndex + 1} incomplete` : `Mark set ${setIndex + 1} complete`
-                  }
-                >
-                  <CheckCircle size={22} color={set.completed ? palette.bg : text.tertiary} />
-                </TouchableOpacity>
               </View>
-              {!set.completed && (
-                <View style={workoutStyles.workoutSetControls}>
-                  <NumberControl
-                    label={exConfig.weightLabel}
-                    value={set.weight}
-                    step={exConfig.weightStep}
-                    placeholder={weightPlaceholder}
-                    onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'weight', val)}
-                  />
-                  <NumberControl
-                    label={exConfig.repLabel}
-                    value={set.reps}
-                    step={exConfig.repStep}
-                    placeholder={repsPlaceholder}
-                    onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'reps', val)}
-                  />
-                </View>
-              )}
-              {set.completed && (
-                <View style={workoutStyles.workoutSetCompletedInfo}>
-                  <Text style={workoutStyles.workoutSetCompletedText}>
-                    {set.weight || 0} {exConfig.weightLabel === 'LBS' ? 'LBS' : ''}
-                  </Text>
-                  <Text style={workoutStyles.workoutSetCompletedText}>
-                    {set.reps || 0} {exConfig.repLabel === 'REPS' ? 'REPS' : 'SEC'}
-                  </Text>
-                  {typeof set.restSeconds === 'number' && (
-                    <Text style={workoutStyles.workoutSetCompletedText}>
-                      Rest: {set.restSeconds}s
-                    </Text>
-                  )}
-                </View>
-              )}
+              <View style={workoutStyles.workoutSetControls}>
+                <NumberControl
+                  label={exConfig.weightLabel}
+                  value={set.weight}
+                  step={exConfig.weightStep}
+                  placeholder={weightPlaceholder}
+                  onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'weight', val)}
+                />
+                <NumberControl
+                  label={exConfig.repLabel}
+                  value={set.reps}
+                  step={exConfig.repStep}
+                  placeholder={repsPlaceholder}
+                  onChange={(val: any) => updateSet(currentExercise.id, setIndex, 'reps', val)}
+                />
+              </View>
             </View>
           );
         })}

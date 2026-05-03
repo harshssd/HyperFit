@@ -287,21 +287,36 @@ export const useWorkoutSession = ({
         session_id: sessionContext.planSessionId,
       };
 
-      const exercisesPayload = sessionExercises.map((ex, i) => ({
-        exercise: {
-          exercise_id: ex.exerciseId ?? null,
-          user_id: userId ?? '',
-          order_index: i,
-          notes: '',
-        },
-        sets: ex.sets.map((s, si) => ({
-          set_number: si + 1,
-          weight: Number(s.weight) || 0,
-          reps: Number(s.reps) || 0,
-          rpe: 0,
-          completed: s.completed || false,
-        })),
-      }));
+      // "If it's added (with values), it's done." Drop empty rows the user
+      // never filled in — those are noise, not "incomplete sets". Persisted
+      // sets are always completed=true; the column stays for schema compat
+      // until BL-17 drops it.
+      const exercisesPayload = sessionExercises
+        .map((ex, i) => {
+          const validSets = ex.sets
+            .filter((s) => {
+              const w = Number(s.weight);
+              const r = Number(s.reps);
+              return (Number.isFinite(w) && w > 0) || (Number.isFinite(r) && r > 0);
+            })
+            .map((s, si) => ({
+              set_number: si + 1,
+              weight: Number(s.weight) || 0,
+              reps: Number(s.reps) || 0,
+              rpe: 0,
+              completed: true,
+            }));
+          return {
+            exercise: {
+              exercise_id: ex.exerciseId ?? null,
+              user_id: userId ?? '',
+              order_index: i,
+              notes: '',
+            },
+            sets: validSets,
+          };
+        })
+        .filter((ex) => ex.sets.length > 0);
 
       // unused: keeps callers' total volume API while service computes its own.
       void totalVolume;
