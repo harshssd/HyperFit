@@ -130,13 +130,16 @@ export const MuscleHeatmap = ({
             </View>
           </View>
 
-          {/* Monochrome legend — single hue, opacity encodes intensity. */}
+          {/* Legend mirrors the body-silhouette ramp: surface grey → ember →
+              burnt orange → bright strava. Hue carries intensity. */}
           <View style={styles.legendRow}>
-            <View style={[styles.legendSwatch, { backgroundColor: colors.surface }]} />
+            <View style={[styles.legendSwatch, styles.legendSwatchNone]} />
             <Text style={styles.legendLabel}>None</Text>
-            <View style={[styles.legendSwatch, { backgroundColor: '#ffffff', opacity: 0.25 }]} />
+            <View style={[styles.legendSwatch, styles.legendSwatchLight]} />
             <Text style={styles.legendLabel}>Light</Text>
-            <View style={[styles.legendSwatch, { backgroundColor: '#ffffff', opacity: 1 }]} />
+            <View style={[styles.legendSwatch, styles.legendSwatchMid]} />
+            <Text style={styles.legendLabel}>Mid</Text>
+            <View style={[styles.legendSwatch, styles.legendSwatchHeavy]} />
             <Text style={styles.legendLabel}>Heavy</Text>
           </View>
 
@@ -199,7 +202,17 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     gap: spacing.xs,
   },
-  legendSwatch: { width: 14, height: 14, borderRadius: 4 },
+  legendSwatch: {
+    width: 14,
+    height: 14,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  legendSwatchNone:  { backgroundColor: '#18181b' },
+  legendSwatchLight: { backgroundColor: '#3a1d0a', borderColor: '#7a2400' },
+  legendSwatchMid:   { backgroundColor: '#a13208', borderColor: '#c44a18' },
+  legendSwatchHeavy: { backgroundColor: '#fc4c02', borderColor: '#ff6a2b' },
   legendLabel: { color: colors.muted, fontSize: 11, marginRight: spacing.sm },
   detail: {
     marginTop: spacing.md,
