@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { Dumbbell, Calendar, ChevronLeft, ChevronRight, Play, Settings, CheckCircle, Brain, Layout, PlusCircle } from 'lucide-react-native';
+import { Dumbbell, Calendar, ChevronLeft, ChevronRight, Play, Settings, CheckCircle, Layout, PlusCircle } from 'lucide-react-native';
 import NeonButton from '../../../components/NeonButton';
 import GlassCard from '../../../components/GlassCard';
 import workoutStyles from '../../../styles/workout';
@@ -348,33 +348,9 @@ const WorkoutPlanner = ({
                     </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    onPress={onAISuggestion}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      paddingVertical: spacing.lg,
-                      backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                      borderRadius: radii.md,
-                      borderWidth: 1,
-                      borderColor: 'rgba(139, 92, 246, 0.3)',
-                    }}
-                  >
-                    <Brain size={20} color="#8b5cf6" />
-                    <Text style={{ marginLeft: spacing.sm, color: '#8b5cf6', fontSize: 15, fontWeight: 'bold' }}>
-                      AI SUGGESTION
-                    </Text>
-                    <View style={{
-                      marginLeft: spacing.xs,
-                      paddingHorizontal: spacing.xs,
-                      paddingVertical: 2,
-                      backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                      borderRadius: radii.sm
-                    }}>
-                      <Text style={{ color: '#8b5cf6', fontSize: 9, fontWeight: 'bold' }}>SOON</Text>
-                    </View>
-                  </TouchableOpacity>
+                  {/* AI SUGGESTION hidden — see BL-19. The action seeded a
+                      hardcoded AI_SEED workout, not a real model. Reinstate
+                      once a real recommender lands. */}
 
                   <TouchableOpacity
                     testID="planner-browse-library-rest"
@@ -600,24 +576,7 @@ const WorkoutPlanner = ({
                       ADD WORKOUT
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={onAISuggestion}
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      paddingHorizontal: spacing.md,
-                      paddingVertical: spacing.sm,
-                      backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                      borderRadius: radii.sm,
-                      borderWidth: 1,
-                      borderColor: 'rgba(139, 92, 246, 0.3)'
-                    }}
-                  >
-                    <Brain size={14} color="#8b5cf6" />
-                    <Text style={{ marginLeft: spacing.xs, color: '#8b5cf6', fontWeight: 'bold', fontSize: 11 }}>
-                      AI SUGGEST
-                    </Text>
-                  </TouchableOpacity>
+                  {/* AI SUGGEST hidden — see BL-19. */}
                 </View>
               </View>
             );

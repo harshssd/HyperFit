@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { Dumbbell, Layout, PlusCircle, Brain, Target, TrendingUp, Clock, Zap, Flame, RotateCcw } from 'lucide-react-native';
+import { Dumbbell, Layout, PlusCircle, Target, TrendingUp, Clock, Flame, RotateCcw } from 'lucide-react-native';
 import NeonButton from '../../../components/NeonButton';
 import GlassCard from '../../../components/GlassCard';
 import workoutStyles from '../../../styles/workout';
@@ -103,45 +103,9 @@ const WorkoutPlanner = ({
         </View>
       </GlassCard>
 
-      {/* AI Suggestion */}
-      <GlassCard style={{
-        marginBottom: spacing.lg,
-        padding: spacing.lg,
-        backgroundColor: 'rgba(139, 92, 246, 0.1)',
-        borderColor: 'rgba(139, 92, 246, 0.3)',
-      }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
-          <Brain size={20} color="#8b5cf6" />
-          <Text style={{
-            color: '#fff',
-            fontSize: 18,
-            fontWeight: 'bold',
-            marginLeft: spacing.sm
-          }}>
-            AI WORKOUT SUGGESTION
-          </Text>
-        </View>
-        <Text style={{
-          color: colors.muted,
-          fontSize: 14,
-          marginBottom: spacing.lg,
-          lineHeight: 20
-        }}>
-          Based on your recent workouts and progress, we recommend a balanced full-body session today.
-        </Text>
-        <NeonButton
-          onPress={onAISuggestion}
-          style={{
-            backgroundColor: 'rgba(139, 92, 246, 0.2)',
-            borderColor: '#8b5cf6'
-          }}
-        >
-          <Zap size={20} color="#8b5cf6" />
-          <Text style={{ marginLeft: 8, color: '#8b5cf6', fontWeight: 'bold' }}>
-            GENERATE AI WORKOUT
-          </Text>
-        </NeonButton>
-      </GlassCard>
+      {/* AI Workout Suggestion hidden — see BL-19. The seeded copy
+          ("Based on your recent workouts...") promised personalization
+          we don't actually have. Reinstate when a real recommender lands. */}
 
       {/* Quick Workouts */}
       <View style={{ marginBottom: spacing.xl }}>
