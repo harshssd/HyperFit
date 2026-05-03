@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import type { Database } from '../types/supabase';
 import { resolveExerciseDirectory } from './workoutService';
 
 /**
@@ -12,6 +13,9 @@ import { resolveExerciseDirectory } from './workoutService';
  * the rest of the app doesn't need. Keeping the alias logic local stops
  * it bleeding into the shared NormalizedSessionSummary.
  */
+
+type SessionSummaryRow = Database['public']['Views']['session_summary_view']['Row'];
+type WorkoutSetRow = Database['public']['Tables']['workout_sets']['Row'];
 
 export type WorkoutSession = {
   id: string;
@@ -47,7 +51,7 @@ export type SessionWithLogs = WorkoutSession & {
   logs: WorkoutLog[];
 };
 
-const toHistorySession = (r: any): WorkoutSession => ({
+const toHistorySession = (r: SessionSummaryRow): WorkoutSession => ({
   id: r.id,
   name: r.session_name,
   date: r.workout_date,
@@ -61,6 +65,22 @@ const toHistorySession = (r: any): WorkoutSession => ({
   set_count: r.total_sets,
   plan_id: r.plan_id,
   session_id: r.plan_session_id,
+});
+
+const toWorkoutLog = (
+  row: WorkoutSetRow,
+  sessionId: string,
+  dir: Map<string, { name: string }>,
+): WorkoutLog => ({
+  id: row.id,
+  session_id: sessionId,
+  exercise_id: row.exercise_id,
+  order_index: row.order_index,
+  set_number: row.set_number,
+  weight: row.weight,
+  reps: row.reps,
+  notes: undefined,
+  exercise_name: dir.get(row.exercise_id)?.name || 'Unknown Exercise',
 });
 
 /**
@@ -132,20 +152,10 @@ export const fetchSessionDetails = async (
   if (!parent) throw new Error('Session not found');
 
   const dir = await resolveExerciseDirectory(
-    (sets ?? []).map((r: any) => r.exercise_id),
+    (sets ?? []).map((r) => r.exercise_id),
   );
 
-  const logs: WorkoutLog[] = (sets ?? []).map((row: any) => ({
-    id: row.id,
-    session_id: sessionId,
-    exercise_id: row.exercise_id,
-    order_index: row.order_index,
-    set_number: row.set_number,
-    weight: row.weight,
-    reps: row.reps,
-    notes: undefined,
-    exercise_name: dir.get(row.exercise_id)?.name || 'Unknown Exercise',
-  }));
+  const logs: WorkoutLog[] = (sets ?? []).map((row) => toWorkoutLog(row, sessionId, dir));
 
   return {
     ...toHistorySession(parent),
