@@ -83,13 +83,12 @@ export const WeekRows = ({ today, summaries }: Props) => {
           This week
         </Text>
       </View>
-      {dates.map((iso, i) => (
+      {dates.map(iso => (
         <Row
           key={iso}
           iso={iso}
           today={today}
           summary={byDate.get(iso) ?? null}
-          isLast={i === dates.length - 1}
         />
       ))}
     </View>
@@ -100,12 +99,10 @@ const Row = ({
   iso,
   today,
   summary,
-  isLast,
 }: {
   iso: string;
   today: string;
   summary: NutritionDaySummary | null;
-  isLast: boolean;
 }) => {
   const isToday = iso === today;
   const cheat = summary?.is_cheat_day ?? false;
@@ -236,7 +233,6 @@ const Row = ({
           </>
         )}
       </View>
-      {isLast ? null : null}
     </View>
   );
 };

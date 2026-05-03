@@ -26,7 +26,6 @@ const CHEAT_START = '#fc4c02';
 const CHEAT_END = '#a855f7';
 
 const DAY_NAMES_SHORT = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 type Props = {
   today: string;
@@ -141,8 +140,6 @@ const DayCell = ({
   const d = new Date(`${iso}T00:00:00`);
   const dom = d.getDate();
   const dayLetter = DAY_NAMES_SHORT[d.getDay()];
-  const showMonth = dom === 1 || iso === iso; // always show month for clarity at small size? simpler: show on first-of-month only
-  const month = MONTH_NAMES[d.getMonth()];
 
   // Visual states:
   //   today + not planned: orange ring, neutral fill
