@@ -1,13 +1,14 @@
 appId: com.hyperfocused.hyperfit
 ---
-# Sign in, navigate to Calendar tab, cycle through next/previous month
-# and back to today. Asserts the month label changes between steps using
-# the cached label as a sentinel.
+# Sign in, open the full schedule from Home (Calendar is now a stack modal,
+# not a tab — see MainTabs / RootNavigator), cycle through next/previous
+# month and back to today. Asserts the month label changes between steps
+# using the cached label as a sentinel.
 - launchApp
 - runFlow: _auth-if-needed.yaml
 
 - tapOn:
-    id: "tab-calendar"
+    id: "home-open-calendar"
 - extendedWaitUntil:
     visible:
       id: "calendar-month-label"

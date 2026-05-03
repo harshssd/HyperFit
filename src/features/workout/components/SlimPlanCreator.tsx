@@ -9,7 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { ChevronLeft, Plus, Trash2, X } from 'lucide-react-native';
+import { ChevronLeft, Plus, Trash2, X, Library, Search, Check } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import { palette, text, accent, spacing, radii, fonts } from '../../../styles/theme';
@@ -124,9 +124,12 @@ export const SlimPlanCreator = ({
   const [description, setDescription] = useState('');
   const [sessions, setSessions] = useState<DraftSession[]>([]);
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
-  const [exerciseLibrary, setExerciseLibrary] = useState<{ id: string; name: string }[]>([]);
+  const [exerciseLibrary, setExerciseLibrary] = useState<{ id: string; name: string; muscleGroup: string }[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [browseSessionId, setBrowseSessionId] = useState<string | null>(null);
+  const [browseQuery, setBrowseQuery] = useState('');
+  const [browseSelectedIds, setBrowseSelectedIds] = useState<Set<string>>(new Set());
 
   // Hydrate / reset whenever the modal opens.
   useEffect(() => {
@@ -149,13 +152,13 @@ export const SlimPlanCreator = ({
     if (!visible || exerciseLibrary.length > 0) return;
     fetchExercises()
       .then((rows: any[]) =>
-        setExerciseLibrary(rows.map((r) => ({ id: r.id, name: r.name }))),
+        setExerciseLibrary(rows.map((r) => ({ id: r.id, name: r.name, muscleGroup: r.muscle_group || 'other' }))),
       )
       .catch(() => {/* picker still works via free-text; library just empty */});
   }, [visible, exerciseLibrary.length]);
 
   const titleText = mode === 'edit' ? 'EDIT PLAN'
-    : mode === 'duplicate' ? 'DUPLICATE PLAN'
+    : mode === 'duplicate' ? 'NEW PLAN FROM TEMPLATE'
     : 'CREATE PLAN';
 
   const updateSession = (sid: string, patch: Partial<DraftSession>) => {
@@ -229,7 +232,7 @@ export const SlimPlanCreator = ({
         equipment: 'mixed',
         is_public: false,
       } as any);
-      const entry = { id: created.id, name: created.name };
+      const entry = { id: created.id, name: created.name, muscleGroup: created.muscle_group || 'other' };
       setExerciseLibrary((prev) => [...prev, entry]);
       return entry;
     } catch (e: any) {
@@ -248,6 +251,31 @@ export const SlimPlanCreator = ({
           exercises: [
             ...s.exercises,
             blankExercise(s.exercises.length + 1, libEx.id, libEx.name),
+          ],
+        };
+      }),
+    );
+  };
+
+  // Batch-add: appends all selected library entries to a session in one
+  // setSessions update (avoids N re-renders + cascade ordering bugs).
+  const addExercisesFromLibrary = (
+    sid: string,
+    libExs: { id: string; name: string }[],
+  ) => {
+    if (libExs.length === 0) return;
+    setSessions((prev) =>
+      prev.map((s) => {
+        if (s.id !== sid) return s;
+        const existing = new Set(s.exercises.map((e) => e.id));
+        const fresh = libExs.filter((lx) => !existing.has(lx.id));
+        if (fresh.length === 0) return s;
+        const start = s.exercises.length;
+        return {
+          ...s,
+          exercises: [
+            ...s.exercises,
+            ...fresh.map((lx, i) => blankExercise(start + i + 1, lx.id, lx.name)),
           ],
         };
       }),
@@ -334,6 +362,50 @@ export const SlimPlanCreator = ({
     [sessions, openSessionId],
   );
 
+  // Group library entries by muscle group for the browse modal, filtered by query.
+  const browseGroups = useMemo(() => {
+    const q = browseQuery.trim().toLowerCase();
+    const filtered = q
+      ? exerciseLibrary.filter((e) => e.name.toLowerCase().includes(q))
+      : exerciseLibrary;
+    const byGroup = new Map<string, typeof exerciseLibrary>();
+    filtered.forEach((e) => {
+      const k = e.muscleGroup || 'other';
+      const list = byGroup.get(k) || [];
+      list.push(e);
+      byGroup.set(k, list);
+    });
+    return Array.from(byGroup.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([group, items]) => ({ group, items }));
+  }, [browseQuery, exerciseLibrary]);
+
+  const closeBrowse = () => { setBrowseSessionId(null); setBrowseQuery(''); setBrowseSelectedIds(new Set()); };
+
+  const toggleBrowseSelected = (id: string) => {
+    setBrowseSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const browseTargetSession = useMemo(
+    () => sessions.find((s) => s.id === browseSessionId) || null,
+    [sessions, browseSessionId],
+  );
+  const alreadyInTargetSession = useMemo(
+    () => new Set((browseTargetSession?.exercises || []).map((e) => e.id)),
+    [browseTargetSession],
+  );
+
+  const confirmBrowseSelection = () => {
+    if (!browseSessionId) return closeBrowse();
+    const picked = exerciseLibrary.filter((e) => browseSelectedIds.has(e.id));
+    addExercisesFromLibrary(browseSessionId, picked);
+    closeBrowse();
+  };
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView
@@ -417,6 +489,7 @@ export const SlimPlanCreator = ({
               onAddExerciseFromLibrary={(libEx) => addExerciseFromLibrary(s.id, libEx)}
               onAddExerciseByText={(exName) => addExerciseByText(s.id, exName)}
               onRemoveExercise={(exId) => removeExercise(s.id, exId)}
+              onOpenBrowse={() => { setBrowseQuery(''); setBrowseSelectedIds(new Set()); setBrowseSessionId(s.id); }}
             />
           ))}
 
@@ -435,6 +508,131 @@ export const SlimPlanCreator = ({
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Browse Exercises modal — picks into the session whose id is in browseSessionId. */}
+      <Modal
+        visible={browseSessionId !== null}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={closeBrowse}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1, backgroundColor: palette.bg }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingHorizontal: spacing.lg,
+              paddingTop: spacing.lg,
+              paddingBottom: spacing.md,
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderSubtle,
+            }}
+          >
+            <TouchableOpacity onPress={closeBrowse} accessibilityLabel="Close">
+              <X size={22} color={text.primary} />
+            </TouchableOpacity>
+            <Text style={{ color: text.primary, fontFamily: 'monospace', fontSize: 12, fontWeight: '700', letterSpacing: 1.6 }}>
+              BROWSE EXERCISES
+            </Text>
+            <View style={{ width: 22 }} />
+          </View>
+
+          <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: palette.surface, borderWidth: 1, borderColor: palette.borderSubtle, borderRadius: radii.sm, paddingHorizontal: spacing.md }}>
+              <Search size={16} color={text.quaternary} />
+              <TextInput
+                value={browseQuery}
+                onChangeText={setBrowseQuery}
+                placeholder="Search exercises…"
+                placeholderTextColor={text.quaternary}
+                style={{ flex: 1, color: text.primary, paddingVertical: spacing.sm, fontSize: 14 }}
+                autoCorrect={false}
+                autoCapitalize="none"
+              />
+            </View>
+          </View>
+
+          <ScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {browseGroups.length === 0 ? (
+              <Text style={{ color: text.quaternary, textAlign: 'center', marginTop: spacing.xl }}>
+                No exercises match "{browseQuery}".
+              </Text>
+            ) : browseGroups.map(({ group, items }) => (
+              <View key={group} style={{ marginBottom: spacing.lg }}>
+                <Text style={[labelStyle, { marginBottom: spacing.xs }]}>{group.toUpperCase()}</Text>
+                {items.map((ex) => {
+                  const alreadyAdded = alreadyInTargetSession.has(ex.id);
+                  const checked = browseSelectedIds.has(ex.id);
+                  return (
+                    <TouchableOpacity
+                      key={ex.id}
+                      disabled={alreadyAdded}
+                      onPress={() => toggleBrowseSelected(ex.id)}
+                      style={{
+                        paddingVertical: spacing.sm,
+                        paddingHorizontal: spacing.md,
+                        borderBottomWidth: 1,
+                        borderBottomColor: palette.borderSubtle,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: spacing.md,
+                        opacity: alreadyAdded ? 0.45 : 1,
+                        backgroundColor: checked ? 'rgba(252, 76, 2, 0.08)' : 'transparent',
+                      }}
+                    >
+                      <View style={{
+                        width: 22, height: 22, borderRadius: 6,
+                        borderWidth: 1.5,
+                        borderColor: checked ? accent.lift : palette.borderSubtle,
+                        backgroundColor: checked ? accent.lift : 'transparent',
+                        alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {checked && <Check size={14} color={palette.bg} strokeWidth={3} />}
+                      </View>
+                      <Text style={{ color: text.primary, fontSize: 14, flex: 1 }}>{ex.name}</Text>
+                      {alreadyAdded && (
+                        <Text style={{ color: text.quaternary, fontFamily: 'monospace', fontSize: 9, fontWeight: '700', letterSpacing: 1.2 }}>
+                          ADDED
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Sticky footer — confirm batch selection. Disabled until ≥1 picked. */}
+          <View style={{
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.lg,
+            borderTopWidth: 1,
+            borderTopColor: palette.borderSubtle,
+            backgroundColor: palette.bg,
+          }}>
+            <NeonButton
+              onPress={confirmBrowseSelection}
+              disabled={browseSelectedIds.size === 0}
+              style={{ width: '100%', opacity: browseSelectedIds.size === 0 ? 0.5 : 1 }}
+            >
+              <Text style={{ fontSize: 15, fontWeight: '800', letterSpacing: 0.6 }}>
+                {browseSelectedIds.size === 0
+                  ? 'SELECT EXERCISES'
+                  : `ADD ${browseSelectedIds.size} EXERCISE${browseSelectedIds.size === 1 ? '' : 'S'}`}
+              </Text>
+            </NeonButton>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </Modal>
   );
 };
@@ -446,7 +644,7 @@ export const SlimPlanCreator = ({
 type SessionCardProps = {
   session: DraftSession;
   isOpen: boolean;
-  exerciseLibrary: { id: string; name: string }[];
+  exerciseLibrary: { id: string; name: string; muscleGroup?: string }[];
   onToggleOpen: () => void;
   onChange: (patch: Partial<DraftSession>) => void;
   onRemove: () => void;
@@ -455,6 +653,7 @@ type SessionCardProps = {
   onAddExerciseFromLibrary: (libEx: { id: string; name: string }) => void;
   onAddExerciseByText: (name: string) => Promise<void> | void;
   onRemoveExercise: (exId: string) => void;
+  onOpenBrowse: () => void;
 };
 
 const SessionCard = ({
@@ -469,6 +668,7 @@ const SessionCard = ({
   onAddExerciseFromLibrary,
   onAddExerciseByText,
   onRemoveExercise,
+  onOpenBrowse,
 }: SessionCardProps) => {
   const [picker, setPicker] = useState('');
   const [adding, setAdding] = useState(false);
@@ -571,12 +771,34 @@ const SessionCard = ({
             </View>
           ))}
 
-          {/* Add exercise: search OR free-text */}
+          {/* Add exercise: browse library OR type to search/create */}
           <View style={{ marginTop: spacing.xs }}>
+            <TouchableOpacity
+              testID="plan-creator-browse-exercises"
+              onPress={onOpenBrowse}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.xs,
+                paddingVertical: spacing.sm,
+                borderWidth: 1,
+                borderColor: accent.lift,
+                borderRadius: radii.sm,
+                backgroundColor: 'rgba(252, 76, 2, 0.08)',
+                marginBottom: spacing.sm,
+              }}
+              accessibilityLabel="Browse exercise library"
+            >
+              <Library size={14} color={accent.lift} />
+              <Text style={{ color: accent.lift, fontFamily: 'monospace', fontSize: 11, fontWeight: '700', letterSpacing: 1.4 }}>
+                BROWSE EXERCISES
+              </Text>
+            </TouchableOpacity>
             <TextInput
               value={picker}
               onChangeText={setPicker}
-              placeholder={adding ? 'Adding…' : 'Add exercise by name…'}
+              placeholder={adding ? 'Adding…' : 'Or type a custom exercise…'}
               placeholderTextColor={text.quaternary}
               editable={!adding}
               style={[inputStyle, adding && { opacity: 0.6 }]}

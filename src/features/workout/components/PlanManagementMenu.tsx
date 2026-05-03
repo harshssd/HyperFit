@@ -47,7 +47,7 @@ const PlanManagementMenu = ({
     {
       icon: FileText,
       label: 'Create from Existing',
-      description: 'Duplicate and customize a plan',
+      description: 'Use a plan as a template',
       action: onCreateFromExisting,
       color: '#06b6d4',
     },

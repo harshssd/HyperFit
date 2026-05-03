@@ -303,10 +303,15 @@ export const fetchUserWorkoutPlans = async (userId: string) => {
   // `data.userWorkoutPlans.find(p => p.isActive)` quietly returns undefined
   // even when the DB has is_active=true — the symptom users see is "No
   // Active Plan" on the Plans tab right after activating from Browse.
-  return (data ?? []).map((row: any) => ({
+  const rows = (data ?? []).map((row: any) => ({
     id: row.id,
     userId: row.user_id,
     planId: row.plan_id,
+    // The embedded `plan` join returns only top-level workout_plans columns —
+    // no schedule, no sessions, no exercises. Anything that walks the plan
+    // (Home week strip, getNextScheduledWorkout, Calendar) silently fails
+    // until those nested arrays are hydrated. Active plan(s) get the full
+    // details fetch below; inactive ones can stay shallow until selected.
     planData: row.plan ?? undefined,
     customName: row.custom_name ?? undefined,
     startedAt: row.started_at,
@@ -315,6 +320,21 @@ export const fetchUserWorkoutPlans = async (userId: string) => {
     createdAt: row.created_at,
     updatedAt: row.updated_at ?? undefined,
   }));
+
+  // Hydrate the active plan(s) with schedule + sessions + exercises.
+  await Promise.all(
+    rows
+      .filter(r => r.isActive && r.planId)
+      .map(async r => {
+        try {
+          r.planData = await fetchWorkoutPlanDetails(r.planId);
+        } catch (err) {
+          console.warn('fetchUserWorkoutPlans: failed to hydrate active plan', r.planId, err);
+        }
+      }),
+  );
+
+  return rows;
 };
 
 export const createUserWorkoutPlan = async (userPlan: Tables['user_workout_plans']['Insert']) => {

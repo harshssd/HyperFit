@@ -7,10 +7,13 @@ import {
 import GlassCard from '../../components/GlassCard';
 import NeonButton from '../../components/NeonButton';
 import { LoadingState, EmptyState, ErrorState } from '../../components/StateView';
+import SimpleBarChart from '../../components/SimpleBarChart';
 import { MuscleHeatmap } from '../analytics/heatmap/MuscleHeatmap';
-import { colors, spacing, radii, palette, text } from '../../styles/theme';
+import { colors, spacing, radii, palette, text, accent, fonts } from '../../styles/theme';
 import { useUser } from '../../contexts/UserContext';
+import { useAppData } from '../../contexts/AppDataContext';
 import { supabase } from '../../services/supabase';
+import { calculateXP } from '../workout/helpers';
 import SessionRow from './components/SessionRow';
 import { useSessionTrajectories } from './hooks/useSessionTrajectories';
 
@@ -53,8 +56,11 @@ type SessionWithLogs = WorkoutSession & {
 
 const ITEMS_PER_PAGE = 10;
 
+const DAY_LABELS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
 const HistoryAnalyticsView = () => {
   const { user } = useUser();
+  const { data } = useAppData();
   const [viewMode, setViewMode] = useState<ViewMode>('history');
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<SessionWithLogs | null>(null);
@@ -430,9 +436,50 @@ const HistoryAnalyticsView = () => {
     );
   };
 
+  const buildWeeklyConsistency = () => {
+    const now = new Date();
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(now.getDate() - (6 - i));
+      const dStr = d.toISOString().split('T')[0];
+      return {
+        label: DAY_LABELS_SHORT[d.getDay()],
+        value: data.gymLogs?.includes(dStr) ? 1 : 0,
+      };
+    });
+  };
+
   const renderAnalyticsView = () => {
+    const streak = data.gymLogs?.length ?? 0;
+    const xp = calculateXP(data);
     return (
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.xl }}>
+        {/* Streak + XP — moved here from Home so the daily glance metric (streak)
+            stays in the header, while retrospective totals live with analytics. */}
+        <View testID="analytics-stats" style={{ flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl }}>
+          <GlassCard style={{ flex: 1, padding: spacing.lg, alignItems: 'center' }}>
+            <TrendingUp size={20} color={accent.lift} />
+            <Text testID="analytics-streak-value" style={{ color: text.primary, fontSize: 22, fontWeight: '900', marginTop: spacing.sm, letterSpacing: -0.4, fontVariant: fonts.tabularNums }}>{streak}</Text>
+            <Text style={{ color: text.quaternary, fontSize: 10, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>Day Streak</Text>
+          </GlassCard>
+          <GlassCard style={{ flex: 1, padding: spacing.lg, alignItems: 'center' }}>
+            <BarChart2 size={20} color={text.secondary} />
+            <Text testID="analytics-xp-value" style={{ color: text.primary, fontSize: 22, fontWeight: '900', marginTop: spacing.sm, letterSpacing: -0.4, fontVariant: fonts.tabularNums }}>{xp}</Text>
+            <Text style={{ color: text.quaternary, fontSize: 10, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>Total XP</Text>
+          </GlassCard>
+        </View>
+
+        {/* Weekly consistency — past 7 days, attendance only. */}
+        <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
+            <Calendar size={16} color={text.tertiary} />
+            <Text style={{ color: text.quaternary, fontSize: 11, fontWeight: '800', marginLeft: spacing.sm, letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>
+              Weekly Consistency
+            </Text>
+          </View>
+          <SimpleBarChart data={buildWeeklyConsistency()} color={accent.lift} />
+        </GlassCard>
+
         <MuscleHeatmap userId={user?.id} defaultDays={7} />
         <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl }}>
           <BarChart2 size={48} color={colors.muted} style={{ opacity: 0.5 }} />

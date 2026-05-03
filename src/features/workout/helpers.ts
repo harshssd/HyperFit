@@ -398,6 +398,9 @@ export const getWorkoutForDate = (date: Date, recentWorkouts: any[], activePlan?
       if (session) {
         return {
           type: 'planned',
+          // Plan session UUID — needed by callers that want to start the
+          // session directly via session.startSessionFromPlan(...).
+          sessionId: session.id,
           exercises: session.exercises.length,
           name: session.name,
           exerciseList: session.exercises.map(e => e.name),
@@ -412,32 +415,53 @@ export const getWorkoutForDate = (date: Date, recentWorkouts: any[], activePlan?
 };
 
 /**
- * Find the next scheduled workout from the active plan
+ * Find the next scheduled workout from the active plan.
+ * Equivalent to `getUpcomingWorkouts(plan, 1)[0] ?? null` — kept as a thin
+ * wrapper so existing callers don't have to change.
  */
 export const getNextScheduledWorkout = (activePlan?: UserWorkoutPlan) => {
-  if (!activePlan || !activePlan.planData?.schedule) {
-    return null;
+  return getUpcomingWorkouts(activePlan, 1)[0] ?? null;
+};
+
+/**
+ * Walk the active plan's schedule forward and return up to `count` upcoming
+ * sessions, starting `startOffsetDays` from today (0 = include today).
+ *
+ * Search window is `count + 14` days so a sparse plan (e.g. 1×/week) still
+ * surfaces enough lookahead without unbounded iteration.
+ */
+export const getUpcomingWorkouts = (
+  activePlan: UserWorkoutPlan | undefined,
+  count: number,
+  startOffsetDays = 0,
+) => {
+  if (!activePlan || !activePlan.planData?.schedule || count <= 0) {
+    return [];
   }
 
   const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
+  const window = count + 14;
+  const found: Array<ReturnType<typeof getWorkoutForDate> & {
+    date: Date;
+    dateStr: string;
+    daysUntil: number;
+  }> = [];
 
-  // Check today and the next 7 days
-  for (let i = 0; i < 7; i++) {
+  for (let i = startOffsetDays; i < startOffsetDays + window && found.length < count; i++) {
     const checkDate = new Date(today);
     checkDate.setDate(today.getDate() + i);
     const checkDateStr = checkDate.toISOString().split('T')[0];
 
     const workoutForDate = getWorkoutForDate(checkDate, [], activePlan);
     if (workoutForDate && workoutForDate.type === 'planned') {
-      return {
+      found.push({
         ...workoutForDate,
         date: checkDate,
         dateStr: checkDateStr,
-        daysUntil: i
-      };
+        daysUntil: i,
+      } as any);
     }
   }
 
-  return null;
+  return found;
 };
