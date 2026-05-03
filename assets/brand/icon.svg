@@ -1,44 +1,45 @@
 <!--
-  HyperFit app icon — pull-up from behind.
-  Single clean closed silhouette walked clockwise:
-    top-left of L arm → down outer arm → out to L lat tip → down to L waist →
-    across waist → up to R lat tip → up outer R arm → over top of R arm →
-    down inner R arm → trap bridge across to inner L arm → up inner L arm → close.
-  Head + bar drawn on top.
+  HyperFit app icon — loaded barbell, head-on.
+  The grip is strava-orange (the app's "active lift" accent token), plates are
+  white, ground is anthracite. Reads instantly at 60pt and at 1024px.
+  Plate stacks are subdivided into individual plates via thin bg-color seams.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
   <rect width="1024" height="1024" fill="#0a0a0a"/>
 
   <defs>
-    <radialGradient id="glow" cx="50%" cy="50%" r="60%">
+    <radialGradient id="glow" cx="50%" cy="50%" r="62%">
       <stop offset="0%" stop-color="#fc4c02" stop-opacity="0.16"/>
-      <stop offset="60%" stop-color="#fc4c02" stop-opacity="0.04"/>
+      <stop offset="58%" stop-color="#fc4c02" stop-opacity="0.04"/>
       <stop offset="100%" stop-color="#0a0a0a" stop-opacity="0"/>
     </radialGradient>
   </defs>
   <rect width="1024" height="1024" fill="url(#glow)"/>
 
-  <path fill="#ffffff" fill-rule="evenodd" d="
-    M 280 220
-    L 280 540
-    L 200 600
-    L 440 856
-    L 584 856
-    L 824 600
-    L 744 540
-    L 744 220
-    L 624 220
-    L 624 540
-    L 400 540
-    L 400 220
-    Z
-  "/>
+  <!-- Outer weight plates (left + right). Tall white rounded rectangles. -->
+  <rect x="72"  y="248" width="172" height="528" rx="22" fill="#ffffff"/>
+  <rect x="780" y="248" width="172" height="528" rx="22" fill="#ffffff"/>
 
-  <!-- Head: back of skull, above bar -->
-  <circle cx="512" cy="232" r="80" fill="#ffffff"/>
+  <!-- Plate seams: divide each stack into 3 plates with thin bg-color gaps -->
+  <g fill="#0a0a0a">
+    <rect x="72"  y="408" width="172" height="14"/>
+    <rect x="72"  y="602" width="172" height="14"/>
+    <rect x="780" y="408" width="172" height="14"/>
+    <rect x="780" y="602" width="172" height="14"/>
+  </g>
 
-  <!-- Pull-up bar -->
-  <rect x="64" y="332" width="896" height="46" rx="6" fill="#fc4c02"/>
-  <rect x="48" y="312" width="22" height="86" rx="3" fill="#fc4c02"/>
-  <rect x="954" y="312" width="22" height="86" rx="3" fill="#fc4c02"/>
+  <!-- Inner collar / sleeve transitions (slightly narrower white sections). -->
+  <rect x="244" y="376" width="76" height="272" rx="14" fill="#ffffff"/>
+  <rect x="704" y="376" width="76" height="272" rx="14" fill="#ffffff"/>
+
+  <!-- The grip — strava-orange. Brand moment. -->
+  <rect x="320" y="468" width="384" height="88" rx="14" fill="#fc4c02"/>
+
+  <!-- Knurling hint: 4 thin darker bands across the orange grip for grip texture. -->
+  <g fill="#0a0a0a" opacity="0.18">
+    <rect x="396" y="468" width="6" height="88"/>
+    <rect x="468" y="468" width="6" height="88"/>
+    <rect x="552" y="468" width="6" height="88"/>
+    <rect x="624" y="468" width="6" height="88"/>
+  </g>
 </svg>
