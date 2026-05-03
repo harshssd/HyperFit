@@ -1,16 +1,11 @@
 import React from 'react';
-import { Apple } from 'lucide-react-native';
 import { ScreenLayout } from '../components/ScreenLayout';
-import { EmptyState } from '../components/StateView';
-import { accent } from '../styles/theme';
+import { NutritionView } from '../features/nutrition/NutritionView';
 
+// NutritionView owns its own ScrollView; opt out of the layout wrapper so
+// we don't nest scroll surfaces (matches Plans, History, Home).
 export const NutritionScreen = () => (
-  <ScreenLayout errorLabel="Error in Nutrition">
-    <EmptyState
-      testID="nutrition-coming-soon"
-      icon={<Apple size={40} color={accent.lift} strokeWidth={1.6} />}
-      title="Fuel — coming soon"
-      message="Macros, food log, and weigh-ins land here next. Lifting + eating in one mirror."
-    />
+  <ScreenLayout scroll={false} errorLabel="Error in Nutrition">
+    <NutritionView />
   </ScreenLayout>
 );
