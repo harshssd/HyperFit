@@ -39,9 +39,9 @@ describe('isExerciseEmpty', () => {
   it('returns true when all sets are blank', () => {
     expect(isExerciseEmpty(makeExercise(1))).toBe(true);
   });
-  it('returns false when any set is completed', () => {
+  it('returns false when any set has weight or reps entered', () => {
     const ex = makeExercise(1);
-    ex.sets[0].completed = true;
+    ex.sets[0].reps = '5';
     expect(isExerciseEmpty(ex)).toBe(false);
   });
   it('returns false when any set has weight', () => {
@@ -143,14 +143,14 @@ describe('moveExerciseInWorkout', () => {
 });
 
 describe('calculateTotalVolume', () => {
-  it('sums weight*reps only for completed sets', () => {
+  it('sums weight*reps for every set with valid numbers (completed flag no longer gates)', () => {
     const ex = makeExercise(1);
     ex.sets = [
       { id: 1, weight: '100', reps: '5', completed: true },
       { id: 2, weight: '100', reps: '5', completed: false },
       { id: 3, weight: '50', reps: '10', completed: true },
     ];
-    expect(calculateTotalVolume([ex])).toBe(500 + 500);
+    expect(calculateTotalVolume([ex])).toBe(500 + 500 + 500);
   });
   it('handles empty/undefined values gracefully', () => {
     const ex = makeExercise(1);
@@ -355,8 +355,9 @@ describe('calculateWorkoutProgress', () => {
   });
   it('rounds percentage and reports complete at 100%', () => {
     const ex = makeExercise(1);
-    ex.sets[0].completed = true;
-    ex.sets[1].completed = true;
+    // Progress now keys off entered weight/reps, not the completed flag.
+    ex.sets[0].weight = '100'; ex.sets[0].reps = '5';
+    ex.sets[1].weight = '100'; ex.sets[1].reps = '5';
     expect(calculateWorkoutProgress([ex])).toEqual({
       totalSets: 2,
       completedSets: 2,
@@ -366,7 +367,7 @@ describe('calculateWorkoutProgress', () => {
   });
   it('partial completion is not complete', () => {
     const ex = makeExercise(1);
-    ex.sets[0].completed = true;
+    ex.sets[0].weight = '100'; ex.sets[0].reps = '5';
     expect(calculateWorkoutProgress([ex]).isComplete).toBe(false);
     expect(calculateWorkoutProgress([ex]).progressPercentage).toBe(50);
   });

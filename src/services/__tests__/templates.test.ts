@@ -35,7 +35,9 @@ describe('fetchTemplatesForUser', () => {
   });
 
   it('orders exercises by order_index and aggregates tags', async () => {
-    const { chain } = makeChain({
+    // Three table calls now: templates, then exercises + user_exercises in parallel
+    // to resolve exercise_id → name (FK was dropped when user_exercises split out).
+    const templatesChain = makeChain({
       data: [
         {
           id: 't1',
@@ -48,14 +50,24 @@ describe('fetchTemplatesForUser', () => {
           tags: ['push', 'upper'],
           is_public: false,
           template_exercises: [
-            { order_index: 1, exercise: { name: 'OHP' } },
-            { order_index: 0, exercise: { name: 'Bench' } },
+            { order_index: 1, exercise_id: 'e2' },
+            { order_index: 0, exercise_id: 'e1' },
           ],
         },
       ],
       error: null,
+    }).chain;
+    const exercisesChain = makeChain({
+      data: [{ id: 'e1', name: 'Bench' }, { id: 'e2', name: 'OHP' }],
+      error: null,
+    }).chain;
+    const userExercisesChain = makeChain({ data: [], error: null }).chain;
+    (supabase as any).from = jest.fn((table: string) => {
+      if (table === 'templates') return templatesChain;
+      if (table === 'exercises') return exercisesChain;
+      if (table === 'user_exercises') return userExercisesChain;
+      throw new Error(`Unexpected table: ${table}`);
     });
-    (supabase as any).from = jest.fn(() => chain);
 
     const out = await fetchTemplatesForUser('u1');
     expect(out.templates).toHaveLength(1);

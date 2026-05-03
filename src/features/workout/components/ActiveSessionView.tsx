@@ -10,6 +10,7 @@ import FinishedSessionView from './FinishedSessionView';
 import workoutStyles from '../../../styles/workout';
 import { getExerciseConfig } from '../helpers';
 import type { WorkoutExercise } from '../../../types/workout';
+import type { GhostSet } from '../hooks/useLastSessionSets';
 
 /**
  * Active workout surface — the focused/list/finished UI inside the
@@ -24,7 +25,7 @@ import type { WorkoutExercise } from '../../../types/workout';
  */
 
 type GhostState = {
-  sets: any[];
+  sets: GhostSet[];
   date: string | null;
 };
 
