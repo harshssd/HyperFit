@@ -30,15 +30,24 @@ type Props = {
 // Heatmap palette — strava-orange for lift signal, per DESIGN.md "honest mirror".
 // Hue carries intensity (Light vs Heavy reads at a glance) rather than opacity
 // alone. Stroke ramps in lockstep so every active muscle gets a defined rim.
+//
+// HEATMAP_FILL and HEATMAP_BORDER are exported so the legend in MuscleHeatmap
+// reads from the same source — no drift if the ramp is ever retuned.
 const SILHOUETTE_FILL = '#0a0a0a';                  // matches anthracite bg
 const SILHOUETTE_STROKE = palette.textQuaternary;   // body outline (#71717a)
-const REGION_BORDER_REST = palette.surfaceAlt;      // untouched region rim
-const REGION_BORDER_LIGHT = '#7a2400';              // dark-orange rim at light load
-const REGION_BORDER_HEAVY = '#ff6a2b';              // bright primary rim at heavy load
-const FILL_UNTOUCHED = palette.surface;             // #18181b — same as legend "None"
-const FILL_LIGHT = '#3a1d0a';                       // dim ember (just-trained)
-const FILL_MID = '#a13208';                         // mid load — saturated burnt orange
-const FILL_HEAVY = palette.liftActive;              // #fc4c02 — full strava orange
+
+export const HEATMAP_FILL = {
+  none:  palette.surface,    // #18181b — untouched
+  light: '#3a1d0a',          // dim ember (just-trained)
+  mid:   '#a13208',          // mid load — saturated burnt orange
+  heavy: palette.liftActive, // #fc4c02 — full strava orange
+} as const;
+
+export const HEATMAP_BORDER = {
+  rest:  palette.surfaceAlt, // untouched region rim
+  light: '#7a2400',          // dark-orange rim at light load
+  heavy: '#ff6a2b',          // bright primary rim at heavy load
+} as const;
 
 /** Renders one region's shapes. Animates both fill color and opacity. */
 const Region = ({
@@ -65,13 +74,13 @@ const Region = ({
   // Light vs Heavy distinguishable at a glance, not just "more opaque white".
   const fill = fadeAnim.interpolate({
     inputRange: [0, 0.001, 0.5, 1],
-    outputRange: [FILL_UNTOUCHED, FILL_LIGHT, FILL_MID, FILL_HEAVY],
+    outputRange: [HEATMAP_FILL.none, HEATMAP_FILL.light, HEATMAP_FILL.mid, HEATMAP_FILL.heavy],
   });
   // Stroke ramps in lockstep so every lit muscle gets a defined rim — without
   // it, the active fills bleed into the silhouette outline.
   const stroke = fadeAnim.interpolate({
     inputRange: [0, 0.001, 1],
-    outputRange: [REGION_BORDER_REST, REGION_BORDER_LIGHT, REGION_BORDER_HEAVY],
+    outputRange: [HEATMAP_BORDER.rest, HEATMAP_BORDER.light, HEATMAP_BORDER.heavy],
   });
 
   return (

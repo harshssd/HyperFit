@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import GlassCard from '../../../components/GlassCard';
 import { LoadingState, EmptyState } from '../../../components/StateView';
 import { colors, spacing, radii } from '../../../styles/theme';
-import { BodySilhouette } from './BodySilhouette';
+import { BodySilhouette, HEATMAP_FILL, HEATMAP_BORDER } from './BodySilhouette';
 import {
   BACK_REGIONS,
   FRONT_REGIONS,
@@ -131,16 +131,26 @@ export const MuscleHeatmap = ({
           </View>
 
           {/* Legend mirrors the body-silhouette ramp: surface grey → ember →
-              burnt orange → bright strava. Hue carries intensity. */}
+              burnt orange → bright strava. Hue carries intensity. Pairs are
+              wrapped so flexWrap can't split a swatch from its label on a
+              narrow screen — overflow lands on a second row instead. */}
           <View style={styles.legendRow}>
-            <View style={[styles.legendSwatch, styles.legendSwatchNone]} />
-            <Text style={styles.legendLabel}>None</Text>
-            <View style={[styles.legendSwatch, styles.legendSwatchLight]} />
-            <Text style={styles.legendLabel}>Light</Text>
-            <View style={[styles.legendSwatch, styles.legendSwatchMid]} />
-            <Text style={styles.legendLabel}>Mid</Text>
-            <View style={[styles.legendSwatch, styles.legendSwatchHeavy]} />
-            <Text style={styles.legendLabel}>Heavy</Text>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, styles.legendSwatchNone]} />
+              <Text style={styles.legendLabel}>None</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, styles.legendSwatchLight]} />
+              <Text style={styles.legendLabel}>Light</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, styles.legendSwatchMid]} />
+              <Text style={styles.legendLabel}>Mid</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendSwatch, styles.legendSwatchHeavy]} />
+              <Text style={styles.legendLabel}>Heavy</Text>
+            </View>
           </View>
 
           {selected && (
@@ -197,23 +207,28 @@ const styles = StyleSheet.create({
   },
   legendRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: spacing.md,
-    gap: spacing.xs,
+    rowGap: 6,
+    columnGap: 4,
   },
+  // Legend pair = swatch + label, kept inseparable so wrap can't split them.
+  legendItem: { flexDirection: 'row', alignItems: 'center', marginRight: spacing.sm },
   legendSwatch: {
-    width: 14,
-    height: 14,
-    borderRadius: 4,
+    width: 12,
+    height: 12,
+    borderRadius: 3,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+    marginRight: 4,
   },
-  legendSwatchNone:  { backgroundColor: '#18181b' },
-  legendSwatchLight: { backgroundColor: '#3a1d0a', borderColor: '#7a2400' },
-  legendSwatchMid:   { backgroundColor: '#a13208', borderColor: '#c44a18' },
-  legendSwatchHeavy: { backgroundColor: '#fc4c02', borderColor: '#ff6a2b' },
-  legendLabel: { color: colors.muted, fontSize: 11, marginRight: spacing.sm },
+  legendSwatchNone:  { backgroundColor: HEATMAP_FILL.none },
+  legendSwatchLight: { backgroundColor: HEATMAP_FILL.light, borderColor: HEATMAP_BORDER.light },
+  legendSwatchMid:   { backgroundColor: HEATMAP_FILL.mid,   borderColor: '#c44a18' },
+  legendSwatchHeavy: { backgroundColor: HEATMAP_FILL.heavy, borderColor: HEATMAP_BORDER.heavy },
+  legendLabel: { color: colors.muted, fontSize: 11 },
   detail: {
     marginTop: spacing.md,
     padding: spacing.md,
