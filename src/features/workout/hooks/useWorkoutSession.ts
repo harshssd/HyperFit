@@ -10,10 +10,14 @@ import {
   updateSetValue,
 } from '../helpers';
 import { showError, showSuccess } from '../../../utils/alerts';
-import { WorkoutExercise } from '../../../types/workout';
+import { PlanSession, SessionExercise, UserWorkoutPlan, WorkoutExercise, WorkoutPlan } from '../../../types/workout';
 import type { UseRestTimerReturn } from './useRestTimer';
 
-let Haptics: any = null;
+type HapticsModule = {
+  impactAsync?: (style: unknown) => Promise<void>;
+  ImpactFeedbackStyle?: { Medium: unknown };
+};
+let Haptics: HapticsModule | null = null;
 try {
   Haptics = require('expo-haptics');
 } catch {
@@ -41,22 +45,10 @@ export type SessionContext = {
   planSessionId?: string;
 };
 
-export type ActiveUserPlanLike = {
-  id?: string;
-  isActive?: boolean;
-  planData?: {
-    id?: string;
-    name?: string;
-    sessions?: any[];
-    schedule?: Record<string, { sessionId: string; order?: number }[] | undefined>;
-  };
-} | null
-  | undefined;
-
 type UseWorkoutSessionArgs = {
   userId?: string | null;
   /** The user's currently active plan instance, used for finish-time logging context. */
-  activeUserPlan?: ActiveUserPlanLike;
+  activeUserPlan?: UserWorkoutPlan | null;
   /** Rest timer hook — set-completion drives the timer. */
   restTimer: UseRestTimerReturn;
 };
@@ -80,14 +72,14 @@ export type UseWorkoutSessionReturn = {
   deleteExercise: (id: number) => void;
   addSet: (id: number) => void;
   /** Mid-session set-update: handles haptics, rest timer side effects, and per-set rest tracking. */
-  updateSet: (exerciseId: number, setIndex: number, field: string, value: any) => void;
+  updateSet: (exerciseId: number, setIndex: number, field: string, value: unknown) => void;
   finishWorkout: () => Promise<void>;
   undoFinish: () => void;
   startNewSession: () => void;
   abortSession: () => void;
   /** Replace the whole session with the exercises from a plan session. */
   startSessionFromPlan: (
-    planData: any,
+    planData: WorkoutPlan,
     sessionId: string,
     contextType?: 'active_plan' | 'alternate_plan' | 'scheduled'
   ) => void;
@@ -129,7 +121,7 @@ export const useWorkoutSession = ({
       .then(rows => {
         if (cancelled) return;
         const cache = new Map<string, string>();
-        rows.forEach((ex: any) => cache.set(ex.name.toLowerCase(), ex.id));
+        rows.forEach(ex => cache.set(ex.name.toLowerCase(), ex.id));
         setExerciseCache(cache);
       })
       .catch(e => console.error('Failed to load exercise cache', e));
@@ -225,7 +217,7 @@ export const useWorkoutSession = ({
   );
 
   const updateSet = useCallback(
-    (exId: number, setIndex: number, field: string, value: any) => {
+    (exId: number, setIndex: number, field: string, value: unknown) => {
       setSessionExercises(prev => {
         const next = [...prev];
         const exIdx = next.findIndex(ex => ex.id === exId);
@@ -233,10 +225,10 @@ export const useWorkoutSession = ({
         const sets = [...next[exIdx].sets];
         if (!sets[setIndex]) return prev;
 
-        const updated: any = { ...sets[setIndex], [field]: value };
+        const updated: WorkoutExercise['sets'][number] = { ...sets[setIndex], [field]: value };
 
         if (field === 'completed' && value === true) {
-          Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+          Haptics?.impactAsync?.(Haptics.ImpactFeedbackStyle?.Medium).catch(() => {});
           const elapsed = restTimer.onSetCompleted();
           updated.restSeconds = elapsed;
           updated.completedAt = new Date().toISOString();
@@ -258,7 +250,7 @@ export const useWorkoutSession = ({
     if (sessionExercises.length === 0) return;
 
     try {
-      const totalVolume = calculateTotalVolume(sessionExercises as any);
+      const totalVolume = calculateTotalVolume(sessionExercises);
 
       let sessionName: string;
       switch (sessionContext.type) {
@@ -373,7 +365,7 @@ export const useWorkoutSession = ({
       }
       setIsSessionFinished(true);
       showSuccess('Workout saved!');
-    } catch (e: any) {
+    } catch (e) {
       console.error(e);
       showError('Failed to save workout');
     }
@@ -398,15 +390,15 @@ export const useWorkoutSession = ({
 
   const startSessionFromPlan = useCallback(
     (
-      planData: any,
+      planData: WorkoutPlan,
       sessionId: string,
       contextType: 'active_plan' | 'alternate_plan' | 'scheduled' = 'active_plan'
     ) => {
-      const session = planData?.sessions?.find((s: any) => s.id === sessionId);
+      const session: PlanSession | undefined = planData?.sessions?.find(s => s.id === sessionId);
       if (!session) return;
 
       const baseId = Date.now();
-      const newExercises: WorkoutExercise[] = session.exercises.map((exercise: any, index: number) => ({
+      const newExercises: WorkoutExercise[] = session.exercises.map((exercise: SessionExercise, index: number) => ({
         id: baseId + index,
         name: exercise.name,
         exerciseId: exercise.id,

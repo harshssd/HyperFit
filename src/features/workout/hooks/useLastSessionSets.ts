@@ -51,7 +51,10 @@ export const useLastSessionSets = (
           .order('start_time', { referencedTable: 'session', ascending: false, nullsFirst: false })
           .limit(1);
 
-        const latest: any = sessionRows?.[0];
+        // PostgREST embed shape isn't inferred — narrow the join here.
+        const latest = sessionRows?.[0] as
+          | { session_id: string; session?: { workout_date?: string | null } }
+          | undefined;
         if (!latest?.session_id) {
           if (!cancelled) {
             setSets(EMPTY);
@@ -70,7 +73,7 @@ export const useLastSessionSets = (
         if (cancelled) return;
 
         const ordered: GhostSet[] = [];
-        (rows ?? []).forEach((r: any) => {
+        (rows ?? []).forEach(r => {
           const idx = Math.max(0, (r.set_number ?? 1) - 1);
           ordered[idx] = { weight: r.weight, reps: r.reps };
         });
