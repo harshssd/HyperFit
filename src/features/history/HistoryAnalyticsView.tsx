@@ -294,6 +294,10 @@ const HistoryAnalyticsView = () => {
                 date={session.date}
                 name={session.name}
                 volumeLoad={session.volume_load}
+                startTime={session.start_time}
+                durationSeconds={session.duration_seconds}
+                exerciseCount={session.exercise_count}
+                setCount={session.set_count}
                 trajectory={trajectories.byId[session.id]}
                 onPress={() => loadSessionDetails(session.id)}
               />
