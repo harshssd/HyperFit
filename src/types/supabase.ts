@@ -507,6 +507,16 @@ export interface Database {
         };
       };
 
+      plan_muscle_coverage_view: {
+        Row: {
+          plan_id: string;
+          plan_session_id: string;
+          muscle_id: string;
+          recruitment_score: number;
+          planned_sets: number;
+        };
+      };
+
       nutrition_day_summary_view: {
         Row: {
           user_id: string;
