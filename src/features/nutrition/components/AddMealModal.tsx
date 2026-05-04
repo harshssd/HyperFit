@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Check, Plus, X } from 'lucide-react-native';
+import { Check, X } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import {
   getRecents,
@@ -20,23 +20,16 @@ import type { MealSlot } from '../../../types/supabase';
 /**
  * AddMealModal — single entry surface for "log a meal".
  *
- * Why this exists: the inline AddMealRow that lived inside each MealCard
- * forced the user to pick the right card, expand it, then type. Three
- * decisions before the first tap. This modal collapses that into one
- * primary "+ Add meal" button + one form, with the slot picker as the
- * first interaction. Cards become display-only.
+ * Layout: meal-slot chips → recents → hero kcal → item name → macros (4 up,
+ * always visible with full-word labels). Macros aren't behind a toggle —
+ * the screen has the room and "P / C / F / fib" was unreadable to a new user.
  *
- * Slot picker: 4 chips for breakfast/lunch/dinner/snack + a "Custom…"
- * chip that reveals a 32-char text input (pre-workout, late night, etc).
- * Custom entries are still bucketed in the snack slot under the hood —
- * the enum stays 4 values, the label is purely a UI grouping aid.
+ * Slot picker: 4 chips (breakfast/lunch/dinner/snack) + Custom… which reveals
+ * a 32-char label input. Custom entries still bucket as 'snack' under the
+ * hood; the enum stays 4 values, the label is purely a UI grouping aid.
  *
- * Recents: per-slot, refetched whenever the selected slot changes. Tap
- * a recent to pre-fill kcal/macros/name; the user can tweak before save.
- * Pre-fill (not auto-save) because portion sizes drift day-to-day.
- *
- * Macros gated behind "+ macros" toggle — same pattern as the AddMealRow
- * we replaced. Casual logging is kcal + name only.
+ * Recents are per-slot, refetched on slot change. Tap pre-fills (not auto-
+ * saves) — portion sizes drift day-to-day.
  */
 
 type Props = {
@@ -72,12 +65,9 @@ export const AddMealModal = ({
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
   const [fiber, setFiber] = useState('');
-  const [showMacros, setShowMacros] = useState(false);
   const [recents, setRecents] = useState<NutritionEntry[]>([]);
   const [saving, setSaving] = useState(false);
 
-  // Re-seed when the modal reopens (different slot tapped, or pre-filled
-  // for a custom card). Clears any in-flight typing the user abandoned.
   useEffect(() => {
     if (!visible) return;
     setSlot(defaultSlot);
@@ -89,11 +79,8 @@ export const AddMealModal = ({
     setCarb('');
     setFat('');
     setFiber('');
-    setShowMacros(false);
   }, [visible, defaultSlot, defaultLabel]);
 
-  // Per-slot recents. Refetch when slot changes (custom uses 'snack' as
-  // the backing slot, so its recents feed is the snack feed — fine).
   useEffect(() => {
     if (!visible || !user?.id) return;
     void getRecents(user.id, slot, 8).then(setRecents);
@@ -106,9 +93,6 @@ export const AddMealModal = ({
     setCarb(String(r.carb_g));
     setFat(String(r.fat_g));
     setFiber(String(r.fiber_g));
-    if (r.protein_g > 0 || r.carb_g > 0 || r.fat_g > 0 || r.fiber_g > 0) {
-      setShowMacros(true);
-    }
   };
 
   const canSave = !saving && parseInt(kcal, 10) > 0
@@ -174,7 +158,7 @@ export const AddMealModal = ({
             paddingHorizontal: spacing.xl,
             paddingTop: spacing.lg,
             paddingBottom: spacing.xxl,
-            gap: spacing.lg,
+            gap: spacing.xl,
           }}
           keyboardShouldPersistTaps="handled"
         >
@@ -227,11 +211,15 @@ export const AddMealModal = ({
             ) : null}
           </View>
 
-          {/* Recents */}
+          {/* Recents — horizontal chips so they don't dominate */}
           {recents.length > 0 ? (
-            <View style={{ gap: 4 }}>
-              <SmallLabel>Tap to pre-fill</SmallLabel>
-              <View style={{ gap: 4 }}>
+            <View style={{ gap: spacing.sm }}>
+              <SmallLabel>Recent · tap to pre-fill</SmallLabel>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 6, paddingRight: spacing.xl }}
+              >
                 {recents.map(r => (
                   <TouchableOpacity
                     key={r.id}
@@ -239,21 +227,18 @@ export const AddMealModal = ({
                     accessibilityRole="button"
                     accessibilityLabel={`Pre-fill from ${r.name ?? 'meal'}`}
                     style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: spacing.sm,
-                      paddingHorizontal: spacing.sm,
+                      paddingHorizontal: spacing.md,
                       paddingVertical: spacing.sm,
                       backgroundColor: palette.surface,
                       borderColor: palette.borderStrong,
                       borderWidth: 1,
                       borderRadius: radii.sm,
+                      maxWidth: 220,
                     }}
                   >
-                    <Plus size={14} color={accent.lift} strokeWidth={3} />
                     <Text
                       numberOfLines={1}
-                      style={{ flex: 1, color: text.primary, fontSize: 13, fontWeight: '600' }}
+                      style={{ color: text.primary, fontSize: 13, fontWeight: '700' }}
                     >
                       {r.name ?? 'Meal'}
                     </Text>
@@ -261,9 +246,10 @@ export const AddMealModal = ({
                       style={{
                         color: text.tertiary,
                         fontFamily: fonts.family.mono,
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: '700',
                         fontVariant: fonts.tabularNums,
+                        marginTop: 2,
                       }}
                     >
                       {r.kcal}
@@ -274,61 +260,107 @@ export const AddMealModal = ({
                     </Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             </View>
           ) : null}
 
-          {/* kcal + name */}
+          {/* Hero: calories */}
           <View style={{ gap: spacing.sm }}>
-            <SmallLabel>What did you eat</SmallLabel>
-            <View style={{ flexDirection: 'row', gap: 6 }}>
-              <NumCell value={kcal} placeholder="kcal" onChange={setKcal} flex={1.2} />
+            <SmallLabel>Calories</SmallLabel>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: palette.surface,
+                borderColor: kcal ? accent.lift : palette.borderStrong,
+                borderWidth: 1,
+                borderRadius: radii.md,
+                paddingHorizontal: spacing.lg,
+              }}
+            >
               <TextInput
-                value={name}
-                onChangeText={setName}
-                placeholder="Item (e.g. chicken)"
+                value={kcal}
+                onChangeText={setKcal}
+                placeholder="0"
                 placeholderTextColor={text.disabled}
+                keyboardType="number-pad"
+                selectTextOnFocus
                 style={{
-                  flex: 3,
-                  backgroundColor: palette.surface,
-                  borderColor: palette.borderStrong,
-                  borderWidth: 1,
-                  borderRadius: radii.sm,
-                  paddingHorizontal: spacing.sm,
-                  paddingVertical: spacing.sm,
+                  flex: 1,
                   color: text.primary,
-                  fontSize: 14,
-                  fontWeight: '600',
+                  fontSize: 36,
+                  fontWeight: '900',
+                  letterSpacing: -1,
+                  paddingVertical: spacing.md,
+                  fontVariant: fonts.tabularNums,
                 }}
               />
-            </View>
-            {showMacros ? (
-              <View style={{ flexDirection: 'row', gap: 6 }}>
-                <NumCell value={protein} placeholder="P"   onChange={setProtein} />
-                <NumCell value={carb}    placeholder="C"   onChange={setCarb} />
-                <NumCell value={fat}     placeholder="F"   onChange={setFat} />
-                <NumCell value={fiber}   placeholder="fib" onChange={setFiber} />
-              </View>
-            ) : null}
-            <TouchableOpacity
-              onPress={() => setShowMacros(s => !s)}
-              accessibilityRole="button"
-              accessibilityLabel={showMacros ? 'Hide macros' : 'Show macros'}
-              style={{ alignSelf: 'flex-start', paddingVertical: 2 }}
-            >
               <Text
                 style={{
-                  color: text.tertiary,
+                  color: text.quaternary,
                   fontFamily: fonts.family.mono,
-                  fontSize: 10,
-                  letterSpacing: 1.4,
+                  fontSize: 12,
+                  letterSpacing: 1.8,
+                  fontWeight: '800',
                   textTransform: 'uppercase',
-                  fontWeight: '700',
                 }}
               >
-                {showMacros ? '− macros' : '+ macros'}
+                kcal
               </Text>
-            </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Item name */}
+          <View style={{ gap: spacing.sm }}>
+            <SmallLabel>Item</SmallLabel>
+            <TextInput
+              value={name}
+              onChangeText={setName}
+              placeholder="e.g. Grilled chicken, 200 g"
+              placeholderTextColor={text.disabled}
+              style={{
+                backgroundColor: palette.surface,
+                borderColor: palette.borderStrong,
+                borderWidth: 1,
+                borderRadius: radii.md,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
+                color: text.primary,
+                fontSize: 15,
+                fontWeight: '600',
+              }}
+            />
+          </View>
+
+          {/* Macros — always visible, fully labeled */}
+          <View style={{ gap: spacing.sm }}>
+            <SmallLabel>Macros · grams</SmallLabel>
+            <View style={{ flexDirection: 'row', gap: 6 }}>
+              <MacroCell
+                label="Protein"
+                value={protein}
+                onChange={setProtein}
+                accentColor={accent.lift}
+              />
+              <MacroCell
+                label="Carbs"
+                value={carb}
+                onChange={setCarb}
+                accentColor={accent.sessionUp}
+              />
+              <MacroCell
+                label="Fat"
+                value={fat}
+                onChange={setFat}
+                accentColor={accent.macroFat}
+              />
+              <MacroCell
+                label="Fiber"
+                value={fiber}
+                onChange={setFiber}
+                accentColor={text.tertiary}
+              />
+            </View>
           </View>
 
           {/* Save */}
@@ -339,7 +371,7 @@ export const AddMealModal = ({
             accessibilityRole="button"
             accessibilityLabel="Save meal entry"
             style={{
-              marginTop: spacing.md,
+              marginTop: spacing.sm,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
@@ -426,37 +458,89 @@ const SlotChip = ({
   </TouchableOpacity>
 );
 
-const NumCell = ({
+/**
+ * MacroCell — a stacked input: tiny color-dot + label on top, big number,
+ * "g" suffix. The accent dot is the only color signal (subtle, not a full
+ * border tint) so the four cells read as a related group, not four chips.
+ */
+const MacroCell = ({
+  label,
   value,
-  placeholder,
   onChange,
-  flex = 1,
+  accentColor,
 }: {
+  label: string;
   value: string;
-  placeholder: string;
   onChange: (v: string) => void;
-  flex?: number;
-}) => (
-  <TextInput
-    value={value}
-    onChangeText={onChange}
-    placeholder={placeholder}
-    placeholderTextColor={text.disabled}
-    keyboardType="number-pad"
-    selectTextOnFocus
-    style={{
-      flex,
-      backgroundColor: palette.surface,
-      borderColor: palette.borderStrong,
-      borderWidth: 1,
-      borderRadius: radii.sm,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.sm,
-      color: text.primary,
-      fontSize: 14,
-      fontWeight: '700',
-      textAlign: 'center',
-      fontVariant: fonts.tabularNums,
-    }}
-  />
-);
+  accentColor: string;
+}) => {
+  const filled = value.trim().length > 0;
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: palette.surface,
+        borderColor: filled ? accentColor : palette.borderStrong,
+        borderWidth: 1,
+        borderRadius: radii.md,
+        paddingHorizontal: spacing.sm,
+        paddingTop: spacing.sm,
+        paddingBottom: spacing.sm,
+        alignItems: 'center',
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <View
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: accentColor,
+          }}
+        />
+        <Text
+          style={{
+            color: text.quaternary,
+            fontFamily: fonts.family.mono,
+            fontSize: 9,
+            letterSpacing: 1.4,
+            textTransform: 'uppercase',
+            fontWeight: '800',
+          }}
+        >
+          {label}
+        </Text>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 2 }}>
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          placeholder="0"
+          placeholderTextColor={text.disabled}
+          keyboardType="number-pad"
+          selectTextOnFocus
+          style={{
+            color: filled ? text.primary : text.disabled,
+            fontSize: 20,
+            fontWeight: '800',
+            textAlign: 'center',
+            minWidth: 32,
+            paddingVertical: 2,
+            fontVariant: fonts.tabularNums,
+          }}
+        />
+        <Text
+          style={{
+            color: text.quaternary,
+            fontFamily: fonts.family.mono,
+            fontSize: 11,
+            fontWeight: '700',
+            marginLeft: 2,
+          }}
+        >
+          g
+        </Text>
+      </View>
+    </View>
+  );
+};

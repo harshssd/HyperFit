@@ -35,12 +35,14 @@ export const palette = {
   liftActive:   '#fc4c02',  // active set, PR chip, +delta on a single lift
   sessionUp:    '#00d68f',  // session-volume trending up vs prior session
   regression:   '#ef4444',  // session-volume trending down (reserved)
+  macroFat:     '#eab308',  // nutrition: fat macro signal (amber)
 } as const;
 
 export const accent = {
   lift:       palette.liftActive,
   sessionUp:  palette.sessionUp,
   regression: palette.regression,
+  macroFat:   palette.macroFat,
 } as const;
 
 export const text = {
