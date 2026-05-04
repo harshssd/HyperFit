@@ -6,8 +6,6 @@ export type PlanMuscleCoverage = {
   byMuscle: Partial<Record<MuscleId, number>>;
   /** Same map normalized to [0, 1] — the heaviest-hit muscle is 1. */
   intensities: Partial<Record<MuscleId, number>>;
-  /** Total planned sets that contributed (across all sessions and exercises). */
-  totalPlannedSets: number;
 };
 
 /**
@@ -25,7 +23,7 @@ export const fetchPlanMuscleCoverage = async (
 ): Promise<PlanMuscleCoverage> => {
   let q = supabase
     .from('plan_muscle_coverage_view')
-    .select('muscle_id, recruitment_score, planned_sets')
+    .select('muscle_id, recruitment_score')
     .eq('plan_id', planId);
   if (planSessionId) q = q.eq('plan_session_id', planSessionId);
 
@@ -33,11 +31,9 @@ export const fetchPlanMuscleCoverage = async (
   if (error) throw error;
 
   const byMuscle: Partial<Record<MuscleId, number>> = {};
-  let totalPlannedSets = 0;
   (data ?? []).forEach(row => {
     const id = row.muscle_id as MuscleId;
     byMuscle[id] = (byMuscle[id] ?? 0) + Number(row.recruitment_score);
-    totalPlannedSets += Number(row.planned_sets);
   });
 
   const max = Math.max(0, ...Object.values(byMuscle).map(v => v ?? 0));
@@ -48,5 +44,5 @@ export const fetchPlanMuscleCoverage = async (
     });
   }
 
-  return { byMuscle, intensities, totalPlannedSets };
+  return { byMuscle, intensities };
 };

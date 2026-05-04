@@ -20,7 +20,16 @@
 create or replace view public.plan_muscle_coverage_view
 with (security_invoker = on)
 as
-with exercise_muscle_pairs as (
+with directory as (
+  -- Mirrors muscle_volume_v2_view: plan_exercises.exercise_id is a soft
+  -- reference (no FK) since 20260504300000_split_user_exercises, so the
+  -- view must union both tables or user-scoped exercises silently fall
+  -- out of plan coverage.
+  select id, primary_muscles, secondary_muscles from public.exercises
+  union all
+  select id, primary_muscles, secondary_muscles from public.user_exercises
+),
+exercise_muscle_pairs as (
   select
     pe.id              as plan_exercise_id,
     pe.session_id      as plan_session_id,
@@ -30,7 +39,7 @@ with exercise_muscle_pairs as (
     m.recruitment      as recruitment
   from public.plan_exercises pe
   join public.plan_sessions  ps on ps.id = pe.session_id
-  join public.exercises      e  on e.id  = pe.exercise_id
+  join directory             e  on e.id  = pe.exercise_id
   cross join lateral (
     select unnest(coalesce(e.primary_muscles,   '{}')) as muscle_id, 1.0::numeric as recruitment
     union all
