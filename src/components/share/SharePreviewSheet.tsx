@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -63,7 +65,10 @@ export const SharePreviewSheet = ({ visible, payload, loading, error, onClose }:
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <View style={styles.container}>
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={styles.header}>
           <Text style={styles.headerTitle}>{isPlan ? 'SHARE PLAN' : 'SHARE WORKOUT'}</Text>
           <TouchableOpacity
@@ -75,7 +80,10 @@ export const SharePreviewSheet = ({ visible, payload, loading, error, onClose }:
           </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.body}>
+        <ScrollView
+          contentContainerStyle={styles.body}
+          keyboardShouldPersistTaps="handled"
+        >
           <Text style={styles.fieldLabel}>NAME</Text>
           <TextInput
             value={title}
@@ -139,7 +147,7 @@ export const SharePreviewSheet = ({ visible, payload, loading, error, onClose }:
         <View pointerEvents="none" style={styles.captureHost}>
           {effectivePayload && <ShareableSummaryCard ref={ref} payload={effectivePayload} />}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
