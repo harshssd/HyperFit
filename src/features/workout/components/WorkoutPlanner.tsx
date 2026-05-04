@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Dumbbell, Calendar, ChevronLeft, ChevronRight, Play, Settings, CheckCircle, Layout, PlusCircle } from 'lucide-react-native';
 import NeonButton from '../../../components/NeonButton';
 import GlassCard from '../../../components/GlassCard';
+import SharePlanSheet from '../../../components/share/SharePlanSheet';
 import workoutStyles from '../../../styles/workout';
 import homeStyles from '../../../styles/home';
 import { colors, spacing, radii } from '../../../styles/theme';
@@ -63,6 +64,7 @@ const WorkoutPlanner = ({
 }: WorkoutPlannerProps) => {
   const [selectedDate, setSelectedDate] = React.useState(new Date());
   const [showPlanMenu, setShowPlanMenu] = React.useState(false);
+  const [sharePlan, setSharePlan] = useState<WorkoutPlan | null>(null);
 
   // Rolling 7-day strip anchored on today. Today sits at the leftmost cell;
   // the strip is forward-looking, matching Home's "this week" idiom.
@@ -595,8 +597,19 @@ const WorkoutPlanner = ({
           onCreateFromExisting={onCreateFromExisting}
           onEndPlan={onEndPlan}
           onCleanupPlans={onCleanupPlans}
+          onSharePlan={
+            activePlan?.planData
+              ? () => setSharePlan(activePlan.planData as WorkoutPlan)
+              : undefined
+          }
         />
       )}
+
+      <SharePlanSheet
+        visible={!!sharePlan}
+        plan={sharePlan}
+        onClose={() => setSharePlan(null)}
+      />
     </ScrollView>
   );
 };

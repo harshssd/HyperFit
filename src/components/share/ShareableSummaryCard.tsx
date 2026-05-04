@@ -23,8 +23,26 @@ export type ShareWorkoutPayload = {
   intensities: Partial<Record<MuscleId, number>>;
 };
 
+export type SharePlanPayload = {
+  kind: 'plan';
+  title: string;
+  date: string;
+  /** e.g. "4-DAY SPLIT" — shown under the title. */
+  subtitle: string;
+  sessionsPerWeek: number;
+  exerciseCount: number;
+  /** Distinct muscle ids that the plan recruits at all. */
+  muscleCount: number;
+  /** Plan length in weeks (from `WorkoutPlan.duration`). Falls back to null. */
+  durationWeeks: number | null;
+  byMuscle: Partial<Record<MuscleId, number>>;
+  intensities: Partial<Record<MuscleId, number>>;
+};
+
+export type SharePayload = ShareWorkoutPayload | SharePlanPayload;
+
 type Props = {
-  payload: ShareWorkoutPayload;
+  payload: SharePayload;
 };
 
 /** Region labels keyed by id (deduped across front/back). */
@@ -56,10 +74,11 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
     return entries
       .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 3);
-  }, [payload.byMuscle]);
+      .slice(0, payload.kind === 'plan' ? 5 : 3);
+  }, [payload.byMuscle, payload.kind]);
 
   const topMax = topMuscles[0]?.[1] ?? 0;
+  const isPlan = payload.kind === 'plan';
 
   return (
     <View ref={ref} collapsable={false} style={styles.card}>
@@ -75,15 +94,23 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
       <Text style={styles.title} numberOfLines={2}>
         {payload.title.toUpperCase()}
       </Text>
-      <Text style={styles.subtitle} allowFontScaling={false}>
-        <Text style={styles.subtitleNum}>
-          {payload.durationMin != null ? `${payload.durationMin} min` : '—'}
+      {payload.kind === 'workout' ? (
+        <Text style={styles.subtitle} allowFontScaling={false}>
+          <Text style={styles.subtitleNum}>
+            {payload.durationMin != null ? `${payload.durationMin} min` : '—'}
+          </Text>
+          {'  ·  '}
+          <Text style={styles.subtitleNum}>{payload.totalSets} sets</Text>
+          {'  ·  '}
+          <Text style={styles.subtitleNum}>{payload.exerciseCount} lifts</Text>
         </Text>
-        {'  ·  '}
-        <Text style={styles.subtitleNum}>{payload.totalSets} sets</Text>
-        {'  ·  '}
-        <Text style={styles.subtitleNum}>{payload.exerciseCount} lifts</Text>
-      </Text>
+      ) : (
+        <Text style={styles.subtitle} allowFontScaling={false}>
+          <Text style={styles.subtitleNum}>{payload.subtitle}</Text>
+          {'  ·  '}
+          <Text style={styles.subtitleNum}>{payload.exerciseCount} lifts</Text>
+        </Text>
+      )}
 
       {/* Silhouettes */}
       <View style={styles.silhouetteRow}>
@@ -99,23 +126,22 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
 
       <View style={styles.divider} />
 
-      {/* Top muscles */}
-      <Text style={styles.sectionLabel}>TOP MUSCLES</Text>
+      {/* Muscles */}
+      <Text style={styles.sectionLabel}>{isPlan ? 'MUSCLE FOCUS' : 'TOP MUSCLES'}</Text>
       {topMuscles.length === 0 ? (
-        <Text style={styles.empty}>No muscle volume recorded.</Text>
+        <Text style={styles.empty}>
+          {isPlan ? 'No muscles targeted yet.' : 'No muscle volume recorded.'}
+        </Text>
       ) : (
-        topMuscles.map(([id, vol]) => {
-          const ratio = topMax > 0 ? vol / topMax : 0;
+        topMuscles.map(([id, score]) => {
+          const ratio = topMax > 0 ? score / topMax : 0;
           return (
             <View key={id} style={styles.row}>
               <Text style={styles.rowLabel} numberOfLines={1}>
                 {REGION_LABELS[id] ?? id}
               </Text>
-              <Text
-                style={styles.rowValue}
-                allowFontScaling={false}
-              >
-                {formatVolume(vol)}
+              <Text style={styles.rowValue} allowFontScaling={false}>
+                {isPlan ? `${score.toFixed(1)}` : formatVolume(score)}
               </Text>
               <View style={styles.barTrack}>
                 <View style={[styles.barFill, { width: `${Math.round(ratio * 100)}%` }]} />
@@ -128,15 +154,27 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
       <View style={styles.divider} />
 
       {/* Stat tiles */}
-      <View style={styles.tileRow}>
-        <Tile value={formatVolume(payload.totalVolume)} label="VOL" />
-        <Tile value={String(payload.totalSets)} label="SETS" />
-        <Tile value={String(payload.exerciseCount)} label="LIFTS" />
-        <Tile
-          value={payload.durationMin != null ? `${payload.durationMin}m` : '—'}
-          label="TIME"
-        />
-      </View>
+      {payload.kind === 'workout' ? (
+        <View style={styles.tileRow}>
+          <Tile value={formatVolume(payload.totalVolume)} label="VOL" />
+          <Tile value={String(payload.totalSets)} label="SETS" />
+          <Tile value={String(payload.exerciseCount)} label="LIFTS" />
+          <Tile
+            value={payload.durationMin != null ? `${payload.durationMin}m` : '—'}
+            label="TIME"
+          />
+        </View>
+      ) : (
+        <View style={styles.tileRow}>
+          <Tile value={String(payload.sessionsPerWeek)} label="SESS/WK" />
+          <Tile value={String(payload.exerciseCount)} label="LIFTS" />
+          <Tile value={String(payload.muscleCount)} label="MUSCLES" />
+          <Tile
+            value={payload.durationWeeks != null ? `${payload.durationWeeks}W` : '—'}
+            label="WEEKS"
+          />
+        </View>
+      )}
 
       <Text style={styles.footer}>hyperfit.app</Text>
     </View>

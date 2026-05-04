@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
-import { RotateCcw, X, FileText, Trash2 } from 'lucide-react-native';
+import { RotateCcw, X, FileText, Trash2, Share2 } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import { colors, spacing, radii } from '../../../styles/theme';
@@ -14,6 +14,8 @@ type PlanManagementMenuProps = {
   onEndPlan: () => void;
   onCreateFromExisting: () => void;
   onCleanupPlans?: () => void;
+  /** Open the visual share sheet for the active plan. */
+  onSharePlan?: () => void;
 };
 
 // Edit Current Plan is intentionally absent. Standard (official) plans
@@ -27,6 +29,7 @@ const PlanManagementMenu = ({
   onEndPlan,
   onCreateFromExisting,
   onCleanupPlans,
+  onSharePlan,
 }: PlanManagementMenuProps) => {
   if (!visible || !activePlan) return null;
 
@@ -45,6 +48,13 @@ const PlanManagementMenu = ({
       action: onCreateFromExisting,
       color: '#06b6d4',
     },
+    ...(onSharePlan ? [{
+      icon: Share2,
+      label: 'Share Plan',
+      description: 'Share a visual summary of this plan',
+      action: onSharePlan,
+      color: '#fc4c02',
+    }] : []),
     {
       icon: Trash2,
       label: 'End Plan',
