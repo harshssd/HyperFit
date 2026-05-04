@@ -52,8 +52,11 @@ export const WaterControls = ({
   };
 
   const submitCustom = async () => {
-    const ml = parseInt(customAmount, 10);
-    if (!Number.isFinite(ml) || ml <= 0) return;
+    const typed = parseInt(customAmount, 10);
+    if (!Number.isFinite(typed) || typed <= 0) return;
+    // Input is rendered in the user's unit (label echoes UNIT.toUpperCase()),
+    // so 8 in oz mode means 8 fl oz, not 8 ml. Convert before persisting.
+    const ml = unit === 'oz' ? Math.round(typed * 29.5735) : typed;
     await wrap(() => onAddMl(ml));
     setCustomAmount('');
     setCustomMode(false);
