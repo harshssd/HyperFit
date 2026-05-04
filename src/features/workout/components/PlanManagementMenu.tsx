@@ -29,6 +29,7 @@ const PlanManagementMenu = ({
   onEndPlan,
   onCreateFromExisting,
   onCleanupPlans,
+  onSharePlan,
 }: PlanManagementMenuProps) => {
   if (!visible || !activePlan) return null;
 
@@ -47,6 +48,13 @@ const PlanManagementMenu = ({
       action: onCreateFromExisting,
       color: '#06b6d4',
     },
+    ...(onSharePlan ? [{
+      icon: Share2,
+      label: 'Share Plan',
+      description: 'Share a visual summary of this plan',
+      action: onSharePlan,
+      color: '#fc4c02',
+    }] : []),
     {
       icon: Trash2,
       label: 'End Plan',
