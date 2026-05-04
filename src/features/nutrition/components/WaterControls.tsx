@@ -5,11 +5,13 @@ import { palette, accent, text, spacing, radii, fonts } from '../../../styles/th
 import { formatVolume } from '../helpers';
 
 /**
- * WaterControls — collapsed status row + expanded action buttons.
+ * WaterControls — header + always-visible add buttons + segment strip.
  *
- * Collapsed: droplet + "1,250 / 2,000 ml" + 8-segment progress strip.
- * Expanded: + CUP / + BOTTLE big buttons + undo affordance for the last
- * tap. Long-press on the row OR tap the segment strip toggles expand.
+ * +CUP and +BOTTLE are the primary actions, so they're rendered inline,
+ * always visible. No expand-to-add gate — water logging is the cheapest
+ * write in the app and shouldn't cost a tap to reach. The undo affordance
+ * is a small icon on the header row (rare action, doesn't deserve real
+ * estate next to the primaries).
  *
  * Segment fill uses accent.sessionUp green — water is the rare metric
  * where "more = better" is uncomplicated, so progress green reads right.
@@ -38,7 +40,6 @@ export const WaterControls = ({
   onAddMl,
   onUndo,
 }: Props) => {
-  const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const filled = Math.min(SEGMENTS, Math.floor((totalMl / targetMl) * SEGMENTS));
 
@@ -59,12 +60,7 @@ export const WaterControls = ({
         gap: spacing.sm,
       }}
     >
-      <TouchableOpacity
-        testID="water-toggle"
-        onPress={() => setExpanded(e => !e)}
-        activeOpacity={0.85}
-        style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}
-      >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
         <View
           style={{
             width: 32,
@@ -108,7 +104,21 @@ export const WaterControls = ({
             </Text>
           </Text>
         </View>
-      </TouchableOpacity>
+        <TouchableOpacity
+          testID="water-undo"
+          onPress={() => wrap(onUndo)}
+          disabled={busy || totalMl === 0}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel="Undo last water tap"
+          style={{
+            padding: spacing.xs,
+            opacity: busy || totalMl === 0 ? 0.35 : 1,
+          }}
+        >
+          <Undo2 size={16} color={text.tertiary} />
+        </TouchableOpacity>
+      </View>
 
       <View style={{ flexDirection: 'row', gap: 4 }}>
         {Array.from({ length: SEGMENTS }).map((_, i) => (
@@ -124,44 +134,22 @@ export const WaterControls = ({
         ))}
       </View>
 
-      {expanded ? (
-        <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
-          <ActionButton
-            label={`+ CUP · ${formatVolume(cupMl, unit)}`}
-            tone="primary"
-            onPress={() => wrap(() => onAddMl(cupMl))}
-            disabled={busy}
-            testID="water-add-cup"
-          />
-          <ActionButton
-            label={`+ BOTTLE · ${formatVolume(bottleMl, unit)}`}
-            tone="primary"
-            onPress={() => wrap(() => onAddMl(bottleMl))}
-            disabled={busy}
-            testID="water-add-bottle"
-          />
-          <TouchableOpacity
-            testID="water-undo"
-            onPress={() => wrap(onUndo)}
-            disabled={busy}
-            accessibilityRole="button"
-            accessibilityLabel="Undo last water tap"
-            style={{
-              paddingHorizontal: spacing.md,
-              paddingVertical: spacing.md,
-              borderRadius: radii.sm,
-              borderWidth: 1,
-              borderColor: palette.borderStrong,
-              backgroundColor: palette.surface,
-              alignItems: 'center',
-              justifyContent: 'center',
-              opacity: busy ? 0.6 : 1,
-            }}
-          >
-            <Undo2 size={16} color={text.tertiary} />
-          </TouchableOpacity>
-        </View>
-      ) : null}
+      <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
+        <ActionButton
+          label={`+ CUP · ${formatVolume(cupMl, unit)}`}
+          tone="primary"
+          onPress={() => wrap(() => onAddMl(cupMl))}
+          disabled={busy}
+          testID="water-add-cup"
+        />
+        <ActionButton
+          label={`+ BOTTLE · ${formatVolume(bottleMl, unit)}`}
+          tone="primary"
+          onPress={() => wrap(() => onAddMl(bottleMl))}
+          disabled={busy}
+          testID="water-add-bottle"
+        />
+      </View>
     </View>
   );
 };

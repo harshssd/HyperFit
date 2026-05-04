@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Text, TouchableOpacity, View } from 'react-native';
 import { Sparkles } from 'lucide-react-native';
 import { palette, text, spacing, radii, fonts } from '../../../styles/theme';
 
@@ -10,6 +10,12 @@ import { palette, text, spacing, radii, fonts } from '../../../styles/theme';
  * On = orange→purple gradient on the marker, switch slides to active.
  * Off = neutral gray.
  *
+ * Budget enforcement: when cheatsUsedThisWeek >= budget AND today is not
+ * already cheat, the toggle is disabled — tapping shows an alert pointing
+ * at the planner strip. The user has to flip a planned cheat off (or wait
+ * til next Monday) to free a slot. If today IS already cheat, the toggle
+ * stays enabled so the user can flip it off and reclaim the budget.
+ *
  * Cheat day is a forgiveness flag, not a tracking-off switch — meals
  * still log normally on a cheat day, the streak just doesn't break.
  * The hero eyebrow flips to "TODAY · CHEAT DAY · STREAK SAFE" when on.
@@ -18,17 +24,35 @@ import { palette, text, spacing, radii, fonts } from '../../../styles/theme';
 type Props = {
   isCheatDay: boolean;
   cheatBudget: number;
+  cheatsUsedThisWeek: number;
+  budgetExhausted: boolean;
   onToggle: (next: boolean) => Promise<void>;
 };
 
 const CHEAT_GRADIENT_START = '#fc4c02';
 const CHEAT_GRADIENT_END = '#a855f7';
 
-export const CheatDayToggle = ({ isCheatDay, cheatBudget, onToggle }: Props) => {
+export const CheatDayToggle = ({
+  isCheatDay,
+  cheatBudget,
+  cheatsUsedThisWeek,
+  budgetExhausted,
+  onToggle,
+}: Props) => {
   const [busy, setBusy] = useState(false);
+  // Disable iff trying to turn ON when budget is already exhausted.
+  // Toggling OFF is always allowed (frees a slot).
+  const disabled = budgetExhausted && !isCheatDay;
 
   const handleToggle = async () => {
     if (busy) return;
+    if (disabled) {
+      Alert.alert(
+        'Cheat budget used',
+        `You've used ${cheatsUsedThisWeek} of ${cheatBudget} cheat days this week. Free a slot in the planner below or wait until Monday.`,
+      );
+      return;
+    }
     setBusy(true);
     try { await onToggle(!isCheatDay); } finally { setBusy(false); }
   };
@@ -51,7 +75,7 @@ export const CheatDayToggle = ({ isCheatDay, cheatBudget, onToggle }: Props) => 
         borderWidth: 1,
         borderColor: isCheatDay ? CHEAT_GRADIENT_END : palette.borderStrong,
         backgroundColor: palette.surface,
-        opacity: busy ? 0.6 : 1,
+        opacity: busy ? 0.6 : disabled ? 0.55 : 1,
       }}
     >
       <View
@@ -70,7 +94,7 @@ export const CheatDayToggle = ({ isCheatDay, cheatBudget, onToggle }: Props) => 
       >
         <Sparkles
           size={16}
-          color={isCheatDay ? CHEAT_GRADIENT_START : text.tertiary}
+          color={isCheatDay ? CHEAT_GRADIENT_START : disabled ? text.disabled : text.tertiary}
         />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
@@ -84,17 +108,21 @@ export const CheatDayToggle = ({ isCheatDay, cheatBudget, onToggle }: Props) => 
             textTransform: 'uppercase',
           }}
         >
-          Cheat Day · {cheatBudget} / wk
+          Cheat Day · {cheatsUsedThisWeek} / {cheatBudget} used
         </Text>
         <Text
           style={{
-            color: text.primary,
+            color: disabled ? text.tertiary : text.primary,
             fontSize: 15,
             fontWeight: '800',
             letterSpacing: -0.2,
           }}
         >
-          {isCheatDay ? 'On — streak safe' : 'Off today'}
+          {isCheatDay
+            ? 'On — streak safe'
+            : disabled
+              ? 'Budget used'
+              : 'Off today'}
         </Text>
       </View>
       <Switch on={isCheatDay} />
