@@ -1,15 +1,24 @@
 import React, { forwardRef, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { BodySilhouette } from '../../features/analytics/heatmap/BodySilhouette';
-import {
-  BACK_REGIONS,
-  FRONT_REGIONS,
-  MuscleId,
-} from '../../features/analytics/heatmap/muscleRegions';
+import type { MuscleId } from '../../features/analytics/heatmap/muscleRegions';
 import { palette, text, fonts } from '../../styles/theme';
 
 export const SHARE_CARD_WIDTH = 1080;
 export const SHARE_CARD_HEIGHT = 1350;
+
+/**
+ * One row in the share card's TOP EXERCISES section.
+ * For a workout: `count` is the number of completed sets logged for that
+ *   exercise during the session.
+ * For a plan: `count` is the total planned sets across every session in
+ *   the plan that includes the exercise (a 3-day split with 4 sets of
+ *   bench on each day = 12).
+ */
+export type ShareExerciseRow = {
+  name: string;
+  count: number;
+};
 
 export type ShareWorkoutPayload = {
   kind: 'workout';
@@ -21,9 +30,8 @@ export type ShareWorkoutPayload = {
   exerciseCount: number;
   /** Number of exercises that beat the user's prior heaviest weight. */
   prCount?: number;
-  /** Exercise names in the order they were performed; rendered as a list. */
-  exercises: string[];
-  byMuscle: Partial<Record<MuscleId, number>>;
+  /** Per-exercise set counts, in the order they were performed. */
+  exercises: ShareExerciseRow[];
   intensities: Partial<Record<MuscleId, number>>;
 };
 
@@ -41,9 +49,8 @@ export type SharePlanPayload = {
   durationWeeks: number | null;
   /** Optional deep link to import this plan; rendered as the card footer. */
   shareUrl?: string | null;
-  /** Distinct exercise names across all plan sessions. */
-  exercises: string[];
-  byMuscle: Partial<Record<MuscleId, number>>;
+  /** Distinct exercise names + total planned sets across the plan. */
+  exercises: ShareExerciseRow[];
   intensities: Partial<Record<MuscleId, number>>;
 };
 
@@ -53,16 +60,7 @@ type Props = {
   payload: SharePayload;
 };
 
-/** Region labels keyed by id (deduped across front/back). */
-const REGION_LABELS: Record<MuscleId, string> = (() => {
-  const map = {} as Record<MuscleId, string>;
-  [...FRONT_REGIONS, ...BACK_REGIONS].forEach(r => {
-    if (!map[r.id]) map[r.id] = r.label;
-  });
-  return map;
-})();
-
-const EXERCISE_LIST_LIMIT = 8;
+const EXERCISE_LIST_LIMIT = 6;
 
 const formatVolume = (v: number) => {
   if (v >= 10_000) return `${(v / 1000).toFixed(1)}k`;
@@ -79,15 +77,17 @@ const formatVolume = (v: number) => {
  * `react-native-view-shot`'s `captureRef`.
  */
 export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) => {
-  const topMuscles = useMemo(() => {
-    const entries = Object.entries(payload.byMuscle) as [MuscleId, number][];
-    return entries
-      .filter(([, v]) => v > 0)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, payload.kind === 'plan' ? 5 : 3);
-  }, [payload.byMuscle, payload.kind]);
+  // Top exercises by set count. Names + counts read more impactful than
+  // muscle-group volume scores ("Bench Press 12" beats "Chest 1,025").
+  // Silhouettes still carry the muscle-coverage story visually above.
+  const topExercises = useMemo(() => {
+    return [...payload.exercises]
+      .filter(e => e.name?.trim() && e.count > 0)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, EXERCISE_LIST_LIMIT);
+  }, [payload.exercises]);
 
-  const topMax = topMuscles[0]?.[1] ?? 0;
+  const topMax = topExercises[0]?.count ?? 0;
   const isPlan = payload.kind === 'plan';
 
   return (
@@ -143,22 +143,24 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
 
       <View style={styles.divider} />
 
-      {/* Muscles */}
-      <Text style={styles.sectionLabel}>{isPlan ? 'MUSCLE FOCUS' : 'TOP MUSCLES'}</Text>
-      {topMuscles.length === 0 ? (
+      {/* Top exercises — name + set count, ranked by sets descending. */}
+      <Text style={styles.sectionLabel}>
+        {isPlan ? 'EXERCISES IN PLAN' : 'TOP EXERCISES'}
+      </Text>
+      {topExercises.length === 0 ? (
         <Text style={styles.empty}>
-          {isPlan ? 'No muscles targeted yet.' : 'No muscle volume recorded.'}
+          {isPlan ? 'No exercises in this plan yet.' : 'No exercises logged.'}
         </Text>
       ) : (
-        topMuscles.map(([id, score]) => {
-          const ratio = topMax > 0 ? score / topMax : 0;
+        topExercises.map((row, idx) => {
+          const ratio = topMax > 0 ? row.count / topMax : 0;
           return (
-            <View key={id} style={styles.row}>
+            <View key={`${row.name}-${idx}`} style={styles.row}>
               <Text style={styles.rowLabel} numberOfLines={1}>
-                {REGION_LABELS[id] ?? id}
+                {row.name}
               </Text>
               <Text style={styles.rowValue} allowFontScaling={false}>
-                {isPlan ? `${score.toFixed(1)}` : formatVolume(score)}
+                {row.count}
               </Text>
               <View style={styles.barTrack}>
                 <View style={[styles.barFill, { width: `${Math.round(ratio * 100)}%` }]} />
@@ -167,18 +169,11 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
           );
         })
       )}
-
-      {payload.exercises.length > 0 && (
-        <>
-          <Text style={[styles.sectionLabel, styles.exercisesHeader]}>EXERCISES</Text>
-          <Text style={styles.exerciseList}>
-            {payload.exercises.slice(0, EXERCISE_LIST_LIMIT).join('   ·   ')}
-            {payload.exercises.length > EXERCISE_LIST_LIMIT
-              ? `   +${payload.exercises.length - EXERCISE_LIST_LIMIT} more`
-              : ''}
-          </Text>
-        </>
-      )}
+      {payload.exercises.length > EXERCISE_LIST_LIMIT ? (
+        <Text style={styles.moreLine}>
+          +{payload.exercises.length - EXERCISE_LIST_LIMIT} more
+        </Text>
+      ) : null}
 
       <View style={styles.divider} />
 
@@ -314,14 +309,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 16,
   },
-  exercisesHeader: {
-    marginTop: 24,
-  },
-  exerciseList: {
-    color: text.secondary,
-    fontSize: 22,
-    lineHeight: 30,
-    fontWeight: '600',
+  moreLine: {
+    color: text.tertiary,
+    fontSize: 18,
+    fontStyle: 'italic',
+    marginTop: 4,
+    marginBottom: 8,
   },
   empty: {
     color: text.tertiary,
