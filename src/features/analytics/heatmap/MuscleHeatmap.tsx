@@ -11,7 +11,10 @@ import {
   MUSCLE_GROUP_TO_REGION,
 } from './muscleRegions';
 import { useMuscleVolume } from './useMuscleVolume';
+import { useMuscleRecovery } from './useMuscleRecovery';
 import { Activity } from 'lucide-react-native';
+
+type HeatmapMode = 'volume' | 'recovery';
 
 type Props = {
   userId: string | null | undefined;
@@ -65,13 +68,23 @@ export const MuscleHeatmap = ({
   compact = false,
 }: Props) => {
   const [days, setDays] = useState<7 | 30 | 90 | null>(defaultDays);
+  const [mode, setMode] = useState<HeatmapMode>('volume');
   const live = useMuscleVolume(staticIntensities ? null : userId, days);
+  // Recovery mode uses a fixed 7-day window with exponential decay rather
+  // than the bucket window the user picked — fatigue past a week is noise.
+  const recovery = useMuscleRecovery(staticIntensities || mode !== 'recovery' ? null : userId);
   const [view, setView] = useState<'front' | 'back'>('front');
   const [selected, setSelected] = useState<MuscleId | null>(null);
 
-  const intensities = staticIntensities ?? live.intensities;
-  const isLoading = !staticIntensities && live.loading;
-  const isEmpty = !staticIntensities && !live.loading && live.setCount === 0;
+  const intensities =
+    staticIntensities ??
+    (mode === 'recovery' ? recovery.intensities : live.intensities);
+  const isLoading =
+    !staticIntensities && (mode === 'recovery' ? recovery.loading : live.loading);
+  const isEmpty =
+    !staticIntensities &&
+    !isLoading &&
+    (mode === 'recovery' ? recovery.fatiguedCount === 0 : live.setCount === 0);
 
   const allRegionLabels = useMemo(() => {
     const map = new Map<MuscleId, string>();
@@ -87,9 +100,37 @@ export const MuscleHeatmap = ({
         <View style={styles.header}>
           <View style={styles.titleRow}>
             <Activity size={18} color={colors.primary} />
-            <Text style={styles.title}>MUSCLE COVERAGE</Text>
+            <Text style={styles.title}>
+              {mode === 'recovery' ? 'MUSCLE RECOVERY' : 'MUSCLE COVERAGE'}
+            </Text>
           </View>
-          {showRangePicker && !staticIntensities && (
+          {!staticIntensities && (
+            <View style={styles.rangePicker}>
+              <TouchableOpacity
+                onPress={() => setMode('volume')}
+                accessibilityRole="button"
+                accessibilityLabel="Show muscle coverage"
+                accessibilityState={{ selected: mode === 'volume' }}
+                style={[styles.rangePill, mode === 'volume' && styles.rangePillActive]}
+              >
+                <Text style={[styles.rangeText, mode === 'volume' && styles.rangeTextActive]}>
+                  VOL
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setMode('recovery')}
+                accessibilityRole="button"
+                accessibilityLabel="Show muscle recovery"
+                accessibilityState={{ selected: mode === 'recovery' }}
+                style={[styles.rangePill, mode === 'recovery' && styles.rangePillActive]}
+              >
+                <Text style={[styles.rangeText, mode === 'recovery' && styles.rangeTextActive]}>
+                  RECOV
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {showRangePicker && !staticIntensities && mode === 'volume' && (
             <View style={styles.rangePicker}>
               {RANGES.map(r => (
                 <TouchableOpacity
@@ -157,9 +198,13 @@ export const MuscleHeatmap = ({
             <View style={styles.detail}>
               <Text style={styles.detailLabel}>{allRegionLabels.get(selected)?.toUpperCase()}</Text>
               <Text style={styles.detailValue}>
-                {live.byRegion[selected]
-                  ? `${Math.round(live.byRegion[selected] ?? 0).toLocaleString()} volume`
-                  : 'No work in window'}
+                {mode === 'recovery'
+                  ? recovery.byMuscle[selected]
+                    ? `${Math.round((1 - (intensities[selected] ?? 0)) * 100)}% recovered`
+                    : 'Fully recovered'
+                  : live.byRegion[selected]
+                    ? `${Math.round(live.byRegion[selected] ?? 0).toLocaleString()} volume`
+                    : 'No work in window'}
               </Text>
               <TouchableOpacity onPress={() => setSelected(null)} accessibilityRole="button">
                 <Text style={styles.detailDismiss}>Dismiss</Text>
