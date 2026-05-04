@@ -47,6 +47,8 @@ export type RootStackParamList = {
   SharedPlan: { code: string };
   /** Full month schedule — formerly the Calendar tab; now a modal from Home. */
   Calendar: undefined;
+  /** Profile / account modal. Opened from the avatar in Home's top bar. */
+  Profile: undefined;
 };
 
 declare global {

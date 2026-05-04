@@ -6,6 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import HomeView from '../components/HomeView';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { useAppData } from '../contexts/AppDataContext';
+import { useAuthContext } from '../contexts/AuthContext';
 import { useActiveWorkoutSession } from '../contexts/WorkoutSessionContext';
 import { calculateXP } from '../features/workout/helpers';
 import type { MainTabParamList, RootStackParamList } from '../navigation/types';
@@ -25,8 +26,20 @@ const tabIdToRoute: Record<string, keyof MainTabParamList> = {
 
 export const HomeScreen = () => {
   const { data } = useAppData();
+  const { user } = useAuthContext();
   const navigation = useNavigation<Nav>();
   const { session, activeUserPlan } = useActiveWorkoutSession();
+
+  const avatarInitials = (() => {
+    const email = user?.email ?? '';
+    const local = email.split('@')[0] ?? '';
+    const parts = local.split(/[._-]+/).filter(Boolean);
+    if (parts.length === 0) return (local[0] ?? '—').toUpperCase();
+    if (parts.length === 1) return (parts[0][0] ?? '—').toUpperCase();
+    return ((parts[0][0] ?? '') + (parts[1][0] ?? '')).toUpperCase();
+  })();
+
+  const handleOpenProfile = () => navigation.navigate('Profile');
 
   // Open the Plans tab with `intent: 'manual'` — Plans surfaces the empty
   // workout overview + exercise picker on focus. Routing through Plans
@@ -85,6 +98,8 @@ export const HomeScreen = () => {
         onPickFromLibrary={handlePickFromLibrary}
         onLogMeal={handleLogMeal}
         onLogWater={handleLogWater}
+        onOpenProfile={handleOpenProfile}
+        avatarInitials={avatarInitials}
       />
     </ScreenLayout>
   );

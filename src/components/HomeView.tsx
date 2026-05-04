@@ -39,6 +39,11 @@ type HomeViewProps = {
   /** Navigate to the Nutrition tab (water +CUP / +BOTTLE buttons are
    *  always visible there, so no extra intent is needed). */
   onLogWater?: () => void;
+  /** Open the Profile modal. When omitted the top-bar avatar is hidden
+   *  (back-compat for any caller that hasn't wired it up yet). */
+  onOpenProfile?: () => void;
+  /** Initials displayed in the avatar circle (e.g. "HS"). */
+  avatarInitials?: string;
 };
 
 const HomeView = ({
@@ -49,6 +54,8 @@ const HomeView = ({
   onPickFromLibrary,
   onLogMeal,
   onLogWater,
+  onOpenProfile,
+  avatarInitials,
 }: HomeViewProps) => {
   const handleLogMeal = onLogMeal ?? (() => onChangeView('nutrition'));
   const handleLogWater = onLogWater ?? (() => onChangeView('nutrition'));
@@ -607,8 +614,55 @@ const HomeView = ({
     );
   };
 
+  // Top bar: a single tappable avatar circle in the upper right. Hidden
+  // when no onOpenProfile is wired so this stays a no-op for any consumer
+  // that hasn't picked up the new entry point yet.
+  const renderTopBar = () => {
+    if (!onOpenProfile) return null;
+    return (
+      <View
+        style={{
+          flexDirection: 'row',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          marginBottom: spacing.md,
+        }}
+      >
+        <TouchableOpacity
+          onPress={onOpenProfile}
+          hitSlop={10}
+          accessibilityLabel="Open profile"
+          accessibilityRole="button"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: 'rgba(252, 76, 2, 0.12)',
+            borderWidth: 1,
+            borderColor: accent.lift,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text
+            style={{
+              color: text.primary,
+              fontSize: 12,
+              fontWeight: fonts.weight.bold as '700',
+              fontFamily: fonts.family.mono,
+              letterSpacing: 0.5,
+            }}
+          >
+            {avatarInitials ?? '—'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={homeStyles.homeView} contentContainerStyle={homeStyles.homeViewContent}>
+      {renderTopBar()}
       {/* Today's Focus — primary card. Outer hairline border in lift-orange
           when an active plan is in play; falls back to neutral surface
           treatment when there's no plan to anchor it. */}
