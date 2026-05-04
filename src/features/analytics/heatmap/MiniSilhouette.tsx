@@ -28,11 +28,17 @@ const SILHOUETTE_STROKE = palette.borderStrong;
  * regions per cell, animating each region pegs the JS thread on month
  * scroll. The visual ramp matches the full silhouette so the mini and
  * full versions read consistently.
+ *
+ * Thresholds align with BodySilhouette's interpolation stops
+ * `[0, 0.001, 0.5, 1] → [none, light, mid, heavy]`: anything above 0 is at
+ * least light, the visual midpoint sits at 0.5, and heavy is reserved for
+ * the per-day peak muscle (which on per-day-normalized intensities is
+ * always exactly 1.0).
  */
 const intensityToFill = (n: number): string => {
   if (n <= 0) return HEATMAP_FILL.none;
-  if (n < 0.34) return HEATMAP_FILL.light;
-  if (n < 0.7) return HEATMAP_FILL.mid;
+  if (n < 0.5) return HEATMAP_FILL.light;
+  if (n < 1) return HEATMAP_FILL.mid;
   return HEATMAP_FILL.heavy;
 };
 
