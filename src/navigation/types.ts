@@ -18,6 +18,12 @@ export type AuthStackParamList = {
   Login: undefined;
 };
 
+export type OnboardingStackParamList = {
+  Identity: undefined;
+  Goal: undefined;
+  StarterPlan: undefined;
+};
+
 export type MainTabParamList = {
   Home: undefined;
   /** formerly "Gym" — list of user's plans. `intent` is a one-shot:
@@ -34,6 +40,7 @@ export type MainTabParamList = {
 
 export type RootStackParamList = {
   Auth: NavigatorScreenParams<AuthStackParamList>;
+  Onboarding: NavigatorScreenParams<OnboardingStackParamList>;
   Main: NavigatorScreenParams<MainTabParamList>;
   ActiveWorkout: { sessionId?: string } | undefined;
   /** mode + planId together drive create / edit / duplicate. Omit both for create. */
