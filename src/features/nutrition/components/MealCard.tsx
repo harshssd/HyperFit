@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Check, ChevronDown, ChevronUp, Trash2 } from 'lucide-react-native';
+import { Check, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import {
   getRecents,
@@ -21,10 +20,13 @@ import type { MealSlot } from '../../../types/supabase';
  *
  * Collapsed: title + entry count + total kcal + chevron-down. Tap to expand.
  * Expanded:
- *   - Existing entries listed inline with delete affordances
- *   - Recents scroller (horizontal) — tap a chip to repeat the same numbers
- *   - Inline AddMealRow: kcal · P · C · F · fib · name
- *   - Save button
+ *   - Existing entries (today) listed inline with delete affordances
+ *   - Recents (other days) as full-width tap rows — recents are the
+ *     primary action because most meals are repeats. One tap re-logs
+ *     the same numbers, no typing.
+ *   - AddMealRow underneath: kcal + name by default, with a "+ macros"
+ *     toggle that reveals P/C/F/fib for the rare case the user is
+ *     hand-tracking macros.
  *
  * Rows, not grids — same input pattern as the workout-set logger.
  * No modals on the common path; logging stays one tap deep.
@@ -148,7 +150,7 @@ export const MealCard = ({ slot, label, entries, onAdd, onDelete }: Props) => {
           ))}
 
           {recents.length > 0 ? (
-            <RecentsScroller
+            <RecentsList
               recents={recents}
               onPick={recent =>
                 onAdd({
@@ -215,16 +217,20 @@ const EntryRow = ({
   </View>
 );
 
-// -- Recents scroller --------------------------------------------------------
+// -- Recents list ------------------------------------------------------------
+// Vertical, full-width tap rows. Recents are the primary action: most meals
+// are repeats, so the cheapest "log a meal" path is one tap on a past entry.
+// The previous horizontal chip strip cramped the name and hid macros — this
+// shows everything inline, kcal first.
 
-const RecentsScroller = ({
+const RecentsList = ({
   recents,
   onPick,
 }: {
   recents: NutritionEntry[];
   onPick: (recent: NutritionEntry) => void;
 }) => (
-  <View>
+  <View style={{ gap: 4 }}>
     <Text
       style={{
         color: text.quaternary,
@@ -233,46 +239,53 @@ const RecentsScroller = ({
         letterSpacing: 1.4,
         textTransform: 'uppercase',
         fontWeight: '700',
-        marginBottom: 6,
+        marginBottom: 4,
       }}
     >
-      Recents
+      Tap to re-log
     </Text>
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: 6 }}
-    >
-      {recents.map(r => (
-        <TouchableOpacity
-          key={r.id}
-          onPress={() => onPick(r)}
+    {recents.map(r => (
+      <TouchableOpacity
+        key={r.id}
+        onPress={() => onPick(r)}
+        accessibilityRole="button"
+        accessibilityLabel={`Log ${r.name ?? 'meal'} again`}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          paddingHorizontal: spacing.sm,
+          paddingVertical: spacing.sm,
+          backgroundColor: palette.surface,
+          borderColor: palette.borderStrong,
+          borderWidth: 1,
+          borderRadius: radii.sm,
+        }}
+      >
+        <Plus size={14} color={accent.lift} strokeWidth={3} />
+        <Text
+          numberOfLines={1}
+          style={{ flex: 1, color: text.primary, fontSize: 13, fontWeight: '600' }}
+        >
+          {r.name ?? 'Meal'}
+        </Text>
+        <Text
           style={{
-            paddingHorizontal: 10,
-            paddingVertical: 6,
-            backgroundColor: palette.surface,
-            borderColor: palette.borderStrong,
-            borderWidth: 1,
-            borderRadius: radii.sm,
+            color: text.tertiary,
+            fontFamily: fonts.family.mono,
+            fontSize: 12,
+            fontWeight: '700',
+            fontVariant: fonts.tabularNums,
           }}
         >
-          <Text style={{ color: text.secondary, fontSize: 12 }} numberOfLines={1}>
-            {r.name}
+          {r.kcal}
+          <Text style={{ color: text.quaternary, fontWeight: '500' }}>
+            {' kcal · '}
           </Text>
-          <Text
-            style={{
-              color: text.quaternary,
-              fontFamily: fonts.family.mono,
-              fontSize: 10,
-              fontVariant: fonts.tabularNums,
-              marginTop: 2,
-            }}
-          >
-            {r.kcal} kcal
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </ScrollView>
+          {r.protein_g}P
+        </Text>
+      </TouchableOpacity>
+    ))}
   </View>
 );
 
@@ -292,6 +305,10 @@ const AddMealRow = ({ slot, onAdd }: AddMealRowProps) => {
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
   const [fiber, setFiber] = useState('');
+  // Macros default to hidden — kcal-only logging is the common case. Tap
+  // "+ macros" to expand the four extra cells when the user wants to track
+  // protein etc. Saved values for hidden macros default to 0 server-side.
+  const [showMacros, setShowMacros] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const canSave =
@@ -316,6 +333,8 @@ const AddMealRow = ({ slot, onAdd }: AddMealRowProps) => {
       setCarb('');
       setFat('');
       setFiber('');
+      // Keep showMacros sticky — if the user opened it once they probably
+      // want it for the next entry too.
     } finally {
       setSaving(false);
     }
@@ -324,20 +343,14 @@ const AddMealRow = ({ slot, onAdd }: AddMealRowProps) => {
   return (
     <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
       <View style={{ flexDirection: 'row', gap: 6 }}>
-        <NumCell value={kcal}    placeholder="kcal" onChange={setKcal} flex={1.4} />
-        <NumCell value={protein} placeholder="P"    onChange={setProtein} />
-        <NumCell value={carb}    placeholder="C"    onChange={setCarb} />
-        <NumCell value={fat}     placeholder="F"    onChange={setFat} />
-        <NumCell value={fiber}   placeholder="fib"  onChange={setFiber} />
-      </View>
-      <View style={{ flexDirection: 'row', gap: 6 }}>
+        <NumCell value={kcal} placeholder="kcal" onChange={setKcal} flex={1.4} />
         <TextInput
           value={name}
           onChangeText={setName}
-          placeholder="What did you eat? (optional)"
+          placeholder="Item (e.g. chicken)"
           placeholderTextColor={text.disabled}
           style={{
-            flex: 1,
+            flex: 3,
             backgroundColor: palette.surface,
             borderColor: palette.borderStrong,
             borderWidth: 1,
@@ -368,6 +381,35 @@ const AddMealRow = ({ slot, onAdd }: AddMealRowProps) => {
           <Check size={16} color={canSave ? '#fff' : text.disabled} strokeWidth={3} />
         </TouchableOpacity>
       </View>
+
+      {showMacros ? (
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+          <NumCell value={protein} placeholder="P"   onChange={setProtein} />
+          <NumCell value={carb}    placeholder="C"   onChange={setCarb} />
+          <NumCell value={fat}     placeholder="F"   onChange={setFat} />
+          <NumCell value={fiber}   placeholder="fib" onChange={setFiber} />
+        </View>
+      ) : null}
+
+      <TouchableOpacity
+        onPress={() => setShowMacros(s => !s)}
+        accessibilityRole="button"
+        accessibilityLabel={showMacros ? 'Hide macros' : 'Show macros'}
+        style={{ alignSelf: 'flex-start', paddingVertical: 2 }}
+      >
+        <Text
+          style={{
+            color: text.tertiary,
+            fontFamily: fonts.family.mono,
+            fontSize: 10,
+            letterSpacing: 1.4,
+            textTransform: 'uppercase',
+            fontWeight: '700',
+          }}
+        >
+          {showMacros ? '− macros' : '+ macros'}
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
