@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -6,11 +6,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ChevronRight, Flame } from 'lucide-react-native';
+import { ChevronRight, Flame, Plus } from 'lucide-react-native';
 import { ForkKnifeCrossed } from '../../components/icons/ForkKnifeCrossed';
 import { ErrorState, LoadingState } from '../../components/StateView';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
-import { Plus } from 'lucide-react-native';
 import { useNutritionDay } from './hooks/useNutritionDay';
 import { GoalSetupSheet } from './components/GoalSetupSheet';
 import { MealCard } from './components/MealCard';
@@ -132,12 +131,13 @@ export const NutritionView = ({
 
   // Distinct user-supplied labels in today's entries, in first-seen
   // order. Each becomes its own MealCard below the standard four.
-  const customLabels: string[] = [];
-  for (const e of day.entries) {
-    if (e.meal_label && !customLabels.includes(e.meal_label)) {
-      customLabels.push(e.meal_label);
+  const customLabels = useMemo(() => {
+    const out: string[] = [];
+    for (const e of day.entries) {
+      if (e.meal_label && !out.includes(e.meal_label)) out.push(e.meal_label);
     }
-  }
+    return out;
+  }, [day.entries]);
 
   const eyebrowColor = isCheat
     ? CHEAT_BORDER

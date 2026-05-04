@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
@@ -19,6 +19,9 @@ export const NutritionScreen = () => {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const [openAddMeal, setOpenAddMeal] = useState(false);
+  // Stable identity so NutritionView's effect doesn't re-fire on every
+  // render of this screen (the effect dep list includes this callback).
+  const handleAddMealConsumed = useCallback(() => setOpenAddMeal(false), []);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -33,7 +36,7 @@ export const NutritionScreen = () => {
     <ScreenLayout scroll={false} errorLabel="Error in Nutrition">
       <NutritionView
         openAddMealOnMount={openAddMeal}
-        onAddMealConsumed={() => setOpenAddMeal(false)}
+        onAddMealConsumed={handleAddMealConsumed}
       />
     </ScreenLayout>
   );
