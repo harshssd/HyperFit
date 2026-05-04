@@ -36,6 +36,12 @@ type ActiveSessionViewProps = {
   viewMode: 'list' | 'focus';
   ghost: GhostState;
   isFinished: boolean;
+  /** Id of the persisted workout_sessions row, set after finishWorkout completes. */
+  finishedSessionId: string | null;
+  /** ISO timestamp when the session started; used for the share-card duration tile. */
+  sessionStartTime: string | null;
+  /** Best display name for the share card (plan-session name, custom name, or null). */
+  sessionName: string | null;
 
   /** Dismiss the modal (back arrow / "Done" on finished view). */
   onBack: () => void;
@@ -63,6 +69,9 @@ const ActiveSessionView = ({
   viewMode,
   ghost,
   isFinished,
+  finishedSessionId,
+  sessionStartTime,
+  sessionName,
   onBack,
   onToggleViewMode,
   onAddExercise,
@@ -82,6 +91,9 @@ const ActiveSessionView = ({
       <FinishedSessionView
         visibleWorkout={visibleWorkout}
         calculateTotalVolume={calculateTotalVolume}
+        sessionId={finishedSessionId}
+        sessionStartTime={sessionStartTime}
+        sessionName={sessionName}
         onStartNewSession={onStartNewSession}
         onUndo={onUndoFinish}
         onClose={onBack}
