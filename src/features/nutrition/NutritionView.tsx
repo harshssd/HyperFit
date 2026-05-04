@@ -86,6 +86,18 @@ export const NutritionView = ({
     onAddMealConsumed?.();
   }, [openAddMealOnMount, onAddMealConsumed]);
 
+  // Distinct user-supplied labels in today's entries, in first-seen
+  // order. Each becomes its own MealCard below the standard four.
+  // MUST be declared before the loading/error early returns so the
+  // hook count stays stable across renders (Rules of Hooks).
+  const customLabels = useMemo(() => {
+    const out: string[] = [];
+    for (const e of day.entries) {
+      if (e.meal_label && !out.includes(e.meal_label)) out.push(e.meal_label);
+    }
+    return out;
+  }, [day.entries]);
+
   if (day.loading) {
     return <LoadingState label="Loading today" />;
   }
@@ -128,16 +140,6 @@ export const NutritionView = ({
   const fatCurrent     = day.summary?.fat_total_g     ?? 0;
   const fiberCurrent   = day.summary?.fiber_total_g   ?? 0;
   const waterCurrent   = day.summary?.water_total_ml  ?? 0;
-
-  // Distinct user-supplied labels in today's entries, in first-seen
-  // order. Each becomes its own MealCard below the standard four.
-  const customLabels = useMemo(() => {
-    const out: string[] = [];
-    for (const e of day.entries) {
-      if (e.meal_label && !out.includes(e.meal_label)) out.push(e.meal_label);
-    }
-    return out;
-  }, [day.entries]);
 
   const eyebrowColor = isCheat
     ? CHEAT_BORDER
