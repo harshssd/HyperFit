@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Modal, ActivityIndicator, RefreshControl, SafeAreaView } from 'react-native';
-import { 
-  ChevronRight, Calendar, Dumbbell, X, Clock, Target, TrendingUp, 
+import { View, Text, TouchableOpacity, ScrollView, Modal, ActivityIndicator, RefreshControl } from 'react-native';
+import {
+  ChevronRight, Calendar, Dumbbell, Clock, Target, TrendingUp,
   BarChart2, History
 } from 'lucide-react-native';
 import GlassCard from '../../components/GlassCard';
@@ -16,11 +16,11 @@ import {
   fetchUserSessions,
   fetchSessionDetails,
   type WorkoutSession,
-  type WorkoutLog,
   type SessionWithLogs,
 } from '../../services/historyService';
 import { calculateXP } from '../workout/helpers';
 import SessionRow from './components/SessionRow';
+import { SessionDetailView } from './components/SessionDetailView';
 import { useSessionTrajectories } from './hooks/useSessionTrajectories';
 
 type ViewMode = 'history' | 'analytics';
@@ -97,35 +97,6 @@ const HistoryAnalyticsView = () => {
       console.error('Error loading session details:', error);
       alert(`Failed to load session details: ${error}`);
     }
-  };
-
-  const formatDuration = (seconds: number | null | undefined) => {
-    if (!seconds || seconds <= 0) return '—';
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    }
-    return `${minutes}m`;
-  };
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric' 
-    });
-  };
-
-  const formatTime = (timeStr: string | null | undefined) => {
-    if (!timeStr) return '';
-    const date = new Date(timeStr);
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
-    });
   };
 
   const renderHistoryView = () => {
@@ -325,18 +296,6 @@ const HistoryAnalyticsView = () => {
     );
   };
 
-  // Group logs by exercise (order_index)
-  const getExerciseGroups = (logs: WorkoutLog[]) => {
-    const groups: { [key: number]: WorkoutLog[] } = {};
-    logs.forEach(log => {
-      if (!groups[log.order_index]) {
-        groups[log.order_index] = [];
-      }
-      groups[log.order_index].push(log);
-    });
-    return Object.values(groups).sort((a, b) => a[0].order_index - b[0].order_index);
-  };
-
   return (
     <View style={{ flex: 1 }}>
       {/* History/Analytics toggle. Sits inside the standard ScreenLayout
@@ -411,127 +370,12 @@ const HistoryAnalyticsView = () => {
         transparent={false}
         onRequestClose={() => setSelectedSession(null)}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-          {selectedSession && (
-            <>
-              {/* Header */}
-              <View style={{
-                padding: spacing.xl,
-                borderBottomWidth: 1,
-                borderBottomColor: 'rgba(255,255,255,0.08)'
-              }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
-                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', flex: 1 }}>
-                    {selectedSession.name}
-                  </Text>
-                  <TouchableOpacity onPress={() => setSelectedSession(null)}>
-                    <X size={24} color={colors.muted} />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-                  <Calendar size={14} color={colors.muted} />
-                  <Text style={{ color: colors.muted, fontSize: 14 }}>
-                    {formatDate(selectedSession.date)} • {formatTime(selectedSession.start_time)}
-                  </Text>
-                </View>
-
-                {/* Stats Row */}
-                <View style={{ 
-                  flexDirection: 'row', 
-                  gap: spacing.lg, 
-                  marginTop: spacing.md,
-                  paddingTop: spacing.md,
-                  borderTopWidth: 1,
-                  borderTopColor: 'rgba(255,255,255,0.08)'
-                }}>
-                  <View>
-                    <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 2 }}>DURATION</Text>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                      {formatDuration(selectedSession.duration_seconds)}
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 2 }}>EXERCISES</Text>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                      {selectedSession.exercise_count}
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 2 }}>TOTAL SETS</Text>
-                    <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                      {selectedSession.set_count}
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={{ color: colors.muted, fontSize: 11, marginBottom: 2 }}>VOLUME</Text>
-                    <Text style={{ color: colors.success, fontSize: 16, fontWeight: 'bold' }}>
-                      {Math.round(selectedSession.volume_load).toLocaleString()}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Exercise List */}
-              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: spacing.xl }}>
-                {getExerciseGroups(selectedSession.logs).map((exerciseLogs, index) => {
-                  const firstLog = exerciseLogs[0];
-                  const exerciseName = firstLog.exercise_name || `Exercise ${index + 1}`;
-
-                  return (
-                    <GlassCard key={index} style={{ padding: spacing.md, marginBottom: spacing.md }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
-                        <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold' }}>
-                          {exerciseName}
-                        </Text>
-                        <View style={{
-                          backgroundColor: 'rgba(249, 115, 22, 0.2)',
-                          paddingHorizontal: spacing.sm,
-                          paddingVertical: 2,
-                          borderRadius: radii.full
-                        }}>
-                          <Text style={{ color: colors.primary, fontSize: 10, fontWeight: 'bold' }}>
-                            {exerciseLogs.length} SETS
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Sets Table */}
-                      <View style={{ gap: spacing.xs }}>
-                        {/* Header */}
-                        <View style={{ flexDirection: 'row', paddingBottom: spacing.xs, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
-                          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: 'bold', width: 40 }}>SET</Text>
-                          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: 'bold', flex: 1, textAlign: 'center' }}>WEIGHT</Text>
-                          <Text style={{ color: colors.muted, fontSize: 11, fontWeight: 'bold', flex: 1, textAlign: 'center' }}>REPS</Text>
-                        </View>
-
-                        {/* Rows */}
-                        {exerciseLogs.map((log) => (
-                          <View key={log.id} style={{ flexDirection: 'row', paddingVertical: spacing.xs }}>
-                            <Text style={{ color: colors.muted, fontSize: 14, width: 40 }}>{log.set_number}</Text>
-                            <Text style={{ color: '#fff', fontSize: 14, flex: 1, textAlign: 'center' }}>
-                              {log.weight ? `${log.weight} lbs` : '-'}
-                            </Text>
-                            <Text style={{ color: '#fff', fontSize: 14, flex: 1, textAlign: 'center' }}>
-                              {log.reps || '-'}
-                            </Text>
-                          </View>
-                        ))}
-                      </View>
-                    </GlassCard>
-                  );
-                })}
-
-                {selectedSession.notes && (
-                  <GlassCard style={{ padding: spacing.md }}>
-                    <Text style={{ color: colors.muted, fontSize: 12, marginBottom: spacing.xs }}>NOTES</Text>
-                    <Text style={{ color: '#fff', fontSize: 14 }}>{selectedSession.notes}</Text>
-                  </GlassCard>
-                )}
-              </ScrollView>
-            </>
-          )}
-        </SafeAreaView>
+        {selectedSession && (
+          <SessionDetailView
+            session={selectedSession}
+            onClose={() => setSelectedSession(null)}
+          />
+        )}
       </Modal>
     </View>
   );
