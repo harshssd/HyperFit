@@ -16,6 +16,7 @@ import { PlanBuilderScreen } from '../screens/PlanBuilderScreen';
 import { SharedPlanScreen } from '../screens/SharedPlanScreen';
 import { CalendarScreen } from '../screens/CalendarScreen';
 import { SessionDetailScreen } from '../screens/SessionDetailScreen';
+import { ProfileScreen } from '../screens/ProfileScreen';
 import { linking } from './linking';
 import type { RootStackParamList } from './types';
 
@@ -84,6 +85,7 @@ export const RootNavigator = () => {
                       <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
                       <Stack.Screen name="SharedPlan" component={SharedPlanScreen} />
                       <Stack.Screen name="Calendar" component={CalendarScreen} />
+                      <Stack.Screen name="Profile" component={ProfileScreen} />
                     </Stack.Group>
                   </Stack.Group>
                 ) : (
