@@ -44,7 +44,10 @@ export const ScreenLayout = ({
       resizeMode="cover"
     >
       <View style={layoutStyles.appOverlay} />
-      <SafeAreaView style={layoutStyles.appContent} edges={['top']}>
+      {/* Header pads its own top inset, so when it's shown SafeAreaView skips
+          the top edge to avoid double-padding. Hidden-header screens (modals
+          without the brand bar) still need SafeAreaView's top inset. */}
+      <SafeAreaView style={layoutStyles.appContent} edges={hideHeader ? ['top'] : []}>
         {!hideHeader && (
           <Header
             streak={data.gymLogs.length}
