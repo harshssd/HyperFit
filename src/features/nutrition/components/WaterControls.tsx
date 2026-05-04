@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Text, TouchableOpacity, View } from 'react-native';
-import { Droplet, Undo2 } from 'lucide-react-native';
+import { Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Check, Droplet, Undo2, X } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import { formatVolume } from '../helpers';
 
@@ -41,12 +41,27 @@ export const WaterControls = ({
   onUndo,
 }: Props) => {
   const [busy, setBusy] = useState(false);
+  const [customMode, setCustomMode] = useState(false);
+  const [customAmount, setCustomAmount] = useState('');
   const filled = Math.min(SEGMENTS, Math.floor((totalMl / targetMl) * SEGMENTS));
 
   const wrap = async (op: () => Promise<void>) => {
     if (busy) return;
     setBusy(true);
     try { await op(); } finally { setBusy(false); }
+  };
+
+  const submitCustom = async () => {
+    const ml = parseInt(customAmount, 10);
+    if (!Number.isFinite(ml) || ml <= 0) return;
+    await wrap(() => onAddMl(ml));
+    setCustomAmount('');
+    setCustomMode(false);
+  };
+
+  const cancelCustom = () => {
+    setCustomAmount('');
+    setCustomMode(false);
   };
 
   return (
@@ -134,22 +149,125 @@ export const WaterControls = ({
         ))}
       </View>
 
-      <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
-        <ActionButton
-          label={`+ CUP · ${formatVolume(cupMl, unit)}`}
-          tone="primary"
-          onPress={() => wrap(() => onAddMl(cupMl))}
-          disabled={busy}
-          testID="water-add-cup"
-        />
-        <ActionButton
-          label={`+ BOTTLE · ${formatVolume(bottleMl, unit)}`}
-          tone="primary"
-          onPress={() => wrap(() => onAddMl(bottleMl))}
-          disabled={busy}
-          testID="water-add-bottle"
-        />
-      </View>
+      {customMode ? (
+        // Inline custom-amount row replaces the action pills until the
+        // user commits or cancels. Same green tone for visual continuity
+        // with the cup/bottle pills it stands in for.
+        <View
+          style={{
+            flexDirection: 'row',
+            gap: spacing.sm,
+            alignItems: 'center',
+            marginTop: spacing.xs,
+          }}
+        >
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              borderRadius: radii.sm,
+              borderWidth: 1,
+              borderColor: accent.sessionUp,
+              backgroundColor: 'rgba(0, 214, 143, 0.10)',
+              paddingHorizontal: spacing.md,
+            }}
+          >
+            <TextInput
+              testID="water-custom-input"
+              value={customAmount}
+              onChangeText={setCustomAmount}
+              onSubmitEditing={submitCustom}
+              placeholder="0"
+              placeholderTextColor={text.disabled}
+              keyboardType="number-pad"
+              autoFocus
+              returnKeyType="done"
+              maxLength={5}
+              style={{
+                flex: 1,
+                color: text.primary,
+                fontSize: 16,
+                fontWeight: fonts.weight.heavy as '800',
+                fontVariant: fonts.tabularNums,
+                paddingVertical: spacing.md,
+              }}
+            />
+            <Text
+              style={{
+                color: text.quaternary,
+                fontFamily: fonts.family.mono,
+                fontSize: 11,
+                letterSpacing: 1.6,
+                fontWeight: fonts.weight.heavy as '800',
+              }}
+            >
+              {unit.toUpperCase()}
+            </Text>
+          </View>
+          <TouchableOpacity
+            testID="water-custom-save"
+            onPress={submitCustom}
+            disabled={busy || !customAmount.trim()}
+            accessibilityRole="button"
+            accessibilityLabel="Save custom water amount"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: radii.sm,
+              borderWidth: 1,
+              borderColor: accent.sessionUp,
+              backgroundColor: accent.sessionUp,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: busy || !customAmount.trim() ? 0.4 : 1,
+            }}
+          >
+            <Check size={18} color={palette.bg} strokeWidth={3} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={cancelCustom}
+            accessibilityRole="button"
+            accessibilityLabel="Cancel custom water amount"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: radii.sm,
+              borderWidth: 1,
+              borderColor: palette.borderStrong,
+              backgroundColor: palette.surface,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <X size={18} color={text.tertiary} />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
+          <ActionButton
+            label={`+ CUP · ${formatVolume(cupMl, unit)}`}
+            tone="primary"
+            onPress={() => wrap(() => onAddMl(cupMl))}
+            disabled={busy}
+            testID="water-add-cup"
+          />
+          <ActionButton
+            label={`+ BOTTLE · ${formatVolume(bottleMl, unit)}`}
+            tone="primary"
+            onPress={() => wrap(() => onAddMl(bottleMl))}
+            disabled={busy}
+            testID="water-add-bottle"
+          />
+          <ActionButton
+            label="+ CUSTOM"
+            tone="neutral"
+            onPress={() => setCustomMode(true)}
+            disabled={busy}
+            testID="water-custom-open"
+          />
+        </View>
+      )}
     </View>
   );
 };
