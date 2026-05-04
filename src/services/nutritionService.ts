@@ -133,6 +133,9 @@ export type AddEntryInput = {
   userId: string;
   dayId: string;
   mealSlot: MealSlot;
+  /** Optional free-text label (e.g. "Pre-workout"). Empty string is
+   *  coerced to null so the DB CHECK constraint stays happy. */
+  mealLabel?: string | null;
   name?: string;
   kcal?: number;
   protein_g?: number;
@@ -144,12 +147,14 @@ export type AddEntryInput = {
 export const addEntry = async (
   input: AddEntryInput,
 ): Promise<NutritionEntry> => {
+  const trimmedLabel = input.mealLabel?.trim();
   const { data, error } = await supabase
     .from('nutrition_entries')
     .insert({
       user_id: input.userId,
       day_id: input.dayId,
       meal_slot: input.mealSlot,
+      meal_label: trimmedLabel ? trimmedLabel : null,
       name: input.name ?? null,
       kcal: input.kcal ?? 0,
       protein_g: input.protein_g ?? 0,

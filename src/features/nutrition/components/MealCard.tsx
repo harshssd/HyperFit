@@ -1,42 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import {
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { Check, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react-native';
+import React from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { Plus, Trash2 } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
-import {
-  getRecents,
-  type AddEntryInput,
-  type NutritionEntry,
-} from '../../../services/nutritionService';
-import { useUser } from '../../../contexts/UserContext';
-import type { MealSlot } from '../../../types/supabase';
+import type { NutritionEntry } from '../../../services/nutritionService';
 
 /**
- * MealCard — one meal slot (Breakfast / Lunch / Dinner / Snack).
+ * MealCard — display-only readout for one meal grouping.
  *
- * Collapsed: title + entry count + total kcal + chevron-down. Tap to expand.
- * Expanded:
- *   - Existing entries (today) listed inline with delete affordances
- *   - Recents (other days) as full-width tap rows — recents are the
- *     primary action because most meals are repeats. One tap re-logs
- *     the same numbers, no typing.
- *   - AddMealRow underneath: kcal + name by default, with a "+ macros"
- *     toggle that reveals P/C/F/fib for the rare case the user is
- *     hand-tracking macros.
+ * Was: collapsed card with an inline AddMealRow + recents list behind an
+ * expand chevron. Now: pure display. Adding lives in AddMealModal,
+ * opened via the parent's "+ Add meal" button or the per-card + icon.
  *
- * Rows, not grids — same input pattern as the workout-set logger.
- * No modals on the common path; logging stays one tap deep.
+ * Empty state: whole card is tappable → onRequestAdd. The card is the
+ * affordance.
+ *
+ * Non-empty: header (label + entry count + total kcal + small + icon)
+ * with the entries listed always-visible underneath. + icon opens the
+ * modal pre-filled with this card's slot/label so adding another item
+ * is one tap.
+ *
+ * Custom-labeled cards reuse this same component — they pass their
+ * label as `label` and the parent groups entries by meal_label before
+ * passing them in.
  */
 
 type Props = {
-  slot: MealSlot;
   label: string;
   entries: NutritionEntry[];
-  onAdd: (input: Omit<AddEntryInput, 'userId' | 'dayId'>) => Promise<void>;
+  onRequestAdd: () => void;
   onDelete: (entryId: string) => Promise<void>;
 };
 
@@ -45,25 +36,73 @@ const slotTotals = (entries: NutritionEntry[]) =>
     (acc, e) => ({
       kcal: acc.kcal + e.kcal,
       protein: acc.protein + e.protein_g,
-      carb: acc.carb + e.carb_g,
-      fat: acc.fat + e.fat_g,
-      fiber: acc.fiber + e.fiber_g,
     }),
-    { kcal: 0, protein: 0, carb: 0, fat: 0, fiber: 0 },
+    { kcal: 0, protein: 0 },
   );
 
-export const MealCard = ({ slot, label, entries, onAdd, onDelete }: Props) => {
-  const { user } = useUser();
-  const [expanded, setExpanded] = useState(false);
-  const [recents, setRecents] = useState<NutritionEntry[]>([]);
+export const MealCard = ({ label, entries, onRequestAdd, onDelete }: Props) => {
   const totals = slotTotals(entries);
+  const empty = entries.length === 0;
 
-  // Lazy-fetch recents on first expand. Refresh whenever entries change so
-  // a freshly-logged meal becomes available as a recent next time.
-  useEffect(() => {
-    if (!expanded || !user?.id) return;
-    void getRecents(user.id, slot, 10).then(setRecents);
-  }, [expanded, user?.id, slot, entries.length]);
+  if (empty) {
+    return (
+      <TouchableOpacity
+        onPress={onRequestAdd}
+        accessibilityRole="button"
+        accessibilityLabel={`Add ${label} entry`}
+        activeOpacity={0.85}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+          padding: spacing.md,
+          backgroundColor: palette.surfaceAlt,
+          borderColor: palette.borderStrong,
+          borderWidth: 1,
+          borderRadius: radii.md,
+        }}
+      >
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: radii.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: palette.borderStrong,
+            backgroundColor: palette.surface,
+          }}
+        >
+          <Plus size={14} color={text.tertiary} strokeWidth={3} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            style={{
+              color: text.quaternary,
+              fontFamily: fonts.family.mono,
+              fontSize: 11,
+              letterSpacing: 1.6,
+              fontWeight: '800',
+              textTransform: 'uppercase',
+            }}
+          >
+            {label}
+          </Text>
+          <Text
+            style={{
+              color: text.tertiary,
+              fontSize: 14,
+              fontWeight: '600',
+              marginTop: 2,
+            }}
+          >
+            Add an entry
+          </Text>
+        </View>
+      </TouchableOpacity>
+    );
+  }
 
   return (
     <View
@@ -75,10 +114,8 @@ export const MealCard = ({ slot, label, entries, onAdd, onDelete }: Props) => {
         overflow: 'hidden',
       }}
     >
-      <TouchableOpacity
-        testID={`meal-card-${slot}`}
-        onPress={() => setExpanded(e => !e)}
-        activeOpacity={0.85}
+      {/* Header */}
+      <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -106,74 +143,55 @@ export const MealCard = ({ slot, label, entries, onAdd, onDelete }: Props) => {
               fontWeight: '800',
               letterSpacing: -0.2,
               marginTop: 2,
+              fontVariant: fonts.tabularNums,
             }}
             numberOfLines={1}
           >
-            {entries.length === 0
-              ? 'Add meal'
-              : `${entries.length} ${entries.length === 1 ? 'entry' : 'entries'}`}
+            {totals.kcal.toLocaleString()}
+            <Text style={{ color: text.quaternary, fontWeight: '600', fontSize: 13 }}>
+              {' kcal · '}
+              {entries.length} {entries.length === 1 ? 'item' : 'items'}
+            </Text>
           </Text>
         </View>
-        {entries.length > 0 ? (
-          <Text
-            style={{
-              color: text.tertiary,
-              fontFamily: fonts.family.mono,
-              fontSize: 13,
-              fontWeight: '700',
-              fontVariant: fonts.tabularNums,
-            }}
-          >
-            {totals.kcal.toLocaleString()}
-          </Text>
-        ) : null}
-        {expanded ? (
-          <ChevronUp size={18} color={text.tertiary} />
-        ) : (
-          <ChevronDown size={18} color={text.tertiary} />
-        )}
-      </TouchableOpacity>
-
-      {expanded ? (
-        <View
+        <TouchableOpacity
+          onPress={onRequestAdd}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Add another ${label} entry`}
           style={{
-            paddingHorizontal: spacing.md,
-            paddingBottom: spacing.md,
-            gap: spacing.sm,
-            borderTopWidth: 1,
-            borderTopColor: palette.borderStrong,
-            paddingTop: spacing.md,
+            width: 32,
+            height: 32,
+            borderRadius: radii.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(252, 76, 2, 0.10)',
+            borderWidth: 1,
+            borderColor: accent.lift,
           }}
         >
-          {entries.map(entry => (
-            <EntryRow key={entry.id} entry={entry} onDelete={onDelete} />
-          ))}
+          <Plus size={16} color={accent.lift} strokeWidth={3} />
+        </TouchableOpacity>
+      </View>
 
-          {recents.length > 0 ? (
-            <RecentsList
-              recents={recents}
-              onPick={recent =>
-                onAdd({
-                  mealSlot: slot,
-                  name: recent.name ?? undefined,
-                  kcal: recent.kcal,
-                  protein_g: recent.protein_g,
-                  carb_g: recent.carb_g,
-                  fat_g: recent.fat_g,
-                  fiber_g: recent.fiber_g,
-                })
-              }
-            />
-          ) : null}
-
-          <AddMealRow slot={slot} onAdd={onAdd} />
-        </View>
-      ) : null}
+      {/* Entries — always visible; the card IS the entries */}
+      <View
+        style={{
+          paddingHorizontal: spacing.md,
+          paddingBottom: spacing.md,
+          gap: spacing.xs,
+          borderTopWidth: 1,
+          borderTopColor: palette.borderStrong,
+          paddingTop: spacing.sm,
+        }}
+      >
+        {entries.map(entry => (
+          <EntryRow key={entry.id} entry={entry} onDelete={onDelete} />
+        ))}
+      </View>
     </View>
   );
 };
-
-// -- Single existing entry row (with delete) ---------------------------------
 
 const EntryRow = ({
   entry,
@@ -215,236 +233,4 @@ const EntryRow = ({
       <Trash2 size={14} color={text.disabled} />
     </TouchableOpacity>
   </View>
-);
-
-// -- Recents list ------------------------------------------------------------
-// Vertical, full-width tap rows. Recents are the primary action: most meals
-// are repeats, so the cheapest "log a meal" path is one tap on a past entry.
-// The previous horizontal chip strip cramped the name and hid macros — this
-// shows everything inline, kcal first.
-
-const RecentsList = ({
-  recents,
-  onPick,
-}: {
-  recents: NutritionEntry[];
-  onPick: (recent: NutritionEntry) => void;
-}) => (
-  <View style={{ gap: 4 }}>
-    <Text
-      style={{
-        color: text.quaternary,
-        fontFamily: fonts.family.mono,
-        fontSize: 9,
-        letterSpacing: 1.4,
-        textTransform: 'uppercase',
-        fontWeight: '700',
-        marginBottom: 4,
-      }}
-    >
-      Tap to re-log
-    </Text>
-    {recents.map(r => (
-      <TouchableOpacity
-        key={r.id}
-        onPress={() => onPick(r)}
-        accessibilityRole="button"
-        accessibilityLabel={`Log ${r.name ?? 'meal'} again`}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.sm,
-          paddingHorizontal: spacing.sm,
-          paddingVertical: spacing.sm,
-          backgroundColor: palette.surface,
-          borderColor: palette.borderStrong,
-          borderWidth: 1,
-          borderRadius: radii.sm,
-        }}
-      >
-        <Plus size={14} color={accent.lift} strokeWidth={3} />
-        <Text
-          numberOfLines={1}
-          style={{ flex: 1, color: text.primary, fontSize: 13, fontWeight: '600' }}
-        >
-          {r.name ?? 'Meal'}
-        </Text>
-        <Text
-          style={{
-            color: text.tertiary,
-            fontFamily: fonts.family.mono,
-            fontSize: 12,
-            fontWeight: '700',
-            fontVariant: fonts.tabularNums,
-          }}
-        >
-          {r.kcal}
-          <Text style={{ color: text.quaternary, fontWeight: '500' }}>
-            {' kcal · '}
-          </Text>
-          {r.protein_g}P
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-);
-
-// -- Inline AddMealRow -------------------------------------------------------
-// Five numeric inputs in a row + a name field underneath. Save → onAdd,
-// then clear so the row is ready for another entry without dismissing.
-
-type AddMealRowProps = {
-  slot: MealSlot;
-  onAdd: (input: Omit<AddEntryInput, 'userId' | 'dayId'>) => Promise<void>;
-};
-
-const AddMealRow = ({ slot, onAdd }: AddMealRowProps) => {
-  const [name, setName] = useState('');
-  const [kcal, setKcal] = useState('');
-  const [protein, setProtein] = useState('');
-  const [carb, setCarb] = useState('');
-  const [fat, setFat] = useState('');
-  const [fiber, setFiber] = useState('');
-  // Macros default to hidden — kcal-only logging is the common case. Tap
-  // "+ macros" to expand the four extra cells when the user wants to track
-  // protein etc. Saved values for hidden macros default to 0 server-side.
-  const [showMacros, setShowMacros] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const canSave =
-    !!kcal && !saving && parseInt(kcal, 10) > 0;
-
-  const handleSave = async () => {
-    if (!canSave) return;
-    setSaving(true);
-    try {
-      await onAdd({
-        mealSlot: slot,
-        name: name.trim() || undefined,
-        kcal: parseInt(kcal, 10) || 0,
-        protein_g: parseInt(protein, 10) || 0,
-        carb_g: parseInt(carb, 10) || 0,
-        fat_g: parseInt(fat, 10) || 0,
-        fiber_g: parseInt(fiber, 10) || 0,
-      });
-      setName('');
-      setKcal('');
-      setProtein('');
-      setCarb('');
-      setFat('');
-      setFiber('');
-      // Keep showMacros sticky — if the user opened it once they probably
-      // want it for the next entry too.
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
-      <View style={{ flexDirection: 'row', gap: 6 }}>
-        <NumCell value={kcal} placeholder="kcal" onChange={setKcal} flex={1.4} />
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          placeholder="Item (e.g. chicken)"
-          placeholderTextColor={text.disabled}
-          style={{
-            flex: 3,
-            backgroundColor: palette.surface,
-            borderColor: palette.borderStrong,
-            borderWidth: 1,
-            borderRadius: radii.sm,
-            paddingHorizontal: spacing.sm,
-            paddingVertical: spacing.sm,
-            color: text.primary,
-            fontSize: 13,
-          }}
-        />
-        <TouchableOpacity
-          testID={`meal-save-${slot}`}
-          onPress={handleSave}
-          disabled={!canSave}
-          accessibilityRole="button"
-          accessibilityLabel={`Save ${slot} entry`}
-          style={{
-            paddingHorizontal: spacing.md,
-            justifyContent: 'center',
-            alignItems: 'center',
-            backgroundColor: canSave ? accent.lift : palette.surface,
-            borderColor: canSave ? accent.lift : palette.borderStrong,
-            borderWidth: 1,
-            borderRadius: radii.sm,
-            opacity: saving ? 0.6 : 1,
-          }}
-        >
-          <Check size={16} color={canSave ? '#fff' : text.disabled} strokeWidth={3} />
-        </TouchableOpacity>
-      </View>
-
-      {showMacros ? (
-        <View style={{ flexDirection: 'row', gap: 6 }}>
-          <NumCell value={protein} placeholder="P"   onChange={setProtein} />
-          <NumCell value={carb}    placeholder="C"   onChange={setCarb} />
-          <NumCell value={fat}     placeholder="F"   onChange={setFat} />
-          <NumCell value={fiber}   placeholder="fib" onChange={setFiber} />
-        </View>
-      ) : null}
-
-      <TouchableOpacity
-        onPress={() => setShowMacros(s => !s)}
-        accessibilityRole="button"
-        accessibilityLabel={showMacros ? 'Hide macros' : 'Show macros'}
-        style={{ alignSelf: 'flex-start', paddingVertical: 2 }}
-      >
-        <Text
-          style={{
-            color: text.tertiary,
-            fontFamily: fonts.family.mono,
-            fontSize: 10,
-            letterSpacing: 1.4,
-            textTransform: 'uppercase',
-            fontWeight: '700',
-          }}
-        >
-          {showMacros ? '− macros' : '+ macros'}
-        </Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const NumCell = ({
-  value,
-  placeholder,
-  onChange,
-  flex = 1,
-}: {
-  value: string;
-  placeholder: string;
-  onChange: (v: string) => void;
-  flex?: number;
-}) => (
-  <TextInput
-    value={value}
-    onChangeText={onChange}
-    placeholder={placeholder}
-    placeholderTextColor={text.disabled}
-    keyboardType="number-pad"
-    selectTextOnFocus
-    style={{
-      flex,
-      backgroundColor: palette.surface,
-      borderColor: palette.borderStrong,
-      borderWidth: 1,
-      borderRadius: radii.sm,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.sm,
-      color: text.primary,
-      fontSize: 14,
-      fontWeight: '700',
-      textAlign: 'center',
-      fontVariant: fonts.tabularNums,
-    }}
-  />
 );
