@@ -19,6 +19,21 @@ const formatDate = (d: Date) =>
 const sumExercises = (plan: WorkoutPlan) =>
   (plan.sessions ?? []).reduce((n, s) => n + (s.exercises?.length ?? 0), 0);
 
+/** Distinct exercise names across every session, preserving first-seen order. */
+const distinctExerciseNames = (plan: WorkoutPlan): string[] => {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  (plan.sessions ?? []).forEach(s => {
+    (s.exercises ?? []).forEach(ex => {
+      const name = ex.name?.trim();
+      if (!name || seen.has(name)) return;
+      seen.add(name);
+      out.push(name);
+    });
+  });
+  return out;
+};
+
 /**
  * Thin wrapper around `SharePreviewSheet` that fetches plan-coverage muscle
  * intensities from `plan_muscle_coverage_view` and assembles the
@@ -72,6 +87,7 @@ export const SharePlanSheet = ({ visible, plan, onClose }: Props) => {
         plan.is_shareable && plan.share_code
           ? `hyperfit.app/p/${plan.share_code}`
           : null,
+      exercises: distinctExerciseNames(plan),
       byMuscle,
       intensities,
     };

@@ -109,10 +109,11 @@ const FinishedSessionView = ({
       totalSets,
       exerciseCount: visibleWorkout.length,
       prCount,
+      exercises: visibleWorkout.map(e => e.name).filter(Boolean),
       byMuscle: volume?.byMuscle ?? {},
       intensities: volume?.intensities ?? {},
     }),
-    [calculateTotalVolume, durationMin, prCount, sessionName, totalSets, visibleWorkout.length, volume]
+    [calculateTotalVolume, durationMin, prCount, sessionName, totalSets, visibleWorkout, volume]
   );
 
   const shareDisabled = !sessionId;
