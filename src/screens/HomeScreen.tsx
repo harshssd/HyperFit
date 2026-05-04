@@ -53,6 +53,17 @@ export const HomeScreen = () => {
     navigation.navigate('Plans', { intent: 'pick' });
   };
 
+  // Land on Nutrition with intent: 'add-meal' so the modal pops on focus.
+  // Same one-shot pattern as Plans → 'pick' / 'manual'.
+  const handleLogMeal = () => {
+    navigation.navigate('Nutrition', { intent: 'add-meal' });
+  };
+  // Water has always-visible +CUP / +BOTTLE on the Nutrition tab — just
+  // navigate; no modal/intent needed.
+  const handleLogWater = () => {
+    navigation.navigate('Nutrition');
+  };
+
   // HomeView owns its own ScrollView; opt out of the layout wrapper so we
   // don't nest scroll surfaces (matches Plans and History).
   return (
@@ -72,6 +83,8 @@ export const HomeScreen = () => {
         onStartCustom={handleStartCustom}
         onStartUpcoming={handleStartUpcoming}
         onPickFromLibrary={handlePickFromLibrary}
+        onLogMeal={handleLogMeal}
+        onLogWater={handleLogWater}
       />
     </ScreenLayout>
   );

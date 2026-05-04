@@ -25,7 +25,10 @@ export type MainTabParamList = {
    *  - 'manual' → open the empty-workout overview with the exercise picker
    *  Cleared after consumed so a manual revisit doesn't re-trigger. */
   Plans: { intent?: 'pick' | 'manual' } | undefined;
-  Nutrition: undefined; // placeholder; macros + food log land here
+  /** intent is a one-shot:
+   *  - 'add-meal' → land on Nutrition + open AddMealModal
+   *  Cleared after consumed so a tab revisit doesn't re-trigger. */
+  Nutrition: { intent?: 'add-meal' } | undefined;
   History: undefined;
 };
 

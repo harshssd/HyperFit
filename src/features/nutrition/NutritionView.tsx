@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ChevronRight, Flame } from 'lucide-react-native';
+import { ChevronRight, Flame, Plus } from 'lucide-react-native';
 import { ForkKnifeCrossed } from '../../components/icons/ForkKnifeCrossed';
 import { ErrorState, LoadingState } from '../../components/StateView';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
@@ -17,6 +17,7 @@ import { WaterControls } from './components/WaterControls';
 import { CheatDayToggle } from './components/CheatDayToggle';
 import { CheatDayPlanner } from './components/CheatDayPlanner';
 import { WeekRows } from './components/WeekRows';
+import { AddMealModal } from './components/AddMealModal';
 import { heroEyebrow, formatKcal } from './helpers';
 import type { MealSlot } from '../../types/supabase';
 
@@ -45,10 +46,45 @@ const MEAL_LABELS: Record<MealSlot, string> = {
 };
 const MEAL_ORDER: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
-export const NutritionView = () => {
+/**
+ * Default meal slot picked from the wall clock when the user taps the
+ * primary "+ Add meal" button. The modal still lets them pick a different
+ * slot — this is just the cheap "right answer" for the typical case.
+ */
+const slotForHour = (hour: number): MealSlot => {
+  if (hour < 10) return 'breakfast';
+  if (hour < 14) return 'lunch';
+  if (hour < 17) return 'snack';
+  if (hour < 21) return 'dinner';
+  return 'snack';
+};
+
+type AddMealRequest = { slot: MealSlot; label: string | null };
+
+type Props = {
+  /** When true, the modal opens on mount/update with a slot picked by
+   *  wall clock. Used for the Home screen "Log a meal" deep link. */
+  openAddMealOnMount?: boolean;
+  /** Fires once the deep-link request has been consumed so the parent
+   *  can flip its flag back off. */
+  onAddMealConsumed?: () => void;
+};
+
+export const NutritionView = ({
+  openAddMealOnMount,
+  onAddMealConsumed,
+}: Props = {}) => {
   const day = useNutritionDay();
   const [goalOpen, setGoalOpen] = useState(false);
+  const [addMealRequest, setAddMealRequest] = useState<AddMealRequest | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!openAddMealOnMount) return;
+    const hour = new Date().getHours();
+    setAddMealRequest({ slot: slotForHour(hour), label: null });
+    onAddMealConsumed?.();
+  }, [openAddMealOnMount, onAddMealConsumed]);
 
   if (day.loading) {
     return <LoadingState label="Loading today" />;
@@ -92,6 +128,16 @@ export const NutritionView = () => {
   const fatCurrent     = day.summary?.fat_total_g     ?? 0;
   const fiberCurrent   = day.summary?.fiber_total_g   ?? 0;
   const waterCurrent   = day.summary?.water_total_ml  ?? 0;
+
+  // Distinct user-supplied labels in today's entries, in first-seen
+  // order. Each becomes its own MealCard below the standard four.
+  const customLabels = useMemo(() => {
+    const out: string[] = [];
+    for (const e of day.entries) {
+      if (e.meal_label && !out.includes(e.meal_label)) out.push(e.meal_label);
+    }
+    return out;
+  }, [day.entries]);
 
   const eyebrowColor = isCheat
     ? CHEAT_BORDER
@@ -223,7 +269,13 @@ export const NutritionView = () => {
               <MacroPill label="Fiber"   current={fiberCurrent}   target={fiberTarget}   color={FIBER_COLOR} />
             </View>
 
-            {/* Water + meal cards stack */}
+            {/* Water + meal cards stack.
+             *
+             * Order: water (cheap to log) → primary "+ Add meal" CTA →
+             * standard 4 cards → custom-labeled cards (one per distinct
+             * meal_label).  The CTA sits between water and meals because
+             * adding a meal is the user's main intent on this screen,
+             * and the meal cards below are read-only summaries. */}
             <View style={{ gap: spacing.sm }}>
               <WaterControls
                 totalMl={waterCurrent}
@@ -234,13 +286,62 @@ export const NutritionView = () => {
                 onAddMl={day.addWater}
                 onUndo={day.undoLastWater}
               />
+
+              <TouchableOpacity
+                testID="nutrition-add-meal"
+                onPress={() => {
+                  const hour = new Date().getHours();
+                  setAddMealRequest({ slot: slotForHour(hour), label: null });
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Add meal entry"
+                activeOpacity={0.85}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: spacing.sm,
+                  paddingVertical: spacing.md,
+                  marginTop: spacing.xs,
+                  borderRadius: radii.md,
+                  backgroundColor: accent.lift,
+                }}
+              >
+                <Plus size={16} color="#fff" strokeWidth={3} />
+                <Text
+                  style={{
+                    color: '#fff',
+                    fontFamily: fonts.family.mono,
+                    fontSize: 12,
+                    letterSpacing: 2.2,
+                    textTransform: 'uppercase',
+                    fontWeight: '800',
+                  }}
+                >
+                  Add meal
+                </Text>
+              </TouchableOpacity>
+
               {MEAL_ORDER.map(slot => (
                 <MealCard
                   key={slot}
-                  slot={slot}
                   label={MEAL_LABELS[slot]}
-                  entries={day.entries.filter(e => e.meal_slot === slot)}
-                  onAdd={day.addEntry}
+                  entries={day.entries.filter(
+                    e => e.meal_slot === slot && !e.meal_label,
+                  )}
+                  onRequestAdd={() => setAddMealRequest({ slot, label: null })}
+                  onDelete={day.deleteEntry}
+                />
+              ))}
+
+              {customLabels.map(label => (
+                <MealCard
+                  key={`custom-${label}`}
+                  label={label}
+                  entries={day.entries.filter(e => e.meal_label === label)}
+                  onRequestAdd={() =>
+                    setAddMealRequest({ slot: 'snack', label })
+                  }
                   onDelete={day.deleteEntry}
                 />
               ))}
@@ -273,6 +374,14 @@ export const NutritionView = () => {
         initial={day.settings}
         onClose={() => setGoalOpen(false)}
         onSave={day.saveSettings}
+      />
+
+      <AddMealModal
+        visible={addMealRequest !== null}
+        defaultSlot={addMealRequest?.slot ?? 'snack'}
+        defaultLabel={addMealRequest?.label ?? null}
+        onClose={() => setAddMealRequest(null)}
+        onSave={day.addEntry}
       />
     </>
   );
