@@ -19,19 +19,28 @@ const formatDate = (d: Date) =>
 const sumExercises = (plan: WorkoutPlan) =>
   (plan.sessions ?? []).reduce((n, s) => n + (s.exercises?.length ?? 0), 0);
 
-/** Distinct exercise names across every session, preserving first-seen order. */
-const distinctExerciseNames = (plan: WorkoutPlan): string[] => {
-  const seen = new Set<string>();
-  const out: string[] = [];
+/**
+ * Distinct exercise names across every session with their total planned
+ * sets. A 3-day split running Bench at 4 sets every day yields
+ * `{ name: 'Bench Press', count: 12 }`. First-seen order preserved so
+ * the share card lists exercises in the order the plan introduces them
+ * before sorting by count.
+ */
+const aggregateExercises = (
+  plan: WorkoutPlan,
+): { name: string; count: number }[] => {
+  const tally = new Map<string, number>();
   (plan.sessions ?? []).forEach(s => {
     (s.exercises ?? []).forEach(ex => {
       const name = ex.name?.trim();
-      if (!name || seen.has(name)) return;
-      seen.add(name);
-      out.push(name);
+      if (!name) return;
+      const sets = typeof ex.sets === 'number' && ex.sets > 0 ? ex.sets : 0;
+      tally.set(name, (tally.get(name) ?? 0) + sets);
     });
   });
-  return out;
+  return Array.from(tally.entries())
+    .map(([name, count]) => ({ name, count }))
+    .filter(row => row.count > 0);
 };
 
 /**
@@ -87,8 +96,7 @@ export const SharePlanSheet = ({ visible, plan, onClose }: Props) => {
         plan.is_shareable && plan.share_code
           ? `hyperfit.app/p/${plan.share_code}`
           : null,
-      exercises: distinctExerciseNames(plan),
-      byMuscle,
+      exercises: aggregateExercises(plan),
       intensities,
     };
   }, [plan, byMuscle, intensities]);

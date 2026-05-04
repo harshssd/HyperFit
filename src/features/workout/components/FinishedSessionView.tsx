@@ -109,8 +109,18 @@ const FinishedSessionView = ({
       totalSets,
       exerciseCount: visibleWorkout.length,
       prCount,
-      exercises: visibleWorkout.map(e => e.name).filter(Boolean),
-      byMuscle: volume?.byMuscle ?? {},
+      // count = sets that had real values (matches the totalSets math
+      // above); empty slots don't count as a "logged set" for share copy.
+      exercises: visibleWorkout
+        .map(ex => ({
+          name: ex.name,
+          count: ex.sets.filter(s => {
+            const w = Number(s.weight);
+            const r = Number(s.reps);
+            return (Number.isFinite(w) && w > 0) || (Number.isFinite(r) && r > 0);
+          }).length,
+        }))
+        .filter(row => row.name && row.count > 0),
       intensities: volume?.intensities ?? {},
     }),
     [calculateTotalVolume, durationMin, prCount, sessionName, totalSets, visibleWorkout, volume]

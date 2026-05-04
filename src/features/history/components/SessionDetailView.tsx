@@ -88,8 +88,15 @@ export const SessionDetailView = ({ session, onClose }: Props) => {
       totalVolume: volume?.totalVolume ?? session.volume_load ?? 0,
       totalSets: session.set_count ?? 0,
       exerciseCount: session.exercise_count ?? 0,
-      exercises: [],
-      byMuscle: volume?.byMuscle ?? {},
+      // Group session.logs by exercise; count = number of sets logged
+      // for each. Stable per-exercise order via order_index from the
+      // existing getExerciseGroups helper.
+      exercises: getExerciseGroups(session.logs)
+        .map(group => ({
+          name: group[0]?.exercise_name?.trim() || 'Exercise',
+          count: group.length,
+        }))
+        .filter(row => row.count > 0),
       intensities: volume?.intensities ?? {},
     };
   }, [session, volume]);
