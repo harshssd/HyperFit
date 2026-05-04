@@ -24,6 +24,9 @@ export const signInWithGoogle = (redirectTo: string) =>
     options: { redirectTo, skipBrowserRedirect: true },
   });
 
+export const resetPasswordForEmail = (email: string, redirectTo?: string) =>
+  supabase.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
+
 export const signOut = () => supabase.auth.signOut();
 
 /**
