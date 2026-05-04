@@ -14,18 +14,10 @@ import { ChevronRight, LogOut, X } from 'lucide-react-native';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useAppData } from '../contexts/AppDataContext';
 import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
+import { deriveInitials } from '../utils/initials';
 import type { RootStackParamList } from '../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
-
-const deriveInitials = (email?: string | null): string => {
-  if (!email) return '—';
-  const local = email.split('@')[0] ?? '';
-  const parts = local.split(/[._-]+/).filter(Boolean);
-  if (parts.length === 0) return (local[0] ?? '—').toUpperCase();
-  if (parts.length === 1) return (parts[0][0] ?? '—').toUpperCase();
-  return ((parts[0][0] ?? '') + (parts[1][0] ?? '')).toUpperCase();
-};
 
 export const ProfileScreen = () => {
   const navigation = useNavigation<Nav>();

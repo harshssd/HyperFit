@@ -9,6 +9,7 @@ import { useAppData } from '../contexts/AppDataContext';
 import { useAuthContext } from '../contexts/AuthContext';
 import { useActiveWorkoutSession } from '../contexts/WorkoutSessionContext';
 import { calculateXP } from '../features/workout/helpers';
+import { deriveInitials } from '../utils/initials';
 import type { MainTabParamList, RootStackParamList } from '../navigation/types';
 
 type Nav = CompositeNavigationProp<
@@ -30,14 +31,7 @@ export const HomeScreen = () => {
   const navigation = useNavigation<Nav>();
   const { session, activeUserPlan } = useActiveWorkoutSession();
 
-  const avatarInitials = (() => {
-    const email = user?.email ?? '';
-    const local = email.split('@')[0] ?? '';
-    const parts = local.split(/[._-]+/).filter(Boolean);
-    if (parts.length === 0) return (local[0] ?? '—').toUpperCase();
-    if (parts.length === 1) return (parts[0][0] ?? '—').toUpperCase();
-    return ((parts[0][0] ?? '') + (parts[1][0] ?? '')).toUpperCase();
-  })();
+  const avatarInitials = deriveInitials(user?.email);
 
   const handleOpenProfile = () => navigation.navigate('Profile');
 
