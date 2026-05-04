@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -62,11 +62,30 @@ const slotForHour = (hour: number): MealSlot => {
 
 type AddMealRequest = { slot: MealSlot; label: string | null };
 
-export const NutritionView = () => {
+type Props = {
+  /** When true, the modal opens on mount/update with a slot picked by
+   *  wall clock. Used for the Home screen "Log a meal" deep link. */
+  openAddMealOnMount?: boolean;
+  /** Fires once the deep-link request has been consumed so the parent
+   *  can flip its flag back off. */
+  onAddMealConsumed?: () => void;
+};
+
+export const NutritionView = ({
+  openAddMealOnMount,
+  onAddMealConsumed,
+}: Props = {}) => {
   const day = useNutritionDay();
   const [goalOpen, setGoalOpen] = useState(false);
   const [addMealRequest, setAddMealRequest] = useState<AddMealRequest | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    if (!openAddMealOnMount) return;
+    const hour = new Date().getHours();
+    setAddMealRequest({ slot: slotForHour(hour), label: null });
+    onAddMealConsumed?.();
+  }, [openAddMealOnMount, onAddMealConsumed]);
 
   if (day.loading) {
     return <LoadingState label="Loading today" />;

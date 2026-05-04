@@ -6,8 +6,10 @@ import {
   Calendar,
   CheckCircle,
   ChevronRight,
+  Droplet,
   Layout,
   PlusCircle,
+  UtensilsCrossed,
 } from 'lucide-react-native';
 import GlassCard from './GlassCard';
 import { homeStyles } from '../styles';
@@ -32,6 +34,11 @@ type HomeViewProps = {
   onStartUpcoming?: (planSessionId: string) => void;
   /** Open the plan library in session-pick mode (alternate workout flow). */
   onPickFromLibrary?: () => void;
+  /** Navigate to the Nutrition tab and open the Add Meal modal. */
+  onLogMeal?: () => void;
+  /** Navigate to the Nutrition tab (water +CUP / +BOTTLE buttons are
+   *  always visible there, so no extra intent is needed). */
+  onLogWater?: () => void;
 };
 
 const HomeView = ({
@@ -40,7 +47,11 @@ const HomeView = ({
   onStartCustom,
   onStartUpcoming,
   onPickFromLibrary,
+  onLogMeal,
+  onLogWater,
 }: HomeViewProps) => {
+  const handleLogMeal = onLogMeal ?? (() => onChangeView('nutrition'));
+  const handleLogWater = onLogWater ?? (() => onChangeView('nutrition'));
   const today = new Date();
   const activePlan = data.userWorkoutPlans?.find(p => p.isActive);
   const todaysWorkout = getWorkoutForDate(today, [], activePlan);
@@ -616,6 +627,99 @@ const HomeView = ({
         }}
       >
         <View style={{ padding: spacing.xl }}>{renderTodaysFocus()}</View>
+      </View>
+
+      {/* Fuel — meal/water shortcuts. Sits BETWEEN the workout focus card
+          and the schedule card so workout and nutrition have visually
+          distinct sections (separate borders, separate eyebrows). One
+          tap from Home to log a meal or jump to water. */}
+      <View
+        style={{
+          marginBottom: spacing.xl,
+          borderRadius: radii.lg,
+          borderWidth: 1,
+          borderColor: palette.borderStrong,
+          backgroundColor: palette.surface,
+          overflow: 'hidden',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 8,
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.lg,
+            paddingBottom: spacing.md,
+            borderBottomWidth: 1,
+            borderBottomColor: palette.borderStrong,
+          }}
+        >
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: radii.sm,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: palette.surfaceAlt,
+              borderWidth: 1,
+              borderColor: palette.borderStrong,
+            }}
+          >
+            <UtensilsCrossed size={14} color={text.secondary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Eyebrow>Fuel</Eyebrow>
+            <Text
+              style={{
+                color: text.primary,
+                fontSize: 14,
+                fontWeight: '800',
+                marginTop: 2,
+              }}
+            >
+              Log a meal or water
+            </Text>
+          </View>
+        </View>
+        <View
+          style={{
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.md,
+            paddingBottom: spacing.lg,
+            gap: spacing.sm,
+          }}
+        >
+          <BannerRow
+            testID="home-log-meal"
+            onPress={handleLogMeal}
+            accessibilityLabel="Log a meal"
+            icon={<UtensilsCrossed size={16} color={accent.lift} />}
+            iconTint="rgba(252, 76, 2, 0.10)"
+            iconBorderColor={accent.lift}
+            eyebrow="Nutrition"
+            title="Log a Meal"
+            sub="Pick a slot, fill kcal, save"
+            rightSlot={<ChevronRight size={18} color={text.tertiary} />}
+          />
+          <BannerRow
+            testID="home-log-water"
+            onPress={handleLogWater}
+            accessibilityLabel="Log water intake"
+            icon={<Droplet size={16} color={accent.sessionUp} />}
+            iconTint="rgba(0, 214, 143, 0.10)"
+            iconBorderColor={accent.sessionUp}
+            eyebrow="Hydration"
+            title="Log Water"
+            sub="+ Cup / + Bottle"
+            rightSlot={<ChevronRight size={18} color={text.tertiary} />}
+          />
+        </View>
       </View>
 
       {/* Full month calendar — same component as the (now removed) Calendar
