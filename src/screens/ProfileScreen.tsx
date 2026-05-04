@@ -12,7 +12,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChevronRight, LogOut, X } from 'lucide-react-native';
 import { useAuthContext } from '../contexts/AuthContext';
-import { useAppData } from '../contexts/AppDataContext';
 import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
 import { deriveInitials } from '../utils/initials';
 import type { RootStackParamList } from '../navigation/types';
@@ -22,13 +21,9 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 export const ProfileScreen = () => {
   const navigation = useNavigation<Nav>();
   const { user, signOut } = useAuthContext();
-  const { data } = useAppData();
 
   const email = user?.email ?? '';
   const initials = deriveInitials(email);
-  const activePlan = data.userWorkoutPlans?.find(p => p.isActive);
-  const activePlanLabel =
-    activePlan?.customName ?? activePlan?.planData?.name ?? 'No active plan';
   const version =
     Constants.expoConfig?.version ??
     (Constants as unknown as { manifest2?: { extra?: { version?: string } } })
@@ -56,10 +51,6 @@ export const ProfileScreen = () => {
         },
       ],
     );
-  };
-
-  const handleManagePlan = () => {
-    navigation.navigate('Main', { screen: 'Plans' } as never);
   };
 
   return (
@@ -141,11 +132,6 @@ export const ProfileScreen = () => {
 
         <SmallLabel>ACCOUNT</SmallLabel>
         <Section>
-          <Row
-            label="Active plan"
-            value={activePlanLabel}
-            onPress={handleManagePlan}
-          />
           <Row
             label="Sign out"
             destructive

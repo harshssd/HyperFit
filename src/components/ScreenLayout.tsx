@@ -1,13 +1,17 @@
 import React, { ReactNode } from 'react';
 import { ImageBackground, ScrollView, View, ViewStyle, StyleProp } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Header from './Header';
 import { ErrorBoundary } from './ErrorBoundary';
 import { useUser } from '../contexts/UserContext';
 import { useAppData } from '../contexts/AppDataContext';
 import { calculateXP } from '../features/workout/helpers';
+import { deriveInitials } from '../utils/initials';
 import { layoutStyles } from '../styles';
 import { ASSETS } from '../constants/appConstants';
+import type { RootStackParamList } from '../navigation/types';
 
 type Props = {
   children: ReactNode;
@@ -34,8 +38,10 @@ export const ScreenLayout = ({
   contentStyle,
 }: Props) => {
   const { user } = useUser();
-  const { data, signOut } = useAppData();
+  const { data } = useAppData();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const username = user?.email?.split('@')[0] || user?.user_metadata?.full_name || 'User';
+  const avatarInitials = deriveInitials(user?.email);
 
   return (
     <ImageBackground
@@ -52,7 +58,8 @@ export const ScreenLayout = ({
           <Header
             streak={data.gymLogs.length}
             xp={calculateXP(data)}
-            onLogout={signOut}
+            onOpenProfile={() => navigation.navigate('Profile')}
+            avatarInitials={avatarInitials}
             username={username}
           />
         )}

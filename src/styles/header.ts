@@ -79,13 +79,6 @@ const headerStyles = StyleSheet.create({
     fontWeight: '700',
     fontFamily: 'monospace',
   },
-  logoutButton: {
-    padding: spacing.sm,
-    borderRadius: radii.full,
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.borderStrong,
-  },
   progressBar: {
     width: '100%',
     height: 4,

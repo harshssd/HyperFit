@@ -6,10 +6,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import HomeView from '../components/HomeView';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { useAppData } from '../contexts/AppDataContext';
-import { useAuthContext } from '../contexts/AuthContext';
 import { useActiveWorkoutSession } from '../contexts/WorkoutSessionContext';
 import { calculateXP } from '../features/workout/helpers';
-import { deriveInitials } from '../utils/initials';
 import type { MainTabParamList, RootStackParamList } from '../navigation/types';
 
 type Nav = CompositeNavigationProp<
@@ -27,13 +25,8 @@ const tabIdToRoute: Record<string, keyof MainTabParamList> = {
 
 export const HomeScreen = () => {
   const { data } = useAppData();
-  const { user } = useAuthContext();
   const navigation = useNavigation<Nav>();
   const { session, activeUserPlan } = useActiveWorkoutSession();
-
-  const avatarInitials = deriveInitials(user?.email);
-
-  const handleOpenProfile = () => navigation.navigate('Profile');
 
   // Open the Plans tab with `intent: 'manual'` — Plans surfaces the empty
   // workout overview + exercise picker on focus. Routing through Plans
@@ -92,8 +85,6 @@ export const HomeScreen = () => {
         onPickFromLibrary={handlePickFromLibrary}
         onLogMeal={handleLogMeal}
         onLogWater={handleLogWater}
-        onOpenProfile={handleOpenProfile}
-        avatarInitials={avatarInitials}
       />
     </ScreenLayout>
   );
