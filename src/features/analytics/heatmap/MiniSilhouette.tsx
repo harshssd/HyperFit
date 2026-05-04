@@ -1,0 +1,87 @@
+import React from 'react';
+import Svg, { Ellipse as SvgEllipse, Rect as SvgRect, Path } from 'react-native-svg';
+import {
+  BACK_BODY_OUTLINE,
+  BACK_REGIONS,
+  FRONT_BODY_OUTLINE,
+  FRONT_REGIONS,
+  MuscleId,
+  VIEWBOX_HEIGHT,
+  VIEWBOX_WIDTH,
+} from './muscleRegions';
+import { palette } from '../../../styles/theme';
+import { HEATMAP_FILL } from './BodySilhouette';
+
+type Props = {
+  view?: 'front' | 'back';
+  intensities: Partial<Record<MuscleId, number>>;
+  /** Pixel width — height scales with the body viewBox. */
+  size?: number;
+};
+
+const SILHOUETTE_FILL = '#0a0a0a';
+const SILHOUETTE_STROKE = palette.borderStrong;
+
+/**
+ * Static (non-animated) micro-silhouette for calendar grids. Skips the
+ * Animated.Value pipeline that BodySilhouette uses — at 42 grid cells × 18
+ * regions per cell, animating each region pegs the JS thread on month
+ * scroll. The visual ramp matches the full silhouette so the mini and
+ * full versions read consistently.
+ */
+const intensityToFill = (n: number): string => {
+  if (n <= 0) return HEATMAP_FILL.none;
+  if (n < 0.34) return HEATMAP_FILL.light;
+  if (n < 0.7) return HEATMAP_FILL.mid;
+  return HEATMAP_FILL.heavy;
+};
+
+export const MiniSilhouette = ({
+  view = 'front',
+  intensities,
+  size = 28,
+}: Props) => {
+  const regions = view === 'front' ? FRONT_REGIONS : BACK_REGIONS;
+  const outline = view === 'front' ? FRONT_BODY_OUTLINE : BACK_BODY_OUTLINE;
+  const height = (size * VIEWBOX_HEIGHT) / VIEWBOX_WIDTH;
+
+  return (
+    <Svg width={size} height={height} viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}>
+      <Path d={outline} fill={SILHOUETTE_FILL} stroke={SILHOUETTE_STROKE} strokeWidth={1} />
+      {regions.map(region => {
+        const fill = intensityToFill(intensities[region.id] ?? 0);
+        return region.shapes.map((shape, i) => {
+          const key = `${region.id}-${i}`;
+          if (shape.kind === 'ellipse') {
+            return (
+              <SvgEllipse
+                key={key}
+                cx={shape.cx}
+                cy={shape.cy}
+                rx={shape.rx}
+                ry={shape.ry}
+                fill={fill}
+              />
+            );
+          }
+          if (shape.kind === 'rect') {
+            return (
+              <SvgRect
+                key={key}
+                x={shape.x}
+                y={shape.y}
+                width={shape.width}
+                height={shape.height}
+                rx={shape.rx ?? 6}
+                fill={fill}
+              />
+            );
+          }
+          return <Path key={key} d={shape.d} fill={fill} />;
+        });
+      })}
+    </Svg>
+  );
+};
+
+export default MiniSilhouette;
