@@ -35,6 +35,8 @@ export type SharePlanPayload = {
   muscleCount: number;
   /** Plan length in weeks (from `WorkoutPlan.duration`). Falls back to null. */
   durationWeeks: number | null;
+  /** Optional deep link to import this plan; rendered as the card footer. */
+  shareUrl?: string | null;
   byMuscle: Partial<Record<MuscleId, number>>;
   intensities: Partial<Record<MuscleId, number>>;
 };
@@ -176,7 +178,14 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
         </View>
       )}
 
-      <Text style={styles.footer}>hyperfit.app</Text>
+      <Text
+        style={styles.footer}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.6}
+      >
+        {payload.kind === 'plan' && payload.shareUrl ? payload.shareUrl : 'hyperfit.app'}
+      </Text>
     </View>
   );
 });

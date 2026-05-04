@@ -82,6 +82,10 @@ export const SharePlanSheet = ({ visible, plan, onClose }: Props) => {
       exerciseCount: sumExercises(plan),
       muscleCount: Object.values(byMuscle).filter(v => (v ?? 0) > 0).length,
       durationWeeks: typeof plan.duration === 'number' ? plan.duration : null,
+      shareUrl:
+        plan.is_shareable && plan.share_code
+          ? `hyperfit.app/p/${plan.share_code}`
+          : null,
       byMuscle,
       intensities,
     };
