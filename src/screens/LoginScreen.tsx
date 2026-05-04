@@ -9,6 +9,7 @@ export const LoginScreen = () => {
       onEmailLogin={auth.signInWithEmail}
       onGoogleLogin={auth.signInWithGoogle}
       onSignUp={auth.signUpWithEmail}
+      onResetPassword={auth.resetPassword}
     />
   );
 };

@@ -10,8 +10,10 @@ import {
   signInWithEmail as svcSignInWithEmail,
   signUpWithEmail as svcSignUpWithEmail,
   signInWithGoogle as svcSignInWithGoogle,
+  resetPasswordForEmail as svcResetPasswordForEmail,
   signOut as svcSignOut,
 } from '../services/supabaseClient';
+import { friendlyAuthError } from '../utils/authErrors';
 
 export type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated';
 
@@ -24,6 +26,7 @@ export type UseAuthReturn = {
     password: string,
   ) => Promise<{ needsConfirmation: boolean; alreadyExists: boolean }>;
   signInWithGoogle: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -54,12 +57,12 @@ export const useAuth = (): UseAuthReturn => {
 
   const signInWithEmail = useCallback(async (email: string, password: string) => {
     const { error } = await svcSignInWithEmail(email, password);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyAuthError(error));
   }, []);
 
   const signUpWithEmail = useCallback(async (email: string, password: string) => {
     const { data, error } = await svcSignUpWithEmail(email, password);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyAuthError(error));
     // Anti-enumeration tell: Supabase returns a synthetic user with empty
     // identities (and no session, no error) when the email already exists.
     const alreadyExists =
@@ -77,7 +80,7 @@ export const useAuth = (): UseAuthReturn => {
     );
 
     const { data, error } = await svcSignInWithGoogle(redirectUrl);
-    if (error) throw new Error(error.message);
+    if (error) throw new Error(friendlyAuthError(error));
     if (!data?.url) return;
 
     const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUrl);
@@ -92,7 +95,7 @@ export const useAuth = (): UseAuthReturn => {
       const code = new URLSearchParams(queryStr).get('code');
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-        if (exchangeError) throw new Error(exchangeError.message);
+        if (exchangeError) throw new Error(friendlyAuthError(exchangeError));
         return;
       }
     }
@@ -106,14 +109,22 @@ export const useAuth = (): UseAuthReturn => {
           access_token,
           refresh_token,
         });
-        if (sessionError) throw new Error(sessionError.message);
+        if (sessionError) throw new Error(friendlyAuthError(sessionError));
       }
     }
+  }, []);
+
+  const resetPassword = useCallback(async (email: string) => {
+    // No deep-link handler yet — Supabase's hosted reset page handles the
+    // new-password form. When we add an in-app reset screen, pass redirectTo
+    // here pointing at hyperfit:// + that route.
+    const { error } = await svcResetPasswordForEmail(email);
+    if (error) throw new Error(friendlyAuthError(error));
   }, []);
 
   const signOut = useCallback(async () => {
     await svcSignOut();
   }, []);
 
-  return { user, status, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut };
+  return { user, status, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword, signOut };
 };

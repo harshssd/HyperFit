@@ -23,9 +23,10 @@ type LoginViewProps = {
     email: string,
     password: string,
   ) => Promise<{ needsConfirmation: boolean; alreadyExists: boolean } | void>;
+  onResetPassword: (email: string) => Promise<void>;
 };
 
-const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) => {
+const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp, onResetPassword }: LoginViewProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -70,6 +71,28 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
       await onGoogleLogin();
     } catch (err: any) {
       setError(err.message || 'Google sign in failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Send a reset link to whatever's in the email field. Trim/validate locally
+  // so we surface "enter your email" before hitting the network rather than
+  // returning a generic Supabase error after a round-trip.
+  const handleResetPassword = async () => {
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setError('Enter your email above, then tap Forgot password again.');
+      return;
+    }
+    setIsLoading(true);
+    setError('');
+    setInfo('');
+    try {
+      await onResetPassword(trimmed);
+      setInfo(`Reset link sent to ${trimmed}. Check your inbox.`);
+    } catch (err: any) {
+      setError(err.message || 'Could not send reset link.');
     } finally {
       setIsLoading(false);
     }
@@ -145,6 +168,19 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
               onSubmitEditing={handleEmailAuth}
             />
 
+            {!isSignUp ? (
+              <TouchableOpacity
+                testID="login-forgot-password"
+                onPress={handleResetPassword}
+                disabled={isLoading}
+                style={loginStyles.loginForgot}
+                accessibilityRole="button"
+                accessibilityLabel="Send password reset email"
+              >
+                <Text style={loginStyles.loginForgotText}>Forgot password?</Text>
+              </TouchableOpacity>
+            ) : null}
+
             <NeonButton
               testID="login-submit-button"
               onPress={handleEmailAuth}
@@ -189,10 +225,12 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp }: LoginViewProps) =>
             >
               <View style={loginStyles.googleButtonContent}>
                 {isLoading ? (
-                  <ActivityIndicator size="small" color={palette.bg} />
+                  <ActivityIndicator size="small" color={text.primary} />
                 ) : (
                   <>
-                    <Text style={loginStyles.googleIcon}>G</Text>
+                    <View style={loginStyles.googleIconChip}>
+                      <Text style={loginStyles.googleIconLetter}>G</Text>
+                    </View>
                     <Text style={loginStyles.googleButtonText}>Continue with Google</Text>
                   </>
                 )}
