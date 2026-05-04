@@ -244,23 +244,29 @@ export const WaterControls = ({
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs }}>
+        // Two rows: CUP + BOTTLE share the matched-pair row (one-tap
+        // presets); CUSTOM is its own full-width row below. CUSTOM is
+        // different in kind (gateway to an input, not a one-tap add),
+        // so visually separating it tells the right story.
+        <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <ActionButton
+              label={`+ CUP · ${formatVolume(cupMl, unit)}`}
+              tone="primary"
+              onPress={() => wrap(() => onAddMl(cupMl))}
+              disabled={busy}
+              testID="water-add-cup"
+            />
+            <ActionButton
+              label={`+ BOTTLE · ${formatVolume(bottleMl, unit)}`}
+              tone="primary"
+              onPress={() => wrap(() => onAddMl(bottleMl))}
+              disabled={busy}
+              testID="water-add-bottle"
+            />
+          </View>
           <ActionButton
-            label={`+ CUP · ${formatVolume(cupMl, unit)}`}
-            tone="primary"
-            onPress={() => wrap(() => onAddMl(cupMl))}
-            disabled={busy}
-            testID="water-add-cup"
-          />
-          <ActionButton
-            label={`+ BOTTLE · ${formatVolume(bottleMl, unit)}`}
-            tone="primary"
-            onPress={() => wrap(() => onAddMl(bottleMl))}
-            disabled={busy}
-            testID="water-add-bottle"
-          />
-          <ActionButton
-            label="+ CUSTOM"
+            label="+ CUSTOM AMOUNT"
             tone="neutral"
             onPress={() => setCustomMode(true)}
             disabled={busy}
