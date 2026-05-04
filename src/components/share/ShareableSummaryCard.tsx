@@ -19,6 +19,8 @@ export type ShareWorkoutPayload = {
   totalVolume: number;
   totalSets: number;
   exerciseCount: number;
+  /** Number of exercises that beat the user's prior heaviest weight. */
+  prCount?: number;
   byMuscle: Partial<Record<MuscleId, number>>;
   intensities: Partial<Record<MuscleId, number>>;
 };
@@ -94,6 +96,13 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
       <Text style={styles.title} numberOfLines={2}>
         {payload.title.toUpperCase()}
       </Text>
+      {payload.kind === 'workout' && payload.prCount && payload.prCount > 0 ? (
+        <View style={styles.prBadge}>
+          <Text style={styles.prBadgeText} allowFontScaling={false}>
+            🔥 {payload.prCount} {payload.prCount === 1 ? 'PR' : 'PRs'} THIS SESSION
+          </Text>
+        </View>
+      ) : null}
       {payload.kind === 'workout' ? (
         <Text style={styles.subtitle} allowFontScaling={false}>
           <Text style={styles.subtitleNum}>
@@ -239,6 +248,22 @@ const styles = StyleSheet.create({
     color: text.secondary,
     fontVariant: fonts.tabularNums,
     fontWeight: '600',
+  },
+  prBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: palette.liftActive,
+    backgroundColor: 'rgba(252, 76, 2, 0.14)',
+  },
+  prBadgeText: {
+    color: palette.liftActive,
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: 2,
   },
   silhouetteRow: {
     flexDirection: 'row',

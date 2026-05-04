@@ -13,6 +13,8 @@ import {
   fetchSessionMuscleVolume,
   type SessionMuscleVolume,
 } from '../../../services/sessionMuscleVolume';
+import { countSessionPRs } from '../../../services/sessionPRs';
+import { useUser } from '../../../contexts/UserContext';
 import { palette } from '../../../styles/theme';
 import type { WorkoutExercise } from '../../../types/workout';
 
@@ -42,6 +44,8 @@ const FinishedSessionView = ({
   onClose,
 }: FinishedSessionViewProps) => {
   const [volume, setVolume] = useState<SessionMuscleVolume | null>(null);
+  const [prCount, setPrCount] = useState(0);
+  const { user } = useUser();
   const { ref, share, state } = useShareCard();
 
   // Pull recruitment-weighted muscle volume for this session as soon as we
@@ -59,6 +63,21 @@ const FinishedSessionView = ({
       cancelled = true;
     };
   }, [sessionId]);
+
+  // PR count drives the badge on the share card. Failure is non-fatal —
+  // a missed brag is better than a missing share.
+  useEffect(() => {
+    if (!sessionId || !user?.id) return;
+    let cancelled = false;
+    countSessionPRs(user.id, sessionId)
+      .then(n => {
+        if (!cancelled) setPrCount(n);
+      })
+      .catch(e => console.warn('countSessionPRs failed', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, user?.id]);
 
   const totalSets = useMemo(
     () =>
@@ -92,10 +111,11 @@ const FinishedSessionView = ({
       totalVolume: volume?.totalVolume ?? calculateTotalVolume(),
       totalSets,
       exerciseCount: visibleWorkout.length,
+      prCount,
       byMuscle: volume?.byMuscle ?? {},
       intensities: volume?.intensities ?? {},
     }),
-    [calculateTotalVolume, durationMin, sessionName, totalSets, visibleWorkout.length, volume]
+    [calculateTotalVolume, durationMin, prCount, sessionName, totalSets, visibleWorkout.length, volume]
   );
 
   const shareDisabled = !sessionId || state === 'capturing' || state === 'sharing';
@@ -122,6 +142,13 @@ const FinishedSessionView = ({
       <View style={workoutStyles.finishedText}>
         <Text style={workoutStyles.finishedTitle}>SESSION COMPLETE</Text>
         <Text style={workoutStyles.finishedSubtitle}>DATA UPLOADED SUCCESSFULLY</Text>
+        {prCount > 0 ? (
+          <View style={prChipStyle.chip}>
+            <Text style={prChipStyle.chipText}>
+              🔥 {prCount} {prCount === 1 ? 'NEW PR' : 'NEW PRS'}
+            </Text>
+          </View>
+        ) : null}
       </View>
       <View style={workoutStyles.finishedStats}>
         <GlassCard style={workoutStyles.finishedStatCard}>
@@ -208,6 +235,25 @@ const shareButtonStyle = StyleSheet.create({
     top: -10000,
     // Pinned at the natural card size; transform below shouldn't matter for
     // captureRef (it captures the layout-rect at 1:1 by default).
+  },
+});
+
+const prChipStyle = StyleSheet.create({
+  chip: {
+    alignSelf: 'center',
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: palette.liftActive,
+    backgroundColor: 'rgba(252, 76, 2, 0.12)',
+  },
+  chipText: {
+    color: palette.liftActive,
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.6,
   },
 });
 
