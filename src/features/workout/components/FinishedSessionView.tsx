@@ -1,14 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { ScrollView, StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { Medal, RotateCcw, PlusCircle, X, Share2 } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
 import NeonButton from '../../../components/NeonButton';
 import workoutStyles from '../../../styles/workout';
-import {
-  ShareableSummaryCard,
-  type ShareWorkoutPayload,
-} from '../../../components/share/ShareableSummaryCard';
-import { useShareCard } from '../../../components/share/useShareCard';
+import { type ShareWorkoutPayload } from '../../../components/share/ShareableSummaryCard';
+import { SharePreviewSheet } from '../../../components/share/SharePreviewSheet';
 import {
   fetchSessionMuscleVolume,
   type SessionMuscleVolume,
@@ -45,8 +42,8 @@ const FinishedSessionView = ({
 }: FinishedSessionViewProps) => {
   const [volume, setVolume] = useState<SessionMuscleVolume | null>(null);
   const [prCount, setPrCount] = useState(0);
+  const [shareOpen, setShareOpen] = useState(false);
   const { user } = useUser();
-  const { ref, share, state } = useShareCard();
 
   // Pull recruitment-weighted muscle volume for this session as soon as we
   // have a session id. The post-session view always lives on top of a
@@ -112,13 +109,14 @@ const FinishedSessionView = ({
       totalSets,
       exerciseCount: visibleWorkout.length,
       prCount,
+      exercises: visibleWorkout.map(e => e.name).filter(Boolean),
       byMuscle: volume?.byMuscle ?? {},
       intensities: volume?.intensities ?? {},
     }),
-    [calculateTotalVolume, durationMin, prCount, sessionName, totalSets, visibleWorkout.length, volume]
+    [calculateTotalVolume, durationMin, prCount, sessionName, totalSets, visibleWorkout, volume]
   );
 
-  const shareDisabled = !sessionId || state === 'capturing' || state === 'sharing';
+  const shareDisabled = !sessionId;
 
   return (
     <ScrollView contentContainerStyle={workoutStyles.finishedContainer}>
@@ -167,7 +165,7 @@ const FinishedSessionView = ({
         </NeonButton>
 
         <TouchableOpacity
-          onPress={share}
+          onPress={() => setShareOpen(true)}
           disabled={shareDisabled}
           accessibilityRole="button"
           accessibilityState={{ disabled: shareDisabled }}
@@ -176,18 +174,8 @@ const FinishedSessionView = ({
             shareDisabled && shareButtonStyle.buttonDisabled,
           ]}
         >
-          {state === 'capturing' || state === 'sharing' ? (
-            <ActivityIndicator size="small" color={palette.liftActive} />
-          ) : (
-            <Share2 size={14} color={palette.liftActive} />
-          )}
-          <Text style={shareButtonStyle.label}>
-            {state === 'capturing'
-              ? 'CAPTURING…'
-              : state === 'sharing'
-                ? 'SHARING…'
-                : 'SHARE WORKOUT'}
-          </Text>
+          <Share2 size={14} color={palette.liftActive} />
+          <Text style={shareButtonStyle.label}>SHARE WORKOUT</Text>
         </TouchableOpacity>
 
         <TouchableOpacity onPress={onUndo} style={workoutStyles.finishedUndo}>
@@ -196,12 +184,11 @@ const FinishedSessionView = ({
         </TouchableOpacity>
       </View>
 
-      {/* Off-screen capture target. Kept mounted so captureRef can grab it
-          without a render flash. Pointer events disabled so taps hit the
-          real UI underneath. */}
-      <View pointerEvents="none" style={shareButtonStyle.captureHost}>
-        <ShareableSummaryCard ref={ref} payload={sharePayload} />
-      </View>
+      <SharePreviewSheet
+        visible={shareOpen}
+        payload={sharePayload}
+        onClose={() => setShareOpen(false)}
+      />
     </ScrollView>
   );
 };
@@ -228,13 +215,6 @@ const shareButtonStyle = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1.5,
-  },
-  captureHost: {
-    position: 'absolute',
-    left: -10000,
-    top: -10000,
-    // Pinned at the natural card size; transform below shouldn't matter for
-    // captureRef (it captures the layout-rect at 1:1 by default).
   },
 });
 

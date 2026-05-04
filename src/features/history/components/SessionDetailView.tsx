@@ -88,6 +88,7 @@ export const SessionDetailView = ({ session, onClose }: Props) => {
       totalVolume: volume?.totalVolume ?? session.volume_load ?? 0,
       totalSets: session.set_count ?? 0,
       exerciseCount: session.exercise_count ?? 0,
+      exercises: [],
       byMuscle: volume?.byMuscle ?? {},
       intensities: volume?.intensities ?? {},
     };

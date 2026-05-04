@@ -21,6 +21,8 @@ export type ShareWorkoutPayload = {
   exerciseCount: number;
   /** Number of exercises that beat the user's prior heaviest weight. */
   prCount?: number;
+  /** Exercise names in the order they were performed; rendered as a list. */
+  exercises: string[];
   byMuscle: Partial<Record<MuscleId, number>>;
   intensities: Partial<Record<MuscleId, number>>;
 };
@@ -39,6 +41,8 @@ export type SharePlanPayload = {
   durationWeeks: number | null;
   /** Optional deep link to import this plan; rendered as the card footer. */
   shareUrl?: string | null;
+  /** Distinct exercise names across all plan sessions. */
+  exercises: string[];
   byMuscle: Partial<Record<MuscleId, number>>;
   intensities: Partial<Record<MuscleId, number>>;
 };
@@ -57,6 +61,8 @@ const REGION_LABELS: Record<MuscleId, string> = (() => {
   });
   return map;
 })();
+
+const EXERCISE_LIST_LIMIT = 8;
 
 const formatVolume = (v: number) => {
   if (v >= 10_000) return `${(v / 1000).toFixed(1)}k`;
@@ -160,6 +166,18 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
             </View>
           );
         })
+      )}
+
+      {payload.exercises.length > 0 && (
+        <>
+          <Text style={[styles.sectionLabel, styles.exercisesHeader]}>EXERCISES</Text>
+          <Text style={styles.exerciseList}>
+            {payload.exercises.slice(0, EXERCISE_LIST_LIMIT).join('   ·   ')}
+            {payload.exercises.length > EXERCISE_LIST_LIMIT
+              ? `   +${payload.exercises.length - EXERCISE_LIST_LIMIT} more`
+              : ''}
+          </Text>
+        </>
       )}
 
       <View style={styles.divider} />
@@ -295,6 +313,15 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
     fontWeight: '700',
     marginBottom: 16,
+  },
+  exercisesHeader: {
+    marginTop: 24,
+  },
+  exerciseList: {
+    color: text.secondary,
+    fontSize: 22,
+    lineHeight: 30,
+    fontWeight: '600',
   },
   empty: {
     color: text.tertiary,
