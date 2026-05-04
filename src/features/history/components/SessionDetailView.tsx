@@ -1,9 +1,18 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { Calendar, X } from 'lucide-react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { Calendar, Share2, X } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
-import { colors, spacing, radii } from '../../../styles/theme';
+import { colors, palette, spacing, radii } from '../../../styles/theme';
 import type { SessionWithLogs, WorkoutLog } from '../../../services/historyService';
+import {
+  ShareableSummaryCard,
+  type ShareWorkoutPayload,
+} from '../../../components/share/ShareableSummaryCard';
+import { useShareCard } from '../../../components/share/useShareCard';
+import {
+  fetchSessionMuscleVolume,
+  type SessionMuscleVolume,
+} from '../../../services/sessionMuscleVolume';
 
 type Props = {
   session: SessionWithLogs;
@@ -47,7 +56,46 @@ const getExerciseGroups = (logs: WorkoutLog[]) => {
  * sets. Used both as a Modal child in HistoryAnalyticsView and as the
  * body of the SessionDetailScreen modal route (Calendar deep-links here).
  */
-export const SessionDetailView = ({ session, onClose }: Props) => (
+export const SessionDetailView = ({ session, onClose }: Props) => {
+  const [volume, setVolume] = useState<SessionMuscleVolume | null>(null);
+  const { ref, share, state } = useShareCard();
+
+  // Lazy-fetch the recruitment-weighted muscle volume the first time the
+  // detail view mounts. Cheap: hits muscle_volume_v2_view, RLS-fenced.
+  useEffect(() => {
+    if (!session?.id) return;
+    let cancelled = false;
+    fetchSessionMuscleVolume(session.id)
+      .then(v => {
+        if (!cancelled) setVolume(v);
+      })
+      .catch(e => console.warn('fetchSessionMuscleVolume failed', e));
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.id]);
+
+  const sharePayload: ShareWorkoutPayload = useMemo(() => {
+    const durationMin =
+      session.duration_seconds && session.duration_seconds > 0
+        ? Math.max(1, Math.round(session.duration_seconds / 60))
+        : null;
+    return {
+      kind: 'workout',
+      title: session.name?.trim() || 'WORKOUT',
+      date: formatDate(session.date),
+      durationMin,
+      totalVolume: volume?.totalVolume ?? session.volume_load ?? 0,
+      totalSets: session.set_count ?? 0,
+      exerciseCount: session.exercise_count ?? 0,
+      byMuscle: volume?.byMuscle ?? {},
+      intensities: volume?.intensities ?? {},
+    };
+  }, [session, volume]);
+
+  const isSharing = state === 'capturing' || state === 'sharing';
+
+  return (
   <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
     <View
       style={{
@@ -67,6 +115,23 @@ export const SessionDetailView = ({ session, onClose }: Props) => (
         <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', flex: 1 }}>
           {session.name}
         </Text>
+        <TouchableOpacity
+          onPress={share}
+          disabled={isSharing}
+          accessibilityRole="button"
+          accessibilityLabel="Share session"
+          style={{
+            marginRight: spacing.md,
+            padding: spacing.xs,
+            opacity: isSharing ? 0.5 : 1,
+          }}
+        >
+          {isSharing ? (
+            <ActivityIndicator size="small" color={palette.liftActive} />
+          ) : (
+            <Share2 size={20} color={palette.liftActive} />
+          )}
+        </TouchableOpacity>
         <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
           <X size={24} color={colors.muted} />
         </TouchableOpacity>
@@ -213,8 +278,19 @@ export const SessionDetailView = ({ session, onClose }: Props) => (
         </GlassCard>
       )}
     </ScrollView>
+
+    {/* Off-screen capture target. Negative offset keeps the 1080x1350 card
+        out of layout flow while remaining mounted, so captureRef can grab
+        it the moment the user taps share. */}
+    <View
+      pointerEvents="none"
+      style={{ position: 'absolute', left: -10000, top: -10000 }}
+    >
+      <ShareableSummaryCard ref={ref} payload={sharePayload} />
+    </View>
   </SafeAreaView>
-);
+  );
+};
 
 const Stat = ({
   label,
