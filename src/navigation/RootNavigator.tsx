@@ -65,36 +65,36 @@ export const RootNavigator = () => {
                     // we swap in Main automatically.
                     <Stack.Screen name="Onboarding" component={OnboardingStack} />
                   ) : (
-                  <Stack.Group>
-                    <Stack.Screen name="Main" component={MainTabs} />
-                    {/* ActiveWorkout uses transparentModal so the underlying
-                        tab bar stays mounted/visible (per design decision). */}
-                    <Stack.Screen
-                      name="ActiveWorkout"
-                      component={ActiveWorkoutScreen}
-                      options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
-                    />
-                    {/* PlanBuilder uses transparentModal because the inner
-                        SlimPlanCreator already owns its own slide-up
-                        Modal — a `presentation: 'modal'` route would stack
-                        a second animation on top. */}
-                    <Stack.Screen
-                      name="PlanBuilder"
-                      component={PlanBuilderScreen}
-                      options={{
-                        presentation: 'transparentModal',
-                        animation: 'none',
-                        gestureEnabled: true,
-                      }}
-                    />
-                    <Stack.Group screenOptions={{ presentation: 'modal' }}>
-                      <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />
-                      <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
-                      <Stack.Screen name="SharedPlan" component={SharedPlanScreen} />
-                      <Stack.Screen name="Calendar" component={CalendarScreen} />
-                      <Stack.Screen name="Profile" component={ProfileScreen} />
+                    <Stack.Group>
+                      <Stack.Screen name="Main" component={MainTabs} />
+                      {/* ActiveWorkout uses transparentModal so the underlying
+                          tab bar stays mounted/visible (per design decision). */}
+                      <Stack.Screen
+                        name="ActiveWorkout"
+                        component={ActiveWorkoutScreen}
+                        options={{ presentation: 'transparentModal', animation: 'slide_from_bottom' }}
+                      />
+                      {/* PlanBuilder uses transparentModal because the inner
+                          SlimPlanCreator already owns its own slide-up
+                          Modal — a `presentation: 'modal'` route would stack
+                          a second animation on top. */}
+                      <Stack.Screen
+                        name="PlanBuilder"
+                        component={PlanBuilderScreen}
+                        options={{
+                          presentation: 'transparentModal',
+                          animation: 'none',
+                          gestureEnabled: true,
+                        }}
+                      />
+                      <Stack.Group screenOptions={{ presentation: 'modal' }}>
+                        <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />
+                        <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
+                        <Stack.Screen name="SharedPlan" component={SharedPlanScreen} />
+                        <Stack.Screen name="Calendar" component={CalendarScreen} />
+                        <Stack.Screen name="Profile" component={ProfileScreen} />
+                      </Stack.Group>
                     </Stack.Group>
-                  </Stack.Group>
                   )
                 ) : (
                   <Stack.Screen name="Auth" component={AuthStack} />
