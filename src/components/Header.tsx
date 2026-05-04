@@ -22,7 +22,14 @@ const Header = ({ streak = 0, xp = 0, onLogout, username }: HeaderProps) => {
   // brand row. Done here (not via SafeAreaView) so transparentModal screens —
   // where the safe-area context's top edge can be lost — still render correctly.
   return (
-    <View style={[headerStyles.header, { paddingTop: insets.top + spacing.sm }]}>
+    <View
+      style={[
+        headerStyles.header,
+        // Preserve the spacing.lg baseline when there's no inset (Android
+        // landscape, web). On devices with a notch, the inset wins.
+        { paddingTop: Math.max(insets.top + spacing.sm, spacing.lg) },
+      ]}
+    >
       <View style={headerStyles.headerTop}>
         <View style={headerStyles.headerLeft}>
           <View style={headerStyles.headerLogo}>
