@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChevronRight, LogOut, X } from 'lucide-react-native';
 import { useAuthContext } from '../contexts/AuthContext';
+import { setUnits as persistUnits, type Units } from '../services/profile';
 import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
 import { deriveInitials } from '../utils/initials';
 import type { RootStackParamList } from '../navigation/types';
@@ -24,6 +25,20 @@ export const ProfileScreen = () => {
 
   const email = user?.email ?? '';
   const initials = deriveInitials(email);
+  const initialUnits: Units =
+    (user?.user_metadata?.units as Units | undefined) ?? 'lb';
+  const [units, setUnitsState] = useState<Units>(initialUnits);
+
+  const handleToggleUnits = async () => {
+    const next: Units = units === 'lb' ? 'kg' : 'lb';
+    setUnitsState(next);
+    try {
+      await persistUnits(next);
+    } catch (e) {
+      setUnitsState(units);
+      Alert.alert('Could not save', 'Try again in a moment.');
+    }
+  };
   const version =
     Constants.expoConfig?.version ??
     (Constants as unknown as { manifest2?: { extra?: { version?: string } } })
@@ -129,6 +144,16 @@ export const ProfileScreen = () => {
             {email || 'Signed in'}
           </Text>
         </View>
+
+        <SmallLabel>PREFERENCES</SmallLabel>
+        <Section>
+          <Row
+            label="Units"
+            value={units.toUpperCase()}
+            onPress={handleToggleUnits}
+            hideChevron
+          />
+        </Section>
 
         <SmallLabel>ACCOUNT</SmallLabel>
         <Section>

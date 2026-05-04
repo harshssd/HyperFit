@@ -11,6 +11,7 @@ import { AppDataProvider } from '../contexts/AppDataContext';
 import { WorkoutSessionProvider } from '../contexts/WorkoutSessionContext';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
+import { OnboardingStack } from '../screens/onboarding/OnboardingStack';
 import { ActiveWorkoutScreen } from '../screens/ActiveWorkoutScreen';
 import { PlanBuilderScreen } from '../screens/PlanBuilderScreen';
 import { SharedPlanScreen } from '../screens/SharedPlanScreen';
@@ -58,6 +59,12 @@ export const RootNavigator = () => {
             <WorkoutSessionProvider key={auth.user?.id ?? 'anon'}>
               <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {auth.user ? (
+                  !auth.user.user_metadata?.onboarded_at ? (
+                    // First signup → onboarding flow. Once StarterPlanScreen
+                    // writes onboarded_at, the auth listener flips this and
+                    // we swap in Main automatically.
+                    <Stack.Screen name="Onboarding" component={OnboardingStack} />
+                  ) : (
                   <Stack.Group>
                     <Stack.Screen name="Main" component={MainTabs} />
                     {/* ActiveWorkout uses transparentModal so the underlying
@@ -88,6 +95,7 @@ export const RootNavigator = () => {
                       <Stack.Screen name="Profile" component={ProfileScreen} />
                     </Stack.Group>
                   </Stack.Group>
+                  )
                 ) : (
                   <Stack.Screen name="Auth" component={AuthStack} />
                 )}
