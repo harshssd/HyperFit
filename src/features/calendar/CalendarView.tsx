@@ -8,6 +8,9 @@ import { palette, text, accent, spacing, radii, fonts } from '../../styles/theme
 import { useUser } from '../../contexts/UserContext';
 import { useAppData } from '../../contexts/AppDataContext';
 import { useCalendarData, type CalendarDay } from './useCalendarData';
+import { useMonthMuscleIntensities } from './useMonthMuscleIntensities';
+import { MiniSilhouette } from '../analytics/heatmap/MiniSilhouette';
+import type { MuscleId } from '../analytics/heatmap/muscleRegions';
 import type { RootStackParamList } from '../../navigation/types';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -45,6 +48,11 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
   );
 
   const { days } = useCalendarData(user?.id, activePlan, month);
+  const muscleByDay = useMonthMuscleIntensities(
+    user?.id,
+    days[0]?.iso,
+    days[days.length - 1]?.iso,
+  );
 
   // Clear the selection when leaving the month — otherwise the bottom sheet
   // keeps showing data for a day that's no longer on the grid.
@@ -105,6 +113,7 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
               key={d.iso}
               day={d}
               isSelected={selected?.iso === d.iso}
+              intensities={muscleByDay.get(d.iso)?.intensities}
               onPress={() => onTapDay(d)}
             />
           ))}
@@ -200,11 +209,17 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
 };
 
 const DayCell = ({
-  day, isSelected, onPress,
-}: { day: CalendarDay; isSelected: boolean; onPress: () => void }) => {
+  day, isSelected, intensities, onPress,
+}: {
+  day: CalendarDay;
+  isSelected: boolean;
+  intensities?: Partial<Record<MuscleId, number>>;
+  onPress: () => void;
+}) => {
   const hasLogged = day.logged.length > 0;
   const hasPlanned = day.planned.length > 0;
   const dim = !day.inMonth;
+  const hasCoverage = !!intensities && Object.values(intensities).some(v => (v ?? 0) > 0);
 
   return (
     <TouchableOpacity
@@ -242,10 +257,19 @@ const DayCell = ({
       >
         {day.date.getDate()}
       </Text>
-      <View style={{ flexDirection: 'row', gap: 2, marginTop: 3, height: 4 }}>
-        {hasLogged && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: accent.sessionUp }} />}
-        {hasPlanned && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: accent.lift }} />}
-      </View>
+      {hasLogged && hasCoverage ? (
+        // Replace the "logged" dot with a tiny silhouette colored by the
+        // day's recruitment-weighted muscle volume — the same hue ramp as
+        // the full heatmap, just static and miniature for the grid.
+        <View style={{ marginTop: 2, alignItems: 'center' }}>
+          <MiniSilhouette intensities={intensities ?? {}} size={24} />
+        </View>
+      ) : (
+        <View style={{ flexDirection: 'row', gap: 2, marginTop: 3, height: 4 }}>
+          {hasLogged && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: accent.sessionUp }} />}
+          {hasPlanned && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: accent.lift }} />}
+        </View>
+      )}
     </TouchableOpacity>
   );
 };
