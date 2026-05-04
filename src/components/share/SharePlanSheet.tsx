@@ -49,6 +49,10 @@ export const SharePlanSheet = ({ visible, plan, onClose }: Props) => {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    // Clear prior plan's coverage so a re-open for a different plan doesn't
+    // briefly render the wrong silhouette while the new fetch is in flight.
+    setIntensities({});
+    setByMuscle({});
     fetchPlanMuscleCoverage(plan.id)
       .then(coverage => {
         if (cancelled) return;
@@ -77,6 +81,7 @@ export const SharePlanSheet = ({ visible, plan, onClose }: Props) => {
       sessionsPerWeek,
       exerciseCount: sumExercises(plan),
       muscleCount: Object.values(byMuscle).filter(v => (v ?? 0) > 0).length,
+      durationWeeks: typeof plan.duration === 'number' ? plan.duration : null,
       byMuscle,
       intensities,
     };

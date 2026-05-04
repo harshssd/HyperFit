@@ -33,6 +33,8 @@ export type SharePlanPayload = {
   exerciseCount: number;
   /** Distinct muscle ids that the plan recruits at all. */
   muscleCount: number;
+  /** Plan length in weeks (from `WorkoutPlan.duration`). Falls back to null. */
+  durationWeeks: number | null;
   byMuscle: Partial<Record<MuscleId, number>>;
   intensities: Partial<Record<MuscleId, number>>;
 };
@@ -167,7 +169,10 @@ export const ShareableSummaryCard = forwardRef<View, Props>(({ payload }, ref) =
           <Tile value={String(payload.sessionsPerWeek)} label="SESS/WK" />
           <Tile value={String(payload.exerciseCount)} label="LIFTS" />
           <Tile value={String(payload.muscleCount)} label="MUSCLES" />
-          <Tile value={String(topMuscles.length)} label="FOCUS" />
+          <Tile
+            value={payload.durationWeeks != null ? `${payload.durationWeeks}W` : '—'}
+            label="WEEKS"
+          />
         </View>
       )}
 
