@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Polyline } from 'react-native-svg';
+import { HeroGradient } from './HeroGradient';
 import {
   ChevronRight,
   Droplet,
@@ -204,6 +205,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
           overflow: 'hidden',
         }}
       >
+        <HeroGradient />
         <View style={{ padding: spacing.xl, gap: spacing.md, minHeight: 200 }}>
           {/* Eyebrow row: date on the left, mini silhouette on the right */}
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -299,6 +301,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
           overflow: 'hidden',
         }}
       >
+        <HeroGradient tint="green" />
         <View style={{ padding: spacing.xl }}>
           <View
             style={{
