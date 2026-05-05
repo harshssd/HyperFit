@@ -266,7 +266,7 @@ const WorkoutPlanner = ({
                 }}
               >
                 <Layout size={13} color={colors.primary} />
-                <Text style={{ marginLeft: spacing.xs, color: colors.primary, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase' }}>
+                <Text style={{ marginLeft: spacing.xs, color: colors.muted, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase' }}>
                   Browse Plan Library
                 </Text>
                 <ChevronRight size={13} color={colors.primary} style={{ marginLeft: 2 }} />
