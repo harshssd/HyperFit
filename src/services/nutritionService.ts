@@ -364,6 +364,11 @@ export const getDaySummary = async (
 
 // Paginated history reader. Returns `{ rows, totalCount }`. Rows are
 // most-recent first. Used by the History modal's NUTRITION segment.
+//
+// Future-dated rows are excluded — the user can flag a future cheat day
+// from settings, which spawns a `nutrition_days` row and therefore a
+// view row, but in History those would render as empty placeholders
+// above today. Today should be the top.
 export const getNutritionHistoryPage = async (
   userId: string,
   page: number,
@@ -371,10 +376,12 @@ export const getNutritionHistoryPage = async (
 ): Promise<{ rows: NutritionDaySummary[]; totalCount: number }> => {
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
+  const today = todayLocalISO();
   const { data, error, count } = await supabase
     .from('nutrition_day_summary_view')
     .select('*', { count: 'exact' })
     .eq('user_id', userId)
+    .lte('date', today)
     .order('date', { ascending: false })
     .range(from, to);
   if (error) throw error;
