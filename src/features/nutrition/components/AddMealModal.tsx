@@ -36,8 +36,18 @@ type Props = {
   visible: boolean;
   defaultSlot: MealSlot;
   defaultLabel?: string | null;
+  /** When present, the modal opens in edit mode: pre-fills from the entry,
+   *  swaps the header to "Edit meal" + "SAVE", and routes save through
+   *  onUpdate instead of onSave. Recents are still loaded so the user can
+   *  re-prefill from a different past meal mid-edit. */
+  editEntry?: NutritionEntry | null;
   onClose: () => void;
   onSave: (input: Omit<AddEntryInput, 'userId' | 'dayId'>) => Promise<void>;
+  /** Required when editEntry is present. */
+  onUpdate?: (
+    entryId: string,
+    patch: Omit<AddEntryInput, 'userId' | 'dayId'>,
+  ) => Promise<void>;
 };
 
 const SLOT_LABELS: Record<MealSlot, string> = {
@@ -52,9 +62,12 @@ export const AddMealModal = ({
   visible,
   defaultSlot,
   defaultLabel,
+  editEntry,
   onClose,
   onSave,
+  onUpdate,
 }: Props) => {
+  const isEdit = !!editEntry;
   const { user } = useUser();
   const [slot, setSlot] = useState<MealSlot>(defaultSlot);
   const [isCustom, setIsCustom] = useState(!!defaultLabel);
@@ -73,6 +86,24 @@ export const AddMealModal = ({
 
   useEffect(() => {
     if (!visible) return;
+    if (editEntry) {
+      // Edit mode — prefill every field from the existing row.
+      const e = editEntry;
+      setSlot((e.meal_slot as MealSlot) ?? defaultSlot);
+      setIsCustom(!!e.meal_label);
+      setCustomLabel(e.meal_label ?? '');
+      setName(e.name ?? '');
+      setQuantity(e.quantity_label ?? '');
+      setKcal(String(e.kcal ?? ''));
+      setProtein(String(e.protein_g ?? ''));
+      setCarb(String(e.carb_g ?? ''));
+      setFat(String(e.fat_g ?? ''));
+      setFiber(String(e.fiber_g ?? ''));
+      const editIngredients = (e.ingredients ?? []) as NutritionIngredient[];
+      setIngredients(editIngredients);
+      setIngredientsOpen(editIngredients.length > 0);
+      return;
+    }
     setSlot(defaultSlot);
     setIsCustom(!!defaultLabel);
     setCustomLabel(defaultLabel ?? '');
@@ -85,7 +116,7 @@ export const AddMealModal = ({
     setFiber('');
     setIngredients([]);
     setIngredientsOpen(false);
-  }, [visible, defaultSlot, defaultLabel]);
+  }, [visible, defaultSlot, defaultLabel, editEntry]);
 
   useEffect(() => {
     if (!visible || !user?.id) return;
@@ -123,7 +154,7 @@ export const AddMealModal = ({
     if (!canSave) return;
     setSaving(true);
     try {
-      await onSave({
+      const patch = {
         mealSlot: slot,
         mealLabel: isCustom ? customLabel.trim() : null,
         quantityLabel: quantity.trim() || null,
@@ -134,7 +165,12 @@ export const AddMealModal = ({
         carb_g: parseInt(carb, 10) || 0,
         fat_g: parseInt(fat, 10) || 0,
         fiber_g: parseInt(fiber, 10) || 0,
-      });
+      };
+      if (isEdit && editEntry && onUpdate) {
+        await onUpdate(editEntry.id, patch);
+      } else {
+        await onSave(patch);
+      }
       onClose();
     } finally {
       setSaving(false);
@@ -164,13 +200,13 @@ export const AddMealModal = ({
           }}
         >
           <Text style={{ color: text.primary, fontSize: 18, fontWeight: '900', letterSpacing: -0.3 }}>
-            Add meal
+            {isEdit ? 'Edit meal' : 'Add meal'}
           </Text>
           <TouchableOpacity
             onPress={onClose}
             hitSlop={12}
             accessibilityRole="button"
-            accessibilityLabel="Close add meal"
+            accessibilityLabel={isEdit ? 'Close edit meal' : 'Close add meal'}
           >
             <X size={22} color={text.tertiary} />
           </TouchableOpacity>
@@ -592,7 +628,7 @@ export const AddMealModal = ({
                 fontWeight: '800',
               }}
             >
-              {saving ? 'Saving…' : 'Save meal'}
+              {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Save meal'}
             </Text>
           </TouchableOpacity>
         </ScrollView>

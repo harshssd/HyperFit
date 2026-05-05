@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { Share2, Trash2 } from 'lucide-react-native';
+import { Pencil, Share2, Trash2 } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import type { NutritionEntry } from '../../../services/nutritionService';
 import type { MealSlot } from '../../../types/supabase';
@@ -25,6 +25,9 @@ type Props = {
   onShareDay?: () => void;
   /** Optional — when present, each row shows a share icon next to the trash. */
   onShareEntry?: (entry: NutritionEntry) => void;
+  /** Optional — when present, each row shows a pencil before share/trash so
+   *  the user can fix typos / refine macros without deleting and re-logging. */
+  onEditEntry?: (entry: NutritionEntry) => void;
 };
 
 const SLOT_LABELS: Record<MealSlot, string> = {
@@ -34,7 +37,7 @@ const SLOT_LABELS: Record<MealSlot, string> = {
   snack:     'SNACK',
 };
 
-export const EntriesList = ({ entries, onDelete, onShareDay, onShareEntry }: Props) => {
+export const EntriesList = ({ entries, onDelete, onShareDay, onShareEntry, onEditEntry }: Props) => {
   if (entries.length === 0) {
     return (
       <View
@@ -163,6 +166,7 @@ export const EntriesList = ({ entries, onDelete, onShareDay, onShareEntry }: Pro
           entry={entry}
           onDelete={onDelete}
           onShare={onShareEntry}
+          onEdit={onEditEntry}
           isFirst={idx === 0}
         />
       ))}
@@ -174,11 +178,13 @@ const EntryRow = ({
   entry,
   onDelete,
   onShare,
+  onEdit,
   isFirst,
 }: {
   entry: NutritionEntry;
   onDelete: (id: string) => Promise<void>;
   onShare?: (entry: NutritionEntry) => void;
+  onEdit?: (entry: NutritionEntry) => void;
   isFirst: boolean;
 }) => {
   const slot = entry.meal_slot as MealSlot | null;
@@ -278,6 +284,16 @@ const EntryRow = ({
       >
         {entry.kcal} · {entry.protein_g}P
       </Text>
+      {onEdit ? (
+        <TouchableOpacity
+          onPress={() => onEdit(entry)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit ${entry.name ?? 'meal'}`}
+        >
+          <Pencil size={14} color={text.tertiary} />
+        </TouchableOpacity>
+      ) : null}
       {onShare ? (
         <TouchableOpacity
           onPress={() => onShare(entry)}
