@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import GlassCard from '../../../components/GlassCard';
 import { LoadingState, EmptyState } from '../../../components/StateView';
-import { colors, spacing, radii } from '../../../styles/theme';
+import { colors, spacing, radii, palette, accent, text, fonts } from '../../../styles/theme';
 import { BodySilhouette, HEATMAP_FILL, HEATMAP_BORDER } from './BodySilhouette';
 import {
   BACK_REGIONS,
@@ -98,53 +98,43 @@ export const MuscleHeatmap = ({
     <GlassCard style={styles.card}>
       {!compact && (
         <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Activity size={18} color={colors.primary} />
-            <Text style={styles.title}>
-              {mode === 'recovery' ? 'MUSCLE RECOVERY' : 'MUSCLE COVERAGE'}
-            </Text>
-          </View>
-          {!staticIntensities && (
-            <View style={styles.rangePicker}>
-              <TouchableOpacity
-                onPress={() => setMode('volume')}
-                accessibilityRole="button"
-                accessibilityLabel="Show muscle coverage"
-                accessibilityState={{ selected: mode === 'volume' }}
-                style={[styles.rangePill, mode === 'volume' && styles.rangePillActive]}
-              >
-                <Text style={[styles.rangeText, mode === 'volume' && styles.rangeTextActive]}>
-                  VOL
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setMode('recovery')}
-                accessibilityRole="button"
-                accessibilityLabel="Show muscle recovery"
-                accessibilityState={{ selected: mode === 'recovery' }}
-                style={[styles.rangePill, mode === 'recovery' && styles.rangePillActive]}
-              >
-                <Text style={[styles.rangeText, mode === 'recovery' && styles.rangeTextActive]}>
-                  RECOV
-                </Text>
-              </TouchableOpacity>
+          {/* Top row: title + mode toggle (VOL / RECOV). Mode is the primary
+              control so it sits next to the title. The day-range row drops
+              below so 90D / ALL never clip on narrower devices. */}
+          <View style={styles.headerTopRow}>
+            <View style={styles.titleRow}>
+              <Activity size={16} color={accent.lift} />
+              <Text style={styles.title}>
+                {mode === 'recovery' ? 'MUSCLE RECOVERY' : 'MUSCLE COVERAGE'}
+              </Text>
             </View>
-          )}
+            {!staticIntensities && (
+              <View style={styles.pillRow}>
+                <ModePill
+                  label="VOL"
+                  active={mode === 'volume'}
+                  onPress={() => setMode('volume')}
+                  a11y="Show muscle coverage"
+                />
+                <ModePill
+                  label="RECOV"
+                  active={mode === 'recovery'}
+                  onPress={() => setMode('recovery')}
+                  a11y="Show muscle recovery"
+                />
+              </View>
+            )}
+          </View>
           {showRangePicker && !staticIntensities && mode === 'volume' && (
-            <View style={styles.rangePicker}>
+            <View style={styles.rangeRow}>
               {RANGES.map(r => (
-                <TouchableOpacity
+                <ModePill
                   key={r.label}
+                  label={r.label}
+                  active={days === r.days}
                   onPress={() => setDays(r.days)}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Show last ${r.label}`}
-                  accessibilityState={{ selected: days === r.days }}
-                  style={[styles.rangePill, days === r.days && styles.rangePillActive]}
-                >
-                  <Text style={[styles.rangeText, days === r.days && styles.rangeTextActive]}>
-                    {r.label}
-                  </Text>
-                </TouchableOpacity>
+                  a11y={`Show last ${r.label}`}
+                />
               ))}
             </View>
           )}
@@ -217,26 +207,84 @@ export const MuscleHeatmap = ({
   );
 };
 
+/**
+ * Pill button used by both the mode toggle (VOL / RECOV) and the day-range
+ * row (7D / 30D / 90D / ALL). Matches the app's segmented-control standard:
+ * orange-tinted bg + accent.lift text+border when active, neutral surface
+ * when inactive.
+ */
+const ModePill = ({
+  label,
+  active,
+  onPress,
+  a11y,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  a11y: string;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    accessibilityRole="button"
+    accessibilityLabel={a11y}
+    accessibilityState={{ selected: active }}
+    hitSlop={4}
+    style={[styles.modePill, active && styles.modePillActive]}
+  >
+    <Text style={[styles.modePillText, active && styles.modePillTextActive]}>
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
 const styles = StyleSheet.create({
   card: { padding: spacing.lg, marginBottom: spacing.lg },
   header: {
+    marginBottom: spacing.md,
+    gap: spacing.sm,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    gap: spacing.md,
   },
-  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  title: { color: '#f8fafc', fontSize: 14, fontWeight: '700', letterSpacing: 1.2 },
-  rangePicker: { flexDirection: 'row', gap: 4 },
-  rangePill: {
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  title: {
+    color: text.primary,
+    fontFamily: fonts.family.black,
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 1.6,
+  },
+  pillRow: { flexDirection: 'row', gap: 6 },
+  rangeRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  modePill: {
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
-    borderRadius: radii.sm,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: radii.full,
+    borderWidth: 1,
+    borderColor: palette.borderStrong,
+    backgroundColor: palette.surface,
   },
-  rangePillActive: { backgroundColor: 'rgba(249,115,22,0.18)' },
-  rangeText: { color: colors.muted, fontSize: 11, fontWeight: '600' },
-  rangeTextActive: { color: colors.primary },
+  modePillActive: {
+    borderColor: accent.lift,
+    backgroundColor: 'rgba(252, 76, 2, 0.10)',
+  },
+  modePillText: {
+    color: text.tertiary,
+    fontFamily: fonts.family.mono,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+  },
+  modePillTextActive: { color: accent.lift },
   silhouetteRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
