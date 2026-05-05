@@ -67,6 +67,7 @@ export const buildMealPayload = (
   date: formatShareBrandDate(dateISO),
   slotLabel: slotLabel(entry),
   timeLabel: timeOfDay(entry.logged_at),
+  quantityLabel: entry.quantity_label?.trim() || null,
   kcal: entry.kcal ?? 0,
   protein_g: entry.protein_g ?? 0,
   carb_g: entry.carb_g ?? 0,
