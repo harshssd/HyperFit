@@ -136,6 +136,9 @@ export type AddEntryInput = {
   /** Optional free-text label (e.g. "Pre-workout"). Empty string is
    *  coerced to null so the DB CHECK constraint stays happy. */
   mealLabel?: string | null;
+  /** Optional free-text portion (e.g. "3 eggs", "200 g"). Display-only;
+   *  kcal/macros remain the source of truth for daily totals. */
+  quantityLabel?: string | null;
   name?: string;
   kcal?: number;
   protein_g?: number;
@@ -148,6 +151,7 @@ export const addEntry = async (
   input: AddEntryInput,
 ): Promise<NutritionEntry> => {
   const trimmedLabel = input.mealLabel?.trim();
+  const trimmedQty = input.quantityLabel?.trim();
   const { data, error } = await supabase
     .from('nutrition_entries')
     .insert({
@@ -155,6 +159,7 @@ export const addEntry = async (
       day_id: input.dayId,
       meal_slot: input.mealSlot,
       meal_label: trimmedLabel ? trimmedLabel : null,
+      quantity_label: trimmedQty ? trimmedQty : null,
       name: input.name ?? null,
       kcal: input.kcal ?? 0,
       protein_g: input.protein_g ?? 0,

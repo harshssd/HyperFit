@@ -224,12 +224,30 @@ const EntryRow = ({
           {slotLabel}
         </Text>
       </View>
-      <Text
-        numberOfLines={1}
-        style={{ flex: 1, color: text.primary, fontSize: 13, fontWeight: fonts.weight.semibold as '600' }}
-      >
-        {entry.name?.trim() || 'Meal'}
-      </Text>
+      <View style={{ flex: 1 }}>
+        <Text
+          numberOfLines={1}
+          style={{ color: text.primary, fontSize: 13, fontWeight: fonts.weight.semibold as '600' }}
+        >
+          {entry.name?.trim() || 'Meal'}
+        </Text>
+        {entry.quantity_label?.trim() ? (
+          <Text
+            numberOfLines={1}
+            style={{
+              color: text.tertiary,
+              fontFamily: fonts.family.mono,
+              fontSize: 10,
+              fontWeight: fonts.weight.bold as '700',
+              letterSpacing: 0.4,
+              marginTop: 1,
+              fontVariant: fonts.tabularNums,
+            }}
+          >
+            {entry.quantity_label}
+          </Text>
+        ) : null}
+      </View>
       <Text
         style={{
           color: text.tertiary,

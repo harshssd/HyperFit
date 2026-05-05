@@ -64,6 +64,8 @@ export type ShareMealPayload = {
   slotLabel?: string | null;
   /** Optional time-of-day eyebrow (e.g. "12:34 PM"). */
   timeLabel?: string | null;
+  /** Optional portion label (e.g. "3 eggs", "200 g"). Renders below the title. */
+  quantityLabel?: string | null;
   kcal: number;
   protein_g: number;
   carb_g: number;
@@ -323,6 +325,11 @@ const MealCardBody = ({ payload }: { payload: ShareMealPayload }) => {
       <Text style={styles.title} numberOfLines={3}>
         {payload.title.toUpperCase()}
       </Text>
+      {payload.quantityLabel ? (
+        <Text style={mealStyles.quantityText} allowFontScaling={false}>
+          {payload.quantityLabel}
+        </Text>
+      ) : null}
       {payload.cheat ? (
         <View style={mealStyles.cheatBadge}>
           <Text style={mealStyles.cheatBadgeText} allowFontScaling={false}>
@@ -728,6 +735,14 @@ const mealStyles = StyleSheet.create({
     color: text.tertiary,
     fontSize: 22,
     letterSpacing: 1.2,
+    fontVariant: fonts.tabularNums,
+  },
+  quantityText: {
+    color: text.tertiary,
+    fontSize: 32,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    marginTop: 12,
     fontVariant: fonts.tabularNums,
   },
   cheatBadge: {

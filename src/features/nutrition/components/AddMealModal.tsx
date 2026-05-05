@@ -60,6 +60,7 @@ export const AddMealModal = ({
   const [isCustom, setIsCustom] = useState(!!defaultLabel);
   const [customLabel, setCustomLabel] = useState(defaultLabel ?? '');
   const [name, setName] = useState('');
+  const [quantity, setQuantity] = useState('');
   const [kcal, setKcal] = useState('');
   const [protein, setProtein] = useState('');
   const [carb, setCarb] = useState('');
@@ -74,6 +75,7 @@ export const AddMealModal = ({
     setIsCustom(!!defaultLabel);
     setCustomLabel(defaultLabel ?? '');
     setName('');
+    setQuantity('');
     setKcal('');
     setProtein('');
     setCarb('');
@@ -88,6 +90,7 @@ export const AddMealModal = ({
 
   const handlePickRecent = (r: NutritionEntry) => {
     setName(r.name ?? '');
+    setQuantity(r.quantity_label ?? '');
     setKcal(String(r.kcal));
     setProtein(String(r.protein_g));
     setCarb(String(r.carb_g));
@@ -105,6 +108,7 @@ export const AddMealModal = ({
       await onSave({
         mealSlot: slot,
         mealLabel: isCustom ? customLabel.trim() : null,
+        quantityLabel: quantity.trim() || null,
         name: name.trim() || undefined,
         kcal: parseInt(kcal, 10) || 0,
         protein_g: parseInt(protein, 10) || 0,
@@ -316,11 +320,36 @@ export const AddMealModal = ({
             <TextInput
               value={name}
               onChangeText={setName}
-              placeholder="e.g. Grilled chicken, 200 g"
+              placeholder="e.g. Grilled chicken"
               placeholderTextColor={text.disabled}
               style={{
                 backgroundColor: palette.surface,
                 borderColor: palette.borderStrong,
+                borderWidth: 1,
+                borderRadius: radii.md,
+                paddingHorizontal: spacing.lg,
+                paddingVertical: spacing.md,
+                color: text.primary,
+                fontSize: 15,
+                fontWeight: '600',
+              }}
+            />
+          </View>
+
+          {/* Quantity — free-text portion (e.g. "3 eggs", "200 g"). Optional.
+              Display-only on the entry row + share card; macros above stay
+              the source of truth for daily totals. */}
+          <View style={{ gap: spacing.sm }}>
+            <SmallLabel>Quantity · optional</SmallLabel>
+            <TextInput
+              value={quantity}
+              onChangeText={t => setQuantity(t.slice(0, 32))}
+              placeholder='e.g. "3 eggs", "200 g", "8 oz"'
+              placeholderTextColor={text.disabled}
+              maxLength={32}
+              style={{
+                backgroundColor: palette.surface,
+                borderColor: quantity.trim() ? accent.lift : palette.borderStrong,
                 borderWidth: 1,
                 borderRadius: radii.md,
                 paddingHorizontal: spacing.lg,

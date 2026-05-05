@@ -414,6 +414,7 @@ export interface Database {
           day_id: string;
           meal_slot: MealSlot;
           meal_label: string | null;
+          quantity_label: string | null;
           name: string | null;
           kcal: number;
           protein_g: number;
@@ -431,6 +432,7 @@ export interface Database {
           day_id: string;
           meal_slot: MealSlot;
           meal_label?: string | null;
+          quantity_label?: string | null;
           name?: string | null;
           kcal?: number;
           protein_g?: number;
