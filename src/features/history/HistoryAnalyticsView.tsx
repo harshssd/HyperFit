@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Modal, ActivityIndicator, RefreshControl } from 'react-native';
 import {
   ChevronRight, Calendar, Dumbbell, Clock, Target, TrendingUp,
-  BarChart2, History
+  BarChart2, History, Utensils
 } from 'lucide-react-native';
+import NutritionHistoryView from '../nutrition/NutritionHistoryView';
 import GlassCard from '../../components/GlassCard';
 import NeonButton from '../../components/NeonButton';
 import { LoadingState, EmptyState, ErrorState } from '../../components/StateView';
@@ -23,16 +24,20 @@ import SessionRow from './components/SessionRow';
 import { SessionDetailView } from './components/SessionDetailView';
 import { useSessionTrajectories } from './hooks/useSessionTrajectories';
 
-type ViewMode = 'history' | 'analytics';
+export type HistoryViewMode = 'history' | 'nutrition' | 'analytics';
 
 const ITEMS_PER_PAGE = 10;
 
 const DAY_LABELS_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-const HistoryAnalyticsView = () => {
+type Props = {
+  initialMode?: HistoryViewMode;
+};
+
+const HistoryAnalyticsView = ({ initialMode = 'history' }: Props) => {
   const { user } = useUser();
   const { data } = useAppData();
-  const [viewMode, setViewMode] = useState<ViewMode>('history');
+  const [viewMode, setViewMode] = useState<HistoryViewMode>(initialMode);
   const [sessions, setSessions] = useState<WorkoutSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<SessionWithLogs | null>(null);
   const [loading, setLoading] = useState(true);
@@ -318,7 +323,8 @@ const HistoryAnalyticsView = () => {
           gap: 4,
         }}>
           {([
-            { key: 'history', label: 'HISTORY', Icon: History },
+            { key: 'history', label: 'WORKOUTS', Icon: History },
+            { key: 'nutrition', label: 'NUTRITION', Icon: Utensils },
             { key: 'analytics', label: 'ANALYTICS', Icon: BarChart2 },
           ] as const).map(({ key, label, Icon }) => {
             const active = viewMode === key;
@@ -355,7 +361,11 @@ const HistoryAnalyticsView = () => {
       </View>
 
       {/* Content */}
-      {viewMode === 'history' ? renderHistoryView() : renderAnalyticsView()}
+      {viewMode === 'history'
+        ? renderHistoryView()
+        : viewMode === 'nutrition'
+          ? <NutritionHistoryView />
+          : renderAnalyticsView()}
 
       {/* Session Detail Modal */}
       <Modal

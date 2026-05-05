@@ -2,12 +2,15 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import HistoryAnalyticsView from '../features/history/HistoryAnalyticsView';
+import type { RootStackParamList } from '../navigation/types';
 import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
 
 export const HistoryScreen = () => {
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<RootStackParamList, 'History'>>();
+  const initialMode = route.params?.initialMode ?? 'history';
   const handleClose = () => navigation.goBack();
 
   return (
@@ -79,7 +82,7 @@ export const HistoryScreen = () => {
       </View>
 
       <View style={{ flex: 1 }}>
-        <HistoryAnalyticsView />
+        <HistoryAnalyticsView initialMode={initialMode} />
       </View>
     </SafeAreaView>
   );

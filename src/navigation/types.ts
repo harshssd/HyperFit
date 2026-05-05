@@ -55,8 +55,9 @@ export type RootStackParamList = {
   SessionDetail: { sessionId: string };
   /** Preview + import a plan someone shared with you via a share code. */
   SharedPlan: { code: string };
-  /** History + analytics modal. Opened by tapping any insight tile on Home. */
-  History: undefined;
+  /** History + analytics modal. Opened by tapping any insight tile on Home.
+   *  `initialMode` deep-links to a specific segment (e.g. Nutrition tab → modal). */
+  History: { initialMode?: 'history' | 'nutrition' | 'analytics' } | undefined;
   /** Profile / account modal. Opened from the avatar in Home's top bar. */
   Profile: undefined;
 };
