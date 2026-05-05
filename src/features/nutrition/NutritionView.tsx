@@ -123,9 +123,7 @@ export const NutritionView = ({
 
   const eyebrowColor = isCheat
     ? CHEAT_BORDER
-    : day.hasGoal
-      ? accent.lift
-      : text.quaternary;
+    : text.tertiary;
   const surfaceBorder = isCheat ? CHEAT_BORDER : palette.borderStrong;
 
   return (
@@ -188,12 +186,12 @@ export const NutritionView = ({
                   borderRadius: radii.sm,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: 'rgba(252, 76, 2, 0.12)',
+                  backgroundColor: 'rgba(0, 214, 143, 0.12)',
                   borderWidth: 1,
-                  borderColor: accent.lift,
+                  borderColor: accent.sessionUp,
                 }}
               >
-                <Salad size={16} color={accent.lift} strokeWidth={2} />
+                <Salad size={16} color={accent.sessionUp} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Eyebrow color={eyebrowColor}>{eyebrow}</Eyebrow>
