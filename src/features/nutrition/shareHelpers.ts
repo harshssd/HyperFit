@@ -73,6 +73,10 @@ export const buildMealPayload = (
   carb_g: entry.carb_g ?? 0,
   fat_g: entry.fat_g ?? 0,
   fiber_g: entry.fiber_g ?? 0,
+  ingredients: entry.ingredients?.map(i => ({
+    quantity_label: i.quantity_label ?? '',
+    name: i.name ?? '',
+  })) ?? null,
   cheat: isCheatDay,
 });
 
