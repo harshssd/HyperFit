@@ -386,7 +386,9 @@ const MacroPill = ({
         }}
       >
         {current}
-        <Text style={{ color: text.quaternary, fontWeight: '600', fontSize: 12 }}>g</Text>
+        <Text style={{ color: text.quaternary, fontWeight: '600', fontSize: 12 }}>
+          {' / '}{target}g
+        </Text>
       </Text>
       <View
         style={{
@@ -409,7 +411,7 @@ const MacroPill = ({
         }}
         numberOfLines={1}
       >
-        {label} {target}
+        {label}
       </Text>
     </View>
   );
