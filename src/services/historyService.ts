@@ -162,3 +162,50 @@ export const fetchSessionDetails = async (
     logs,
   };
 };
+
+// Patch shape for updating a logged session's metadata. Only fields the
+// SessionDetailView edit toggle exposes are accepted; volume_load /
+// status / etc. are derived by the view and shouldn't be patched directly.
+export type SessionMetaPatch = {
+  name?: string;
+  /** YYYY-MM-DD (local). */
+  workout_date?: string;
+};
+
+export const updateSessionMeta = async (
+  sessionId: string,
+  patch: SessionMetaPatch,
+): Promise<void> => {
+  const update: Record<string, string> = {};
+  if (patch.name !== undefined) update.name = patch.name;
+  if (patch.workout_date !== undefined) update.workout_date = patch.workout_date;
+  if (Object.keys(update).length === 0) return;
+  const { error } = await supabase
+    .from('workout_sessions')
+    .update(update)
+    .eq('id', sessionId);
+  if (error) throw error;
+};
+
+// Patch shape for an individual logged set. The session_summary_view
+// recomputes volume_load on read, so a weight/reps edit propagates to
+// the History list automatically.
+export type SetPatch = {
+  weight?: number | null;
+  reps?: number | null;
+};
+
+export const updateWorkoutSet = async (
+  setId: string,
+  patch: SetPatch,
+): Promise<void> => {
+  const update: Record<string, number | null> = {};
+  if (patch.weight !== undefined) update.weight = patch.weight;
+  if (patch.reps !== undefined) update.reps = patch.reps;
+  if (Object.keys(update).length === 0) return;
+  const { error } = await supabase
+    .from('workout_sets')
+    .update(update)
+    .eq('id', setId);
+  if (error) throw error;
+};
