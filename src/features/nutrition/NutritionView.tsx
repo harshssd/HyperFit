@@ -125,11 +125,7 @@ export const NutritionView = ({
     : day.hasGoal
       ? accent.lift
       : text.quaternary;
-  const surfaceBorder = isCheat
-    ? CHEAT_BORDER
-    : day.hasGoal
-      ? accent.lift
-      : palette.borderStrong;
+  const surfaceBorder = isCheat ? CHEAT_BORDER : palette.borderStrong;
 
   return (
     <>
@@ -157,11 +153,13 @@ export const NutritionView = ({
             borderRadius: radii.lg,
             borderWidth: 1,
             borderColor: surfaceBorder,
+            borderTopWidth: 2,
+            borderTopColor: isCheat ? surfaceBorder : accent.sessionUp,
             backgroundColor: palette.surface,
             overflow: 'hidden',
             shadowColor: surfaceBorder,
             shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: day.hasGoal ? 0.15 : 0,
+            shadowOpacity: isCheat ? 0.15 : 0,
             shadowRadius: 8,
           }}
         >

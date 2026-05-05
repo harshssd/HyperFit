@@ -9,7 +9,7 @@ import {
   VIEWBOX_HEIGHT,
   VIEWBOX_WIDTH,
 } from './muscleRegions';
-import { palette } from '../../../styles/theme';
+import { palette, text } from '../../../styles/theme';
 import { HEATMAP_FILL } from './BodySilhouette';
 
 type Props = {
@@ -17,10 +17,17 @@ type Props = {
   intensities: Partial<Record<MuscleId, number>>;
   /** Pixel width — height scales with the body viewBox. */
   size?: number;
+  /**
+   * 'default' = filled dark anthracite body, dark border (Home, share cards).
+   * 'ghost'   = transparent body, bright outline — for use as a watermark
+   *             behind text on dark surfaces (calendar grid).
+   */
+  tone?: 'default' | 'ghost';
 };
 
 const SILHOUETTE_FILL = '#0a0a0a';
 const SILHOUETTE_STROKE = palette.borderStrong;
+const GHOST_STROKE = text.tertiary;
 
 /**
  * Static (non-animated) micro-silhouette for calendar grids. Skips the
@@ -46,14 +53,19 @@ export const MiniSilhouette = ({
   view = 'front',
   intensities,
   size = 28,
+  tone = 'default',
 }: Props) => {
   const regions = view === 'front' ? FRONT_REGIONS : BACK_REGIONS;
   const outline = view === 'front' ? FRONT_BODY_OUTLINE : BACK_BODY_OUTLINE;
   const height = (size * VIEWBOX_HEIGHT) / VIEWBOX_WIDTH;
+  const isGhost = tone === 'ghost';
+  const outlineFill = isGhost ? 'transparent' : SILHOUETTE_FILL;
+  const outlineStroke = isGhost ? GHOST_STROKE : SILHOUETTE_STROKE;
+  const outlineWidth = 1;
 
   return (
     <Svg width={size} height={height} viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}>
-      <Path d={outline} fill={SILHOUETTE_FILL} stroke={SILHOUETTE_STROKE} strokeWidth={1} />
+      <Path d={outline} fill={outlineFill} stroke={outlineStroke} strokeWidth={outlineWidth} />
       {regions.map(region => {
         const fill = intensityToFill(intensities[region.id] ?? 0);
         return region.shapes.map((shape, i) => {
