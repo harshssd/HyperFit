@@ -1,23 +1,27 @@
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import {
   Dumbbell,
   Play,
   Calendar,
   CheckCircle,
   ChevronRight,
-  Droplet,
-  Layout,
-  PlusCircle,
-  UtensilsCrossed,
+  Flame,
+  Plus,
+  Salad,
+  TrendingUp,
+  BarChart2,
 } from 'lucide-react-native';
-import GlassCard from './GlassCard';
 import { homeStyles } from '../styles';
 import { palette, text, accent, spacing, radii, fonts } from '../styles/theme';
 import { UserData } from '../types/workout';
-import { getWorkoutForDate, getUpcomingWorkouts } from '../features/workout/helpers';
+import { getWorkoutForDate, getUpcomingWorkouts, calculateXP } from '../features/workout/helpers';
 import NeonButton from './NeonButton';
-import CalendarView from '../features/calendar/CalendarView';
+import { useNutritionDayContext } from '../features/nutrition/hooks/useNutritionDay';
+import { WaterControls } from '../features/nutrition/components/WaterControls';
+import { AddMealModal } from '../features/nutrition/components/AddMealModal';
+import { formatKcal, heroEyebrow } from '../features/nutrition/helpers';
+import type { MealSlot } from '../types/supabase';
 
 type UpcomingWorkout = ReturnType<typeof getUpcomingWorkouts>[number];
 
@@ -34,12 +38,22 @@ type HomeViewProps = {
   onStartUpcoming?: (planSessionId: string) => void;
   /** Open the plan library in session-pick mode (alternate workout flow). */
   onPickFromLibrary?: () => void;
-  /** Navigate to the Nutrition tab and open the Add Meal modal. */
-  onLogMeal?: () => void;
-  /** Navigate to the Nutrition tab (water +CUP / +BOTTLE buttons are
-   *  always visible there, so no extra intent is needed). */
-  onLogWater?: () => void;
+  /** Open the History + Analytics modal — wired from any insight tile. */
+  onOpenHistory?: () => void;
 };
+
+// Daypart-aware default slot for the "+ Add meal" CTA. Modal still lets
+// the user pick a different slot; this is the cheap "right answer."
+const slotForHour = (hour: number): MealSlot => {
+  if (hour < 10) return 'breakfast';
+  if (hour < 14) return 'lunch';
+  if (hour < 17) return 'snack';
+  if (hour < 21) return 'dinner';
+  return 'snack';
+};
+
+const FIBER_COLOR = '#4fb3a8';
+const CHEAT_BORDER = '#a855f7';
 
 const HomeView = ({
   data,
@@ -47,11 +61,8 @@ const HomeView = ({
   onStartCustom,
   onStartUpcoming,
   onPickFromLibrary,
-  onLogMeal,
-  onLogWater,
+  onOpenHistory,
 }: HomeViewProps) => {
-  const handleLogMeal = onLogMeal ?? (() => onChangeView('nutrition'));
-  const handleLogWater = onLogWater ?? (() => onChangeView('nutrition'));
   const today = new Date();
   const activePlan = data.userWorkoutPlans?.find(p => p.isActive);
   const todaysWorkout = getWorkoutForDate(today, [], activePlan);
@@ -62,6 +73,11 @@ const HomeView = ({
   const upcoming = getUpcomingWorkouts(activePlan, 2, 1);
   const upcomingWorkout: UpcomingWorkout | undefined = upcoming[0];
   const sessionAfterNext: UpcomingWorkout | undefined = upcoming[1];
+
+  // Shared nutrition state — same provider Nutrition tab reads, so logging
+  // on Home reflects on Nutrition immediately and vice versa.
+  const dayCtx = useNutritionDayContext();
+  const [addMealRequest, setAddMealRequest] = useState<{ slot: MealSlot } | null>(null);
 
   const upcomingLabel = (daysUntil: number, date: Date) => {
     if (daysUntil === 1) return 'Tomorrow';
@@ -77,10 +93,6 @@ const HomeView = ({
   const estimateMinutes = (exercises: number) =>
     Math.max(15, Math.round((exercises * 9) / 5) * 5);
 
-  // Tap-target for the next-session affordance. Starts the planned session
-  // directly when the parent has wired the callback; falls back to the
-  // legacy "navigate to Plans" path so the screen still works in contexts
-  // that don't pass session helpers in.
   const startUpcoming = (workout: UpcomingWorkout | undefined) => {
     if (workout?.sessionId && onStartUpcoming) {
       onStartUpcoming(workout.sessionId);
@@ -88,8 +100,6 @@ const HomeView = ({
     }
     onChangeView('gym');
   };
-  const handleStartCustom = onStartCustom ?? (() => onChangeView('gym'));
-  const handlePickFromLibrary = onPickFromLibrary ?? (() => onChangeView('gym'));
 
   // Reusable section caption — small uppercase mono label that anchors each
   // sub-block to the broader visual language ("ACTIVE PLAN", "UP NEXT", etc).
@@ -114,106 +124,6 @@ const HomeView = ({
     </Text>
   );
 
-  // Inset banner row used by secondary actions (Start Custom Workout) and
-  // navigational footers (Next Session). Mirrors the active-plan header
-  // icon-chip + eyebrow + title pattern in a neutral palette so the whole
-  // card reads as one design system.
-  const BannerRow = ({
-    icon,
-    iconColor = text.primary,
-    iconTint = palette.surfaceAlt,
-    iconBorderColor = palette.borderStrong,
-    eyebrow,
-    eyebrowColor,
-    title,
-    sub,
-    rightSlot,
-    onPress,
-    testID,
-    accessibilityLabel,
-    flat = false,
-  }: {
-    icon: React.ReactNode;
-    iconColor?: string;
-    iconTint?: string;
-    iconBorderColor?: string;
-    eyebrow: string;
-    eyebrowColor?: string;
-    title: string;
-    sub?: string;
-    rightSlot?: React.ReactNode;
-    onPress?: () => void;
-    testID?: string;
-    accessibilityLabel?: string;
-    // When inside a card already (e.g. the Active Plan card), use flat to
-    // drop the border/background so the row reads as a list item, not a
-    // nested mini-card. Caller renders dividers between flat rows.
-    flat?: boolean;
-  }) => {
-    const inner = (
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.md,
-          paddingVertical: flat ? spacing.sm : spacing.md,
-          paddingHorizontal: flat ? 0 : spacing.md,
-          borderRadius: flat ? 0 : radii.md,
-          borderWidth: flat ? 0 : 1,
-          borderColor: palette.borderStrong,
-          backgroundColor: flat ? 'transparent' : palette.surfaceAlt,
-        }}
-      >
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: radii.sm,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: iconTint,
-            borderWidth: 1,
-            borderColor: iconBorderColor,
-          }}
-        >
-          {icon}
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Eyebrow color={eyebrowColor ?? text.quaternary}>{eyebrow}</Eyebrow>
-          <Text
-            style={{
-              color: text.primary,
-              fontSize: 15,
-              fontWeight: '800',
-              letterSpacing: -0.2,
-            }}
-            numberOfLines={1}
-          >
-            {title}
-          </Text>
-          {sub ? (
-            <Text style={{ color: text.tertiary, fontSize: 12 }}>{sub}</Text>
-          ) : null}
-        </View>
-        {rightSlot}
-      </View>
-    );
-
-    if (!onPress) return inner;
-    return (
-      <TouchableOpacity
-        testID={testID}
-        accessibilityRole="button"
-        accessibilityLabel={accessibilityLabel}
-        onPress={onPress}
-        activeOpacity={0.85}
-      >
-        {inner}
-      </TouchableOpacity>
-    );
-  };
-
-  // Numeric stat readout used in scheduled-today / completed branches.
   const Stat = ({ value, label }: { value: string | number; label: string }) => (
     <View>
       <Text
@@ -236,26 +146,62 @@ const HomeView = ({
   const renderNextSessionFooter = (workout: UpcomingWorkout | undefined) => {
     if (!workout) return null;
     return (
-      <BannerRow
+      <TouchableOpacity
         testID="home-next-session"
         onPress={() => startUpcoming(workout)}
+        accessibilityRole="button"
         accessibilityLabel={`Start ${workout.name} early — ${upcomingLabel(workout.daysUntil, workout.date)}`}
-        icon={<Calendar size={16} color={accent.lift} />}
-        iconColor={accent.lift}
-        iconTint="rgba(252, 76, 2, 0.10)"
-        iconBorderColor={accent.lift}
-        eyebrow={`Next Session · ${upcomingLabel(workout.daysUntil, workout.date)}`}
-        eyebrowColor={accent.lift}
-        title={workout.name}
-        sub={`${workout.exercises} exercises`}
-        rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-      />
+        activeOpacity={0.85}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.md,
+          borderRadius: radii.md,
+          borderWidth: 1,
+          borderColor: accent.lift,
+          backgroundColor: 'rgba(252, 76, 2, 0.10)',
+        }}
+      >
+        <View
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: radii.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(252, 76, 2, 0.10)',
+            borderWidth: 1,
+            borderColor: accent.lift,
+          }}
+        >
+          <Calendar size={16} color={accent.lift} />
+        </View>
+        <View style={{ flex: 1, gap: 2 }}>
+          <Eyebrow color={accent.lift}>
+            {`Next Session · ${upcomingLabel(workout.daysUntil, workout.date)}`}
+          </Eyebrow>
+          <Text
+            style={{
+              color: text.primary,
+              fontSize: 15,
+              fontWeight: '800',
+              letterSpacing: -0.2,
+            }}
+            numberOfLines={1}
+          >
+            {workout.name}
+          </Text>
+          <Text style={{ color: text.tertiary, fontSize: 12 }}>
+            {`${workout.exercises} exercises`}
+          </Text>
+        </View>
+        <ChevronRight size={18} color={text.tertiary} />
+      </TouchableOpacity>
     );
   };
 
-  // Renders the active-plan banner shared across every plan-aware focus
-  // state. Pulls plan name + frequency + week-of-N progress out of
-  // activePlan.planData when available so it reads like a status bar.
   const renderActivePlanHeader = () => {
     if (!activePlan) return null;
     const planName =
@@ -354,6 +300,11 @@ const HomeView = ({
       </View>
     );
   };
+
+  // Full action surface (alternate / manual / browse / 7-day strip) lives on
+  // the Plans tab. Home renders ONE primary action per state — tap it to
+  // start, otherwise tap the Gym tab for variants. Resolves FINDING-003.
+  const handleSeeAllPlans = () => onChangeView('gym');
 
   const renderTodaysFocus = () => {
     if (todaysWorkout) {
@@ -482,41 +433,34 @@ const HomeView = ({
               </Text>
             </NeonButton>
 
-            {/* Even with a session scheduled today, the user may want to swap
-                in a different plan-session or build something custom. Render
-                as flat list rows (not nested cards) so the active-plan card
-                doesn't card-in-card-in-card itself. */}
-            <View
+            <TouchableOpacity
+              testID="home-see-all-plans"
+              onPress={handleSeeAllPlans}
+              accessibilityRole="button"
+              accessibilityLabel="Open Gym tab to alternate, build manual, or browse"
+              activeOpacity={0.7}
               style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.xs,
                 paddingTop: spacing.sm,
-                borderTopWidth: 1,
-                borderTopColor: palette.borderStrong,
               }}
             >
-              <BannerRow
-                flat
-                testID="home-pick-from-library-planned"
-                onPress={handlePickFromLibrary}
-                accessibilityLabel="Pick a different workout from any plan"
-                icon={<Layout size={16} color={text.primary} />}
-                eyebrow="From any plan"
-                title="Pick a Different Workout"
-                sub="Swap today's session for any other"
-                rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-              />
-              <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: palette.borderStrong }} />
-              <BannerRow
-                flat
-                testID="home-start-custom-planned"
-                onPress={handleStartCustom}
-                accessibilityLabel="Start custom workout"
-                icon={<PlusCircle size={16} color={text.primary} />}
-                eyebrow="Blank Session"
-                title="Start Custom Workout"
-                sub="Build something exercise by exercise"
-                rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-              />
-            </View>
+              <Text
+                style={{
+                  color: text.tertiary,
+                  fontFamily: fonts.family.mono,
+                  fontSize: 11,
+                  letterSpacing: 1.6,
+                  fontWeight: '800',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Alternate, Custom, Browse · Gym Tab
+              </Text>
+              <ChevronRight size={13} color={text.tertiary} />
+            </TouchableOpacity>
           </View>
         );
       }
@@ -538,45 +482,23 @@ const HomeView = ({
               NO ACTIVE PLAN
             </Text>
             <Text style={{ color: text.tertiary, fontSize: 14 }}>
-              Pick a workout plan to schedule your week, or jump into a custom session.
+              Pick a workout plan to schedule your week, or jump into a custom session from the Gym tab.
             </Text>
           </View>
 
-          <NeonButton onPress={() => onChangeView('gym')} style={{ width: '100%' }}>
+          <NeonButton onPress={handleSeeAllPlans} style={{ width: '100%' }}>
             <Calendar size={18} color={palette.bg} />
             <Text style={{ marginLeft: spacing.sm, fontSize: 13, fontWeight: '800', letterSpacing: 1.2, color: palette.bg }}>
               BROWSE PLANS
             </Text>
           </NeonButton>
-
-          <BannerRow
-            testID="home-start-custom-no-plan"
-            onPress={handleStartCustom}
-            accessibilityLabel="Start custom workout"
-            icon={<PlusCircle size={16} color={text.primary} />}
-            eyebrow="Blank Session"
-            title="Start Custom Workout"
-            sub="Build something exercise by exercise"
-            rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-          />
-
-          <BannerRow
-            testID="home-pick-from-library"
-            onPress={handlePickFromLibrary}
-            accessibilityLabel="Pick a workout from any plan"
-            icon={<Layout size={16} color={text.primary} />}
-            eyebrow="From any plan"
-            title="Pick a Workout"
-            sub="Try a single session ad-hoc"
-            rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-          />
         </View>
       );
     }
 
     // Active plan, today is rest. REST DAY stays as the visual hero;
     // Next Session moves to the top of the action stack so the most
-    // likely tap is closest to the headline.
+    // likely tap is closest to the headline. Variants live on the Gym tab.
     return (
       <View style={{ gap: spacing.lg }}>
         {renderActivePlanHeader()}
@@ -600,208 +522,439 @@ const HomeView = ({
 
         {renderNextSessionFooter(upcomingWorkout)}
 
-        <BannerRow
-          testID="home-pick-from-library-rest-day"
-          onPress={handlePickFromLibrary}
-          accessibilityLabel="Pick a workout from any plan"
-          icon={<Layout size={16} color={text.primary} />}
-          eyebrow="From any plan"
-          title="Pick a Workout"
-          sub="Lift a different session today"
-          rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-        />
-
-        <BannerRow
-          testID="home-start-custom-rest-day"
-          onPress={handleStartCustom}
-          accessibilityLabel="Start custom workout"
-          icon={<PlusCircle size={16} color={text.primary} />}
-          eyebrow="Blank Session"
-          title="Start Custom Workout"
-          sub="Build something exercise by exercise"
-          rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-        />
+        <TouchableOpacity
+          testID="home-see-all-plans-rest"
+          onPress={handleSeeAllPlans}
+          accessibilityRole="button"
+          accessibilityLabel="Open Gym tab to lift today anyway"
+          activeOpacity={0.7}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: spacing.xs,
+            paddingTop: spacing.xs,
+          }}
+        >
+          <Text
+            style={{
+              color: text.tertiary,
+              fontFamily: fonts.family.mono,
+              fontSize: 11,
+              letterSpacing: 1.6,
+              fontWeight: '800',
+              textTransform: 'uppercase',
+            }}
+          >
+            Lift Today Anyway · Gym Tab
+          </Text>
+          <ChevronRight size={13} color={text.tertiary} />
+        </TouchableOpacity>
       </View>
     );
   };
 
+  // Inline Fuel card — same data + same controls as the Nutrition tab.
+  // Reused via NutritionDayProvider so logging here updates Nutrition too.
+  const renderFuelCard = () => {
+    const isCheat = dayCtx.summary?.is_cheat_day ?? false;
+    const status = dayCtx.summary?.status ?? 'empty';
+    const eyebrow = heroEyebrow(status, isCheat, dayCtx.hasGoal);
+    const surfaceBorder = isCheat
+      ? CHEAT_BORDER
+      : dayCtx.hasGoal
+        ? accent.lift
+        : palette.borderStrong;
+    const eyebrowColor = isCheat
+      ? CHEAT_BORDER
+      : dayCtx.hasGoal
+        ? accent.lift
+        : text.quaternary;
+
+    const kcalTarget    = dayCtx.settings?.kcal_target      ?? 2200;
+    const proteinTarget = dayCtx.settings?.protein_target_g ?? 160;
+    const carbTarget    = dayCtx.settings?.carb_target_g    ?? 250;
+    const fatTarget     = dayCtx.settings?.fat_target_g     ?? 70;
+    const fiberTarget   = dayCtx.settings?.fiber_target_g   ?? 30;
+    const waterTarget   = dayCtx.settings?.water_target_ml  ?? 2000;
+    const waterCup      = dayCtx.settings?.water_cup_ml     ?? 250;
+    const waterBottle   = dayCtx.settings?.water_bottle_ml  ?? 500;
+    const waterUnit     = dayCtx.settings?.water_unit       ?? 'ml';
+
+    const kcalCurrent    = dayCtx.summary?.kcal_total      ?? 0;
+    const proteinCurrent = dayCtx.summary?.protein_total_g ?? 0;
+    const carbCurrent    = dayCtx.summary?.carb_total_g    ?? 0;
+    const fatCurrent     = dayCtx.summary?.fat_total_g     ?? 0;
+    const fiberCurrent   = dayCtx.summary?.fiber_total_g   ?? 0;
+    const waterCurrent   = dayCtx.summary?.water_total_ml  ?? 0;
+
+    return (
+      <View
+        testID="home-fuel"
+        style={{
+          marginBottom: spacing.xl,
+          borderRadius: radii.lg,
+          borderWidth: 1,
+          borderColor: surfaceBorder,
+          backgroundColor: palette.surface,
+          overflow: 'hidden',
+          shadowColor: surfaceBorder,
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: dayCtx.hasGoal ? 0.15 : 0.2,
+          shadowRadius: 8,
+        }}
+      >
+        <View style={{ padding: spacing.xl }}>
+          {/* Header — open Nutrition tab for goal edit + cheat planner.
+              Tap target spans the row; chevron telegraphs the deep link. */}
+          <TouchableOpacity
+            testID="home-fuel-header"
+            onPress={() => onChangeView('nutrition')}
+            activeOpacity={0.85}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.md,
+              paddingBottom: spacing.lg,
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderStrong,
+              marginBottom: spacing.lg,
+            }}
+          >
+            <View
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: radii.sm,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(252, 76, 2, 0.12)',
+                borderWidth: 1,
+                borderColor: accent.lift,
+              }}
+            >
+              <Salad size={16} color={accent.lift} strokeWidth={2} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Eyebrow color={eyebrowColor}>{eyebrow}</Eyebrow>
+              <Text
+                style={{
+                  color: text.primary,
+                  fontSize: 22,
+                  fontWeight: '900',
+                  letterSpacing: -0.4,
+                  marginTop: 2,
+                  fontVariant: fonts.tabularNums,
+                }}
+                numberOfLines={1}
+              >
+                {formatKcal(kcalCurrent)}
+                <Text style={{ color: text.quaternary, fontWeight: '700', fontSize: 16 }}>
+                  {' / '}{dayCtx.hasGoal ? formatKcal(kcalTarget) : '—'} kcal
+                </Text>
+              </Text>
+            </View>
+            <ChevronRight size={16} color={text.tertiary} />
+          </TouchableOpacity>
+
+          {/* Macro bars — same component pattern as Nutrition; kept identical
+              so logging from either surface produces the same readout. */}
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: spacing.lg }}>
+            <MacroPill label="Protein" current={proteinCurrent} target={proteinTarget} color={accent.lift} />
+            <MacroPill label="Carbs"   current={carbCurrent}    target={carbTarget}    color={accent.sessionUp} />
+            <MacroPill label="Fat"     current={fatCurrent}     target={fatTarget}     color={text.tertiary} />
+            <MacroPill label="Fiber"   current={fiberCurrent}   target={fiberTarget}   color={FIBER_COLOR} />
+          </View>
+
+          {/* Inline logging — water + add meal. Doubled with Nutrition tab
+              by design; controls share state through NutritionDayProvider. */}
+          <View style={{ gap: spacing.sm }}>
+            <WaterControls
+              totalMl={waterCurrent}
+              targetMl={waterTarget}
+              cupMl={waterCup}
+              bottleMl={waterBottle}
+              unit={waterUnit}
+              onAddMl={dayCtx.addWater}
+              onUndo={dayCtx.undoLastWater}
+            />
+
+            <TouchableOpacity
+              testID="home-add-meal"
+              onPress={() => {
+                const hour = new Date().getHours();
+                setAddMealRequest({ slot: slotForHour(hour) });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel="Add meal entry"
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.sm,
+                paddingVertical: spacing.md,
+                marginTop: spacing.xs,
+                borderRadius: radii.md,
+                backgroundColor: accent.lift,
+              }}
+            >
+              <Plus size={16} color="#fff" strokeWidth={3} />
+              <Text
+                style={{
+                  color: '#fff',
+                  fontFamily: fonts.family.mono,
+                  fontSize: 12,
+                  letterSpacing: 2.2,
+                  textTransform: 'uppercase',
+                  fontWeight: '800',
+                }}
+              >
+                Add meal
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  };
+
+  // Insight tiles — three glanceable numbers backed by data we already have
+  // (no new fetches). Tapping anywhere opens the History + Analytics modal,
+  // which is where deep retro lives now that History isn't a tab.
+  const renderInsightTiles = () => {
+    const xp = calculateXP(data);
+    const streak = data.gymLogs?.length ?? 0;
+    const sevenDayCutoff = new Date();
+    sevenDayCutoff.setDate(sevenDayCutoff.getDate() - 6);
+    const sevenDayCutoffISO = sevenDayCutoff.toISOString().slice(0, 10);
+    const sessionsThisWeek = (data.gymLogs ?? []).filter(d => d >= sevenDayCutoffISO).length;
+
+    const Tile = ({
+      icon,
+      value,
+      label,
+      tint,
+    }: {
+      icon: React.ReactNode;
+      value: number;
+      label: string;
+      tint: string;
+    }) => (
+      <View style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: radii.sm,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: palette.surfaceAlt,
+            borderWidth: 1,
+            borderColor: tint,
+          }}
+        >
+          {icon}
+        </View>
+        <Text
+          style={{
+            color: text.primary,
+            fontSize: 22,
+            fontWeight: '900',
+            letterSpacing: -0.4,
+            fontVariant: fonts.tabularNums,
+            marginTop: 2,
+          }}
+        >
+          {value}
+        </Text>
+        <Eyebrow>{label}</Eyebrow>
+      </View>
+    );
+
+    return (
+      <TouchableOpacity
+        testID="home-insights"
+        onPress={() => onOpenHistory?.()}
+        accessibilityRole="button"
+        accessibilityLabel="Open history and analytics"
+        activeOpacity={0.85}
+        style={{
+          marginBottom: spacing.xl,
+          borderRadius: radii.lg,
+          borderWidth: 1,
+          borderColor: palette.borderStrong,
+          backgroundColor: palette.surface,
+          overflow: 'hidden',
+        }}
+      >
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.lg,
+            paddingBottom: spacing.md,
+            borderBottomWidth: 1,
+            borderBottomColor: palette.borderStrong,
+          }}
+        >
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: radii.sm,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: palette.surfaceAlt,
+              borderWidth: 1,
+              borderColor: palette.borderStrong,
+            }}
+          >
+            <BarChart2 size={14} color={text.secondary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Eyebrow>Insights</Eyebrow>
+            <Text
+              style={{
+                color: text.primary,
+                fontSize: 14,
+                fontWeight: '800',
+                marginTop: 2,
+              }}
+            >
+              Tap for full history & analytics
+            </Text>
+          </View>
+          <ChevronRight size={16} color={text.tertiary} />
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            paddingHorizontal: spacing.lg,
+            paddingVertical: spacing.lg,
+            gap: spacing.md,
+          }}
+        >
+          <Tile
+            icon={<Flame size={14} color={accent.lift} />}
+            value={streak}
+            label="Day Streak"
+            tint={accent.lift}
+          />
+          <Tile
+            icon={<TrendingUp size={14} color={accent.sessionUp} />}
+            value={sessionsThisWeek}
+            label="This Week"
+            tint={accent.sessionUp}
+          />
+          <Tile
+            icon={<BarChart2 size={14} color={text.secondary} />}
+            value={xp}
+            label="Total XP"
+            tint={palette.borderStrong}
+          />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <ScrollView style={homeStyles.homeView} contentContainerStyle={homeStyles.homeViewContent}>
-      {/* Today's Focus — primary card. Outer hairline border in lift-orange
-          when an active plan is in play; falls back to neutral surface
-          treatment when there's no plan to anchor it. */}
-      <View
-        style={{
-          marginBottom: spacing.xl,
-          borderRadius: radii.lg,
-          borderWidth: activePlan ? 1 : 1,
-          borderColor: activePlan ? accent.lift : palette.borderStrong,
-          backgroundColor: palette.surface,
-          overflow: 'hidden',
-          shadowColor: activePlan ? accent.lift : '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: activePlan ? 0.15 : 0.2,
-          shadowRadius: 8,
-        }}
-      >
-        <View style={{ padding: spacing.xl }}>{renderTodaysFocus()}</View>
-      </View>
+    <>
+      <ScrollView style={homeStyles.homeView} contentContainerStyle={homeStyles.homeViewContent}>
+        {/* Today's Focus — primary card. Outer hairline border in lift-orange
+            when an active plan is in play; falls back to neutral surface
+            treatment when there's no plan to anchor it. */}
+        <View
+          style={{
+            marginBottom: spacing.xl,
+            borderRadius: radii.lg,
+            borderWidth: 1,
+            borderColor: activePlan ? accent.lift : palette.borderStrong,
+            backgroundColor: palette.surface,
+            overflow: 'hidden',
+            shadowColor: activePlan ? accent.lift : '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: activePlan ? 0.15 : 0.2,
+            shadowRadius: 8,
+          }}
+        >
+          <View style={{ padding: spacing.xl }}>{renderTodaysFocus()}</View>
+        </View>
 
-      {/* Fuel — meal/water shortcuts. Sits BETWEEN the workout focus card
-          and the schedule card so workout and nutrition have visually
-          distinct sections (separate borders, separate eyebrows). One
-          tap from Home to log a meal or jump to water. */}
-      <View
-        style={{
-          marginBottom: spacing.xl,
-          borderRadius: radii.lg,
-          borderWidth: 1,
-          borderColor: palette.borderStrong,
-          backgroundColor: palette.surface,
-          overflow: 'hidden',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
-        }}
-      >
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.sm,
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.lg,
-            paddingBottom: spacing.md,
-            borderBottomWidth: 1,
-            borderBottomColor: palette.borderStrong,
-          }}
-        >
-          <View
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: radii.sm,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: palette.surfaceAlt,
-              borderWidth: 1,
-              borderColor: palette.borderStrong,
-            }}
-          >
-            <UtensilsCrossed size={14} color={text.secondary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Eyebrow>Fuel</Eyebrow>
-            <Text
-              style={{
-                color: text.primary,
-                fontSize: 14,
-                fontWeight: '800',
-                marginTop: 2,
-              }}
-            >
-              Log a meal or water
-            </Text>
-          </View>
-        </View>
-        <View
-          style={{
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.md,
-            paddingBottom: spacing.lg,
-            gap: spacing.sm,
-          }}
-        >
-          <BannerRow
-            testID="home-log-meal"
-            onPress={handleLogMeal}
-            accessibilityLabel="Log a meal"
-            icon={<UtensilsCrossed size={16} color={accent.lift} />}
-            iconTint="rgba(252, 76, 2, 0.10)"
-            iconBorderColor={accent.lift}
-            eyebrow="Nutrition"
-            title="Log a Meal"
-            sub="Pick a slot, fill kcal, save"
-            rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-          />
-          <BannerRow
-            testID="home-log-water"
-            onPress={handleLogWater}
-            accessibilityLabel="Log water intake"
-            icon={<Droplet size={16} color={accent.sessionUp} />}
-            iconTint="rgba(0, 214, 143, 0.10)"
-            iconBorderColor={accent.sessionUp}
-            eyebrow="Hydration"
-            title="Log Water"
-            sub="+ Cup / + Bottle"
-            rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-          />
-        </View>
-      </View>
+        {/* Fuel — inline macro pills + WaterControls + Add Meal CTA. Same
+            controls as the Nutrition tab; logging here updates Nutrition
+            and vice versa via NutritionDayProvider. */}
+        {renderFuelCard()}
 
-      {/* Full month calendar — same component as the (now removed) Calendar
-          tab. Wrapped in a bordered surface card so it reads as a sibling
-          section to the focus card above. */}
-      <View
+        {/* Insight tiles — tap to open the History + Analytics modal. */}
+        {renderInsightTiles()}
+      </ScrollView>
+
+      <AddMealModal
+        visible={addMealRequest !== null}
+        defaultSlot={addMealRequest?.slot ?? 'snack'}
+        defaultLabel={null}
+        onClose={() => setAddMealRequest(null)}
+        onSave={dayCtx.addEntry}
+      />
+    </>
+  );
+};
+
+const MacroPill = ({
+  label,
+  current,
+  target,
+  color,
+}: {
+  label: string;
+  current: number;
+  target: number;
+  color: string;
+}) => {
+  const pct = target > 0 ? Math.min(1, current / target) : 0;
+  return (
+    <View style={{ flex: 1, gap: 6 }}>
+      <Text
         style={{
-          marginBottom: spacing.xl,
-          borderRadius: radii.lg,
-          borderWidth: 1,
-          borderColor: palette.borderStrong,
-          backgroundColor: palette.surface,
-          overflow: 'hidden',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 8,
+          color: text.primary,
+          fontSize: 14,
+          fontWeight: '800',
+          letterSpacing: -0.02,
+          fontVariant: fonts.tabularNums,
         }}
       >
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: spacing.sm,
-            paddingHorizontal: spacing.lg,
-            paddingTop: spacing.lg,
-            paddingBottom: spacing.md,
-            borderBottomWidth: 1,
-            borderBottomColor: palette.borderStrong,
-          }}
-        >
-          <View
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: radii.sm,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: palette.surfaceAlt,
-              borderWidth: 1,
-              borderColor: palette.borderStrong,
-            }}
-          >
-            <Calendar size={14} color={text.secondary} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Eyebrow>Schedule</Eyebrow>
-            <Text
-              style={{
-                color: text.primary,
-                fontSize: 14,
-                fontWeight: '800',
-                marginTop: 2,
-              }}
-            >
-              Month at a glance
-            </Text>
-          </View>
-        </View>
-        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg }}>
-          <CalendarView embedded />
-        </View>
+        {current}
+        <Text style={{ color: text.quaternary, fontWeight: '600', fontSize: 12 }}>
+          {target > 0 ? ` / ${target}g` : 'g'}
+        </Text>
+      </Text>
+      <View
+        style={{
+          height: 4,
+          borderRadius: 2,
+          backgroundColor: palette.borderStrong,
+          overflow: 'hidden',
+        }}
+      >
+        <View style={{ width: `${pct * 100}%`, height: '100%', backgroundColor: color }} />
       </View>
-    </ScrollView>
+      <Text
+        style={{
+          fontFamily: fonts.family.mono,
+          fontSize: 9,
+          letterSpacing: 1.6,
+          color: text.quaternary,
+          textTransform: 'uppercase',
+          fontWeight: '700',
+        }}
+        numberOfLines={1}
+      >
+        {label}
+      </Text>
+    </View>
   );
 };
 

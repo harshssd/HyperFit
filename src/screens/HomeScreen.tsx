@@ -19,8 +19,7 @@ const tabIdToRoute: Record<string, keyof MainTabParamList> = {
   home: 'Home',
   gym: 'Plans',
   nutrition: 'Nutrition',
-  history: 'History',
-  stats: 'History',
+  calendar: 'Calendar',
 };
 
 export const HomeScreen = () => {
@@ -53,15 +52,10 @@ export const HomeScreen = () => {
     navigation.navigate('Plans', { intent: 'pick' });
   };
 
-  // Land on Nutrition with intent: 'add-meal' so the modal pops on focus.
-  // Same one-shot pattern as Plans → 'pick' / 'manual'.
-  const handleLogMeal = () => {
-    navigation.navigate('Nutrition', { intent: 'add-meal' });
-  };
-  // Water has always-visible +CUP / +BOTTLE on the Nutrition tab — just
-  // navigate; no modal/intent needed.
-  const handleLogWater = () => {
-    navigation.navigate('Nutrition');
+  // Open History + Analytics as a modal. Replaces the (former) History tab —
+  // tapping any insight tile on Home brings up the same view.
+  const handleOpenHistory = () => {
+    navigation.navigate('History');
   };
 
   // HomeView owns its own ScrollView; opt out of the layout wrapper so we
@@ -73,18 +67,13 @@ export const HomeScreen = () => {
         streak={data.gymLogs.length}
         xp={calculateXP(data)}
         onChangeView={view => {
-          if (view === 'calendar') {
-            navigation.navigate('Calendar');
-            return;
-          }
           const route = tabIdToRoute[view];
           if (route) navigation.navigate(route as never);
         }}
         onStartCustom={handleStartCustom}
         onStartUpcoming={handleStartUpcoming}
         onPickFromLibrary={handlePickFromLibrary}
-        onLogMeal={handleLogMeal}
-        onLogWater={handleLogWater}
+        onOpenHistory={handleOpenHistory}
       />
     </ScreenLayout>
   );
