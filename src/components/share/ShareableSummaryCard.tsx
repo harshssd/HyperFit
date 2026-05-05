@@ -291,6 +291,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginTop: 36,
+    backgroundColor: palette.surfaceAlt,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: palette.borderStrong,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
   },
   silhouetteCol: {
     alignItems: 'center',
