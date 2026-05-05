@@ -1,6 +1,6 @@
 {
   "meta": {
-    "updatedAt": "2026-05-03T19:26:08.269Z",
+    "updatedAt": "2026-05-05T04:11:39.281Z",
     "source": "managed via scripts/backlog.js"
   },
   "items": [
@@ -136,6 +136,13 @@
       "status": "todo",
       "category": "product",
       "notes": "AI SUGGESTION buttons hidden across WorkoutPlanner (rest-day branch + active-day branch) and EmptyWorkoutCard. The previous action seeded a hardcoded AI_SEED list, not a real model. When reinstated, drive from: (a) recent session history (workout_sessions + workout_sets), (b) the user's active plan + day-of-week, (c) muscle group fatigue (muscle_volume_view), (d) optionally a small LLM call. Surface points: rest-day callout on Plans tab, EmptyWorkoutCard for users without an active plan, in-session 'next exercise' nudge."
+    },
+    {
+      "id": "BL-20",
+      "title": "Push notifications — workout/water/meal nudges with per-channel opt-out",
+      "status": "todo",
+      "category": "Engagement",
+      "notes": "Morning workout-day reminder when active plan has a session scheduled today; mid-day water nudge if behind goal; evening meal-log reminder. Granular per-channel opt-out in Profile. Defer to v1.1, after Apple sign-in (BL-12) ships and outstanding design-review findings clear. Infra: expo-notifications, scheduling via Supabase edge function (or Knock/OneSignal), permission flow on first-launch post-onboarding, deep-link from notification tap into the relevant tab/screen. Test devices required (push doesn't fire on iOS sim). Reference: design review 2026-05-04 — user asked, parked as v1.1."
     }
   ]
 }
