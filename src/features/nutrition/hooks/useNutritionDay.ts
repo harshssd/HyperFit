@@ -12,12 +12,14 @@ import {
   toggleCheatDay as svcToggleCheatDay,
   todayLocalISO,
   undoLastWater as svcUndoLastWater,
+  updateEntry as svcUpdateEntry,
   upsertSettings,
   type AddEntryInput,
   type NutritionDay,
   type NutritionDaySummary,
   type NutritionEntry,
   type NutritionSettings,
+  type UpdateEntryPatch,
 } from '../../../services/nutritionService';
 import { cheatsInWeek, computeStreak } from '../helpers';
 
@@ -76,6 +78,7 @@ export type UseNutritionDayReturn = {
   refresh: () => Promise<void>;
   saveSettings: (patch: Partial<NutritionSettings>) => Promise<void>;
   addEntry: (input: Omit<AddEntryInput, 'userId' | 'dayId'>) => Promise<void>;
+  updateEntry: (entryId: string, patch: UpdateEntryPatch) => Promise<void>;
   deleteEntry: (entryId: string) => Promise<void>;
   addWater: (ml: number) => Promise<void>;
   undoLastWater: () => Promise<void>;
@@ -177,6 +180,14 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
     [userId, date, day, refresh],
   );
 
+  const updateEntry = useCallback(
+    async (entryId: string, patch: UpdateEntryPatch) => {
+      await svcUpdateEntry(entryId, patch);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const deleteEntry = useCallback(
     async (entryId: string) => {
       await svcDeleteEntry(entryId);
@@ -238,6 +249,7 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
     refresh,
     saveSettings,
     addEntry,
+    updateEntry,
     deleteEntry,
     addWater,
     undoLastWater,

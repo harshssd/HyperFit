@@ -77,6 +77,7 @@ export const NutritionView = ({
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [goalOpen, setGoalOpen] = useState(false);
   const [addMealRequest, setAddMealRequest] = useState<AddMealRequest | null>(null);
+  const [editEntry, setEditEntry] = useState<NutritionEntry | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [sharePayload, setSharePayload] = useState<SharePayload | null>(null);
 
@@ -365,6 +366,7 @@ export const NutritionView = ({
                 onShareEntry={(entry: NutritionEntry) =>
                   setSharePayload(buildMealPayload(entry, day.date, isCheat))
                 }
+                onEditEntry={setEditEntry}
               />
             </View>
           </View>
@@ -402,11 +404,18 @@ export const NutritionView = ({
       />
 
       <AddMealModal
-        visible={addMealRequest !== null}
-        defaultSlot={addMealRequest?.slot ?? 'snack'}
+        visible={addMealRequest !== null || editEntry !== null}
+        defaultSlot={
+          editEntry ? (editEntry.meal_slot as 'breakfast' | 'lunch' | 'dinner' | 'snack') : addMealRequest?.slot ?? 'snack'
+        }
         defaultLabel={addMealRequest?.label ?? null}
-        onClose={() => setAddMealRequest(null)}
+        editEntry={editEntry}
+        onClose={() => {
+          setAddMealRequest(null);
+          setEditEntry(null);
+        }}
         onSave={day.addEntry}
+        onUpdate={day.updateEntry}
       />
 
       <SharePreviewSheet

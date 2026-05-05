@@ -187,6 +187,49 @@ export const addEntry = async (
   return data;
 };
 
+// Patch shape for updateEntry. Same fields as AddEntryInput sans the
+// FK columns (user_id / day_id never change for an existing row).
+export type UpdateEntryPatch = Omit<AddEntryInput, 'userId' | 'dayId'>;
+
+// Update an existing entry in place. Mirrors addEntry's normalization
+// (trim + null-coerce labels, drop half-rows, null-out empty ingredient
+// lists) so the row can't drift into a "looks edited but partial data"
+// state. Used by AddMealModal in edit mode.
+export const updateEntry = async (
+  entryId: string,
+  patch: UpdateEntryPatch,
+): Promise<NutritionEntry> => {
+  const trimmedLabel = patch.mealLabel?.trim();
+  const trimmedQty = patch.quantityLabel?.trim();
+  const cleanedIngredients = (patch.ingredients ?? [])
+    .map(i => ({
+      ...i,
+      quantity_label: i.quantity_label?.trim() ?? '',
+      name: i.name?.trim() ?? '',
+    }))
+    .filter(i => i.quantity_label || i.name);
+  const { data, error } = await supabase
+    .from('nutrition_entries')
+    .update({
+      meal_slot: patch.mealSlot,
+      meal_label: trimmedLabel ? trimmedLabel : null,
+      quantity_label: trimmedQty ? trimmedQty : null,
+      ingredients: cleanedIngredients.length > 0 ? cleanedIngredients : null,
+      name: patch.name ?? null,
+      kcal: patch.kcal ?? 0,
+      protein_g: patch.protein_g ?? 0,
+      carb_g: patch.carb_g ?? 0,
+      fat_g: patch.fat_g ?? 0,
+      fiber_g: patch.fiber_g ?? 0,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', entryId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+};
+
 export const deleteEntry = async (entryId: string): Promise<void> => {
   const { error } = await supabase
     .from('nutrition_entries')
