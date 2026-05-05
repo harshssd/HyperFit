@@ -321,7 +321,7 @@ const AddExerciseOverlay = ({
             >
               <Text
                 style={{
-                  color: '#0a0a0a',
+                  color: palette.bg,
                   fontFamily: fonts.family.black,
                   fontSize: 13,
                   letterSpacing: 1.4,
@@ -329,7 +329,7 @@ const AddExerciseOverlay = ({
               >
                 {ctaLabel}
               </Text>
-              <ArrowRight size={16} color="#0a0a0a" />
+              <ArrowRight size={16} color={palette.bg} />
             </TouchableOpacity>
           </View>
         )}
