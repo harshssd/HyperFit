@@ -1,9 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, View, Text, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
-import { Calendar, Share2, X } from 'lucide-react-native';
+import { ActivityIndicator, View, Text, TextInput, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import { Calendar, Check, Pencil, Share2, X } from 'lucide-react-native';
 import GlassCard from '../../../components/GlassCard';
-import { colors, palette, spacing, radii } from '../../../styles/theme';
-import type { SessionWithLogs, WorkoutLog } from '../../../services/historyService';
+import { accent, colors, fonts, palette, spacing, radii, text } from '../../../styles/theme';
+import {
+  fetchSessionDetails,
+  updateSessionMeta,
+  updateWorkoutSet,
+  type SessionWithLogs,
+  type WorkoutLog,
+} from '../../../services/historyService';
 import {
   ShareableSummaryCard,
   type ShareWorkoutPayload,
@@ -13,11 +19,18 @@ import {
   fetchSessionMuscleVolume,
   type SessionMuscleVolume,
 } from '../../../services/sessionMuscleVolume';
+import { useUser } from '../../../contexts/UserContext';
 
 type Props = {
   session: SessionWithLogs;
   onClose: () => void;
+  /** Notified when the in-place edit committed so the caller can refetch
+   *  any cached lists (History pager, Calendar). Optional — read-only
+   *  callers may omit. */
+  onUpdated?: () => void;
 };
+
+type SetDraft = { weight: string; reps: string };
 
 const formatDuration = (seconds: number | null | undefined) => {
   if (!seconds || seconds <= 0) return '—';
@@ -56,9 +69,30 @@ const getExerciseGroups = (logs: WorkoutLog[]) => {
  * sets. Used both as a Modal child in HistoryAnalyticsView and as the
  * body of the SessionDetailScreen modal route (Calendar deep-links here).
  */
-export const SessionDetailView = ({ session, onClose }: Props) => {
+export const SessionDetailView = ({ session: initialSession, onClose, onUpdated }: Props) => {
+  const { user } = useUser();
+  const [session, setSession] = useState<SessionWithLogs>(initialSession);
   const [volume, setVolume] = useState<SessionMuscleVolume | null>(null);
   const { ref, share, state } = useShareCard();
+  const [editing, setEditing] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [nameDraft, setNameDraft] = useState(session.name ?? '');
+  const [setDrafts, setSetDrafts] = useState<Record<string, SetDraft>>({});
+
+  // Re-seed drafts when entering edit mode so a cancel + re-edit picks
+  // up any background changes from a refetch.
+  useEffect(() => {
+    if (!editing) return;
+    setNameDraft(session.name ?? '');
+    const next: Record<string, SetDraft> = {};
+    for (const log of session.logs) {
+      next[log.id] = {
+        weight: log.weight !== null && log.weight !== undefined ? String(log.weight) : '',
+        reps: log.reps !== null && log.reps !== undefined ? String(log.reps) : '',
+      };
+    }
+    setSetDrafts(next);
+  }, [editing, session.name, session.logs]);
 
   // Lazy-fetch the recruitment-weighted muscle volume the first time the
   // detail view mounts. Cheap: hits muscle_volume_v2_view, RLS-fenced.
@@ -103,6 +137,51 @@ export const SessionDetailView = ({ session, onClose }: Props) => {
 
   const isSharing = state === 'capturing' || state === 'sharing';
 
+  const commitEdit = async () => {
+    if (savingEdit) return;
+    setSavingEdit(true);
+    try {
+      // Diff the drafts against the loaded session and PATCH only what
+      // actually changed. Cheap and avoids re-writing identical rows.
+      const trimmedName = nameDraft.trim();
+      if (trimmedName && trimmedName !== session.name) {
+        await updateSessionMeta(session.id, { name: trimmedName });
+      }
+      const setUpdates: Promise<void>[] = [];
+      for (const log of session.logs) {
+        const draft = setDrafts[log.id];
+        if (!draft) continue;
+        const nextWeight = draft.weight.trim() === '' ? null : Number(draft.weight);
+        const nextReps = draft.reps.trim() === '' ? null : parseInt(draft.reps, 10);
+        const weightChanged = (nextWeight ?? null) !== (log.weight ?? null);
+        const repsChanged = (nextReps ?? null) !== (log.reps ?? null);
+        if (!weightChanged && !repsChanged) continue;
+        const patch: { weight?: number | null; reps?: number | null } = {};
+        if (weightChanged) patch.weight = Number.isFinite(nextWeight as number) ? nextWeight : null;
+        if (repsChanged) patch.reps = Number.isFinite(nextReps as number) ? nextReps : null;
+        setUpdates.push(updateWorkoutSet(log.id, patch));
+      }
+      await Promise.all(setUpdates);
+
+      // Refetch so duration / volume_load / set_count from the view
+      // reflect the changes — re-rendering off stale local state would
+      // show old totals next to fresh sets.
+      if (user?.id) {
+        const fresh = await fetchSessionDetails(session.id, user.id);
+        setSession(fresh);
+      }
+      setEditing(false);
+      onUpdated?.();
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    if (savingEdit) return;
+    setEditing(false);
+  };
+
   return (
   <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
     <View
@@ -120,29 +199,82 @@ export const SessionDetailView = ({ session, onClose }: Props) => {
           marginBottom: spacing.md,
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', flex: 1 }}>
-          {session.name}
-        </Text>
-        <TouchableOpacity
-          onPress={share}
-          disabled={isSharing}
-          accessibilityRole="button"
-          accessibilityLabel="Share session"
-          style={{
-            marginRight: spacing.md,
-            padding: spacing.xs,
-            opacity: isSharing ? 0.5 : 1,
-          }}
-        >
-          {isSharing ? (
-            <ActivityIndicator size="small" color={palette.liftActive} />
-          ) : (
-            <Share2 size={20} color={palette.liftActive} />
-          )}
-        </TouchableOpacity>
-        <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
-          <X size={24} color={colors.muted} />
-        </TouchableOpacity>
+        {editing ? (
+          <TextInput
+            value={nameDraft}
+            onChangeText={setNameDraft}
+            placeholder="Session name"
+            placeholderTextColor={text.disabled}
+            maxLength={80}
+            style={{
+              flex: 1,
+              color: '#fff',
+              fontSize: 20,
+              fontWeight: 'bold',
+              borderBottomWidth: 1,
+              borderBottomColor: accent.lift,
+              paddingVertical: 2,
+              marginRight: spacing.md,
+            }}
+          />
+        ) : (
+          <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold', flex: 1 }}>
+            {session.name}
+          </Text>
+        )}
+        {editing ? (
+          <>
+            <TouchableOpacity
+              onPress={commitEdit}
+              disabled={savingEdit}
+              accessibilityRole="button"
+              accessibilityLabel="Save changes"
+              style={{ marginRight: spacing.md, padding: spacing.xs, opacity: savingEdit ? 0.5 : 1 }}
+            >
+              {savingEdit ? (
+                <ActivityIndicator size="small" color={accent.lift} />
+              ) : (
+                <Check size={20} color={accent.lift} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={cancelEdit}
+              disabled={savingEdit}
+              accessibilityRole="button"
+              accessibilityLabel="Cancel edit"
+              style={{ padding: spacing.xs, opacity: savingEdit ? 0.5 : 1 }}
+            >
+              <X size={22} color={colors.muted} />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <TouchableOpacity
+              onPress={() => setEditing(true)}
+              accessibilityRole="button"
+              accessibilityLabel="Edit session"
+              style={{ marginRight: spacing.md, padding: spacing.xs }}
+            >
+              <Pencil size={18} color={text.tertiary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={share}
+              disabled={isSharing}
+              accessibilityRole="button"
+              accessibilityLabel="Share session"
+              style={{ marginRight: spacing.md, padding: spacing.xs, opacity: isSharing ? 0.5 : 1 }}
+            >
+              {isSharing ? (
+                <ActivityIndicator size="small" color={palette.liftActive} />
+              ) : (
+                <Share2 size={20} color={palette.liftActive} />
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
+              <X size={24} color={colors.muted} />
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       <View
@@ -252,26 +384,79 @@ export const SessionDetailView = ({ session, onClose }: Props) => {
                 </Text>
               </View>
 
-              {exerciseLogs.map(log => (
-                <View
-                  key={log.id}
-                  style={{ flexDirection: 'row', paddingVertical: spacing.xs }}
-                >
-                  <Text style={{ color: colors.muted, fontSize: 14, width: 40 }}>
-                    {log.set_number}
-                  </Text>
-                  <Text
-                    style={{ color: '#fff', fontSize: 14, flex: 1, textAlign: 'center' }}
+              {exerciseLogs.map(log => {
+                const draft = setDrafts[log.id];
+                return (
+                  <View
+                    key={log.id}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.xs }}
                   >
-                    {log.weight ? `${log.weight} lbs` : '-'}
-                  </Text>
-                  <Text
-                    style={{ color: '#fff', fontSize: 14, flex: 1, textAlign: 'center' }}
-                  >
-                    {log.reps || '-'}
-                  </Text>
-                </View>
-              ))}
+                    <Text style={{ color: colors.muted, fontSize: 14, width: 40 }}>
+                      {log.set_number}
+                    </Text>
+                    {editing ? (
+                      <TextInput
+                        value={draft?.weight ?? ''}
+                        onChangeText={t =>
+                          setSetDrafts(prev => ({
+                            ...prev,
+                            [log.id]: { weight: t, reps: prev[log.id]?.reps ?? '' },
+                          }))
+                        }
+                        keyboardType="decimal-pad"
+                        placeholder="–"
+                        placeholderTextColor={text.disabled}
+                        style={{
+                          flex: 1,
+                          color: '#fff',
+                          fontSize: 14,
+                          textAlign: 'center',
+                          paddingVertical: 4,
+                          marginHorizontal: 4,
+                          borderWidth: 1,
+                          borderColor: palette.borderStrong,
+                          borderRadius: radii.sm,
+                          fontVariant: fonts.tabularNums,
+                        }}
+                      />
+                    ) : (
+                      <Text style={{ color: '#fff', fontSize: 14, flex: 1, textAlign: 'center' }}>
+                        {log.weight ? `${log.weight} lbs` : '-'}
+                      </Text>
+                    )}
+                    {editing ? (
+                      <TextInput
+                        value={draft?.reps ?? ''}
+                        onChangeText={t =>
+                          setSetDrafts(prev => ({
+                            ...prev,
+                            [log.id]: { weight: prev[log.id]?.weight ?? '', reps: t },
+                          }))
+                        }
+                        keyboardType="number-pad"
+                        placeholder="–"
+                        placeholderTextColor={text.disabled}
+                        style={{
+                          flex: 1,
+                          color: '#fff',
+                          fontSize: 14,
+                          textAlign: 'center',
+                          paddingVertical: 4,
+                          marginHorizontal: 4,
+                          borderWidth: 1,
+                          borderColor: palette.borderStrong,
+                          borderRadius: radii.sm,
+                          fontVariant: fonts.tabularNums,
+                        }}
+                      />
+                    ) : (
+                      <Text style={{ color: '#fff', fontSize: 14, flex: 1, textAlign: 'center' }}>
+                        {log.reps || '-'}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           </GlassCard>
         );
