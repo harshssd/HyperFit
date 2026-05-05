@@ -429,34 +429,53 @@ const WorkoutPlanner = ({
                   width: 36,
                   height: 36,
                   borderRadius: radii.full,
-                  backgroundColor: isToday 
-                    ? colors.primary 
-                    : workout 
-                      ? (workout.type === 'completed' ? colors.success : 'rgba(139, 92, 246, 0.2)') 
+                  // Today = orange, completed = green, planned = neutral wash,
+                  // empty = subtle. Off-palette purple (#8b5cf6) was a holdover
+                  // and didn't match DESIGN.md's anthracite/orange/green system.
+                  backgroundColor: isToday
+                    ? colors.primary
+                    : workout
+                      ? (workout.type === 'completed' ? colors.success : 'rgba(255, 255, 255, 0.10)')
                       : 'rgba(255, 255, 255, 0.05)',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  <Text style={{ 
-                    color: isToday || workout?.type === 'completed' ? '#0f172a' : '#fff', 
-                    fontWeight: 'bold', 
-                    fontSize: 15 
+                  <Text style={{
+                    color: isToday || workout?.type === 'completed' ? '#0f172a' : '#fff',
+                    fontWeight: 'bold',
+                    fontSize: 15
                   }}>
                     {day.dayNumber}
                   </Text>
                 </View>
                 {workout && (
-                  <View style={{ 
+                  <View style={{
                     marginTop: spacing.xs,
-                    width: 5, 
-                    height: 5, 
-                    borderRadius: radii.full, 
-                    backgroundColor: workout.type === 'completed' ? colors.success : '#8b5cf6' 
+                    width: 5,
+                    height: 5,
+                    borderRadius: radii.full,
+                    backgroundColor: workout.type === 'completed' ? colors.success : colors.muted
                   }} />
                 )}
               </TouchableOpacity>
             );
           })}
+        </View>
+
+        {/* Legend — three dot states need a key. Without it, users guess. */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginBottom: spacing.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary }} />
+            <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' }}>Today</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success }} />
+            <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' }}>Done</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.muted }} />
+            <Text style={{ color: colors.muted, fontSize: 10, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' }}>Planned</Text>
+          </View>
         </View>
 
         {/* Selected Day Details */}
