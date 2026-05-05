@@ -13,7 +13,7 @@ export type NavItemConfig = {
 
 export const NAV_ITEMS: NavItemConfig[] = [
   { id: 'home', label: 'Home', icon: Home },
-  { id: 'gym', label: 'Gym', icon: Dumbbell },
+  { id: 'gym', label: 'Workout', icon: Dumbbell },
   { id: 'nutrition', label: 'Fuel', icon: Salad },
   { id: 'calendar', label: 'Plan', icon: Calendar },
 ];

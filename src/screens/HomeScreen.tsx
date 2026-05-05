@@ -6,7 +6,6 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import HomeView from '../components/HomeView';
 import { ScreenLayout } from '../components/ScreenLayout';
 import { useAppData } from '../contexts/AppDataContext';
-import { useActiveWorkoutSession } from '../contexts/WorkoutSessionContext';
 import { calculateXP } from '../features/workout/helpers';
 import type { MainTabParamList, RootStackParamList } from '../navigation/types';
 
@@ -25,41 +24,14 @@ const tabIdToRoute: Record<string, keyof MainTabParamList> = {
 export const HomeScreen = () => {
   const { data } = useAppData();
   const navigation = useNavigation<Nav>();
-  const { session, activeUserPlan } = useActiveWorkoutSession();
 
-  // Open the Plans tab with `intent: 'manual'` — Plans surfaces the empty
-  // workout overview + exercise picker on focus. Routing through Plans
-  // keeps the manual-build UX in one place (it's the same surface as
-  // tapping LOG MANUAL WORKOUT manually) without duplicating the picker
-  // inside the ActiveWorkout modal.
-  const handleStartCustom = () => {
-    navigation.navigate('Plans', { intent: 'manual' });
-  };
-
-  // Start the next planned session from the active plan. Mirrors the
-  // planner's START [DAY]'S WORKOUT path: load the session into state,
-  // tagged 'scheduled', then push ActiveWorkout.
-  const handleStartUpcoming = (planSessionId: string) => {
-    if (!activeUserPlan?.planData) return;
-    session.startSessionFromPlan(activeUserPlan.planData, planSessionId, 'scheduled');
-    navigation.navigate('ActiveWorkout');
-  };
-
-  // Open the Plans tab with a one-shot route param asking the library to
-  // surface in session-pick mode. Lets the user start any session from
-  // any plan ad-hoc, without committing to it as their active plan.
-  const handlePickFromLibrary = () => {
-    navigation.navigate('Plans', { intent: 'pick' });
-  };
-
-  // Open History + Analytics as a modal. Replaces the (former) History tab —
-  // tapping any insight tile on Home brings up the same view.
+  // History + Analytics is a modal launched from any insight tile.
   const handleOpenHistory = () => {
     navigation.navigate('History');
   };
 
   // HomeView owns its own ScrollView; opt out of the layout wrapper so we
-  // don't nest scroll surfaces (matches Plans and History).
+  // don't nest scroll surfaces.
   return (
     <ScreenLayout scroll={false} errorLabel="Error in Home">
       <HomeView
@@ -70,9 +42,6 @@ export const HomeScreen = () => {
           const route = tabIdToRoute[view];
           if (route) navigation.navigate(route as never);
         }}
-        onStartCustom={handleStartCustom}
-        onStartUpcoming={handleStartUpcoming}
-        onPickFromLibrary={handlePickFromLibrary}
         onOpenHistory={handleOpenHistory}
       />
     </ScreenLayout>

@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import {
-  Dumbbell,
-  Play,
-  Calendar,
-  CheckCircle,
   ChevronRight,
   Flame,
   Plus,
@@ -15,29 +11,19 @@ import {
 import { homeStyles } from '../styles';
 import { palette, text, accent, spacing, radii, fonts } from '../styles/theme';
 import { UserData } from '../types/workout';
-import { getWorkoutForDate, getUpcomingWorkouts, calculateXP } from '../features/workout/helpers';
-import NeonButton from './NeonButton';
+import { calculateXP } from '../features/workout/helpers';
 import { useNutritionDayContext } from '../features/nutrition/hooks/useNutritionDay';
 import { WaterControls } from '../features/nutrition/components/WaterControls';
 import { AddMealModal } from '../features/nutrition/components/AddMealModal';
 import { formatKcal, heroEyebrow } from '../features/nutrition/helpers';
 import type { MealSlot } from '../types/supabase';
 
-type UpcomingWorkout = ReturnType<typeof getUpcomingWorkouts>[number];
-
 type HomeViewProps = {
   data: UserData;
   onChangeView: (view: string) => void;
-  // Streak/XP live in the Header / History now; props retained for back-compat.
+  // Streak/XP retained for back-compat; insight tiles read from `data` directly.
   streak?: number;
   xp?: number;
-  /** Start a blank session immediately. */
-  onStartCustom?: () => void;
-  /** Start a planned session from the active plan, identified by its
-   *  plan_sessions.id. Skips the Plans tab detour. */
-  onStartUpcoming?: (planSessionId: string) => void;
-  /** Open the plan library in session-pick mode (alternate workout flow). */
-  onPickFromLibrary?: () => void;
   /** Open the History + Analytics modal — wired from any insight tile. */
   onOpenHistory?: () => void;
 };
@@ -55,54 +41,27 @@ const slotForHour = (hour: number): MealSlot => {
 const FIBER_COLOR = '#4fb3a8';
 const CHEAT_BORDER = '#a855f7';
 
-const HomeView = ({
-  data,
-  onChangeView,
-  onStartCustom,
-  onStartUpcoming,
-  onPickFromLibrary,
-  onOpenHistory,
-}: HomeViewProps) => {
-  const today = new Date();
-  const activePlan = data.userWorkoutPlans?.find(p => p.isActive);
-  const todaysWorkout = getWorkoutForDate(today, [], activePlan);
+/**
+ * HomeView — pure dashboard. Two surfaces:
+ *
+ *  1. Fuel card: inline macro pills + WaterControls + Add Meal CTA. Same
+ *     state as the Nutrition tab via NutritionDayProvider, so logging from
+ *     either surface updates the other immediately.
+ *  2. Insight tiles: streak / sessions this week / total XP. Tap anywhere →
+ *     opens the History + Analytics modal.
+ *
+ * No "start a workout" affordance lives here. The Workout tab owns the full
+ * session-start surface (Today's Session, Alternate, Manual, Browse Library,
+ * Next 7 Days). Resolves FINDING-003 — Home/Plans IA overlap — by giving
+ * each tab one job.
+ */
 
-  // Look ahead two sessions starting tomorrow: [next, nextAfter]. Used by:
-  // - rest-day footer (next only)
-  // - completed-day pivot (next as hero, nextAfter as footer)
-  const upcoming = getUpcomingWorkouts(activePlan, 2, 1);
-  const upcomingWorkout: UpcomingWorkout | undefined = upcoming[0];
-  const sessionAfterNext: UpcomingWorkout | undefined = upcoming[1];
-
-  // Shared nutrition state — same provider Nutrition tab reads, so logging
-  // on Home reflects on Nutrition immediately and vice versa.
+const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
   const dayCtx = useNutritionDayContext();
   const [addMealRequest, setAddMealRequest] = useState<{ slot: MealSlot } | null>(null);
 
-  const upcomingLabel = (daysUntil: number, date: Date) => {
-    if (daysUntil === 1) return 'Tomorrow';
-    if (daysUntil < 7) {
-      return date.toLocaleDateString(undefined, { weekday: 'long' });
-    }
-    return `In ${daysUntil} days`;
-  };
-
-  // Soft duration estimate — ~9 min per exercise (3 sets × ~3 min incl. rest),
-  // rounded to nearest 5 so it never reads as a precise number. Beats showing
-  // a hardcoded "~60" that's wrong for a 4-exercise day.
-  const estimateMinutes = (exercises: number) =>
-    Math.max(15, Math.round((exercises * 9) / 5) * 5);
-
-  const startUpcoming = (workout: UpcomingWorkout | undefined) => {
-    if (workout?.sessionId && onStartUpcoming) {
-      onStartUpcoming(workout.sessionId);
-      return;
-    }
-    onChangeView('gym');
-  };
-
   // Reusable section caption — small uppercase mono label that anchors each
-  // sub-block to the broader visual language ("ACTIVE PLAN", "UP NEXT", etc).
+  // sub-block to the broader visual language.
   const Eyebrow = ({
     children,
     color = text.quaternary,
@@ -123,436 +82,6 @@ const HomeView = ({
       {children}
     </Text>
   );
-
-  const Stat = ({ value, label }: { value: string | number; label: string }) => (
-    <View>
-      <Text
-        style={{
-          color: text.primary,
-          fontSize: 22,
-          fontWeight: '900',
-          letterSpacing: -0.4,
-          fontVariant: fonts.tabularNums,
-        }}
-      >
-        {value}
-      </Text>
-      <Eyebrow>{label}</Eyebrow>
-    </View>
-  );
-
-  // Footer block under any "Today's focus" state. Tappable: mirrors the
-  // primary START WORKOUT path so motivated users can lift early.
-  const renderNextSessionFooter = (workout: UpcomingWorkout | undefined) => {
-    if (!workout) return null;
-    return (
-      <TouchableOpacity
-        testID="home-next-session"
-        onPress={() => startUpcoming(workout)}
-        accessibilityRole="button"
-        accessibilityLabel={`Start ${workout.name} early — ${upcomingLabel(workout.daysUntil, workout.date)}`}
-        activeOpacity={0.85}
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.md,
-          paddingVertical: spacing.md,
-          paddingHorizontal: spacing.md,
-          borderRadius: radii.md,
-          borderWidth: 1,
-          borderColor: accent.lift,
-          backgroundColor: 'rgba(252, 76, 2, 0.10)',
-        }}
-      >
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: radii.sm,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(252, 76, 2, 0.10)',
-            borderWidth: 1,
-            borderColor: accent.lift,
-          }}
-        >
-          <Calendar size={16} color={accent.lift} />
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Eyebrow color={accent.lift}>
-            {`Next Session · ${upcomingLabel(workout.daysUntil, workout.date)}`}
-          </Eyebrow>
-          <Text
-            style={{
-              color: text.primary,
-              fontSize: 15,
-              fontWeight: '800',
-              letterSpacing: -0.2,
-            }}
-            numberOfLines={1}
-          >
-            {workout.name}
-          </Text>
-          <Text style={{ color: text.tertiary, fontSize: 12 }}>
-            {`${workout.exercises} exercises`}
-          </Text>
-        </View>
-        <ChevronRight size={18} color={text.tertiary} />
-      </TouchableOpacity>
-    );
-  };
-
-  const renderActivePlanHeader = () => {
-    if (!activePlan) return null;
-    const planName =
-      activePlan.customName || activePlan.planData?.name || 'Active Plan';
-    const frequency =
-      (activePlan.planData as any)?.frequency_per_week ??
-      (activePlan.planData as any)?.frequency ??
-      null;
-
-    let weekLabel: string | null = null;
-    const startedAt = activePlan.startedAt
-      ? new Date(activePlan.startedAt)
-      : null;
-    const duration = (activePlan.planData as any)?.duration ?? null;
-    if (startedAt) {
-      const weeksIn =
-        Math.floor(
-          (today.getTime() - startedAt.getTime()) / (7 * 24 * 60 * 60 * 1000),
-        ) + 1;
-      weekLabel = duration ? `Week ${weeksIn}/${duration}` : `Week ${weeksIn}`;
-    }
-
-    return (
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.sm,
-          paddingBottom: spacing.md,
-          marginBottom: spacing.lg,
-          borderBottomWidth: 1,
-          borderBottomColor: palette.borderStrong,
-        }}
-      >
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: radii.sm,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(252, 76, 2, 0.12)',
-            borderWidth: 1,
-            borderColor: accent.lift,
-          }}
-        >
-          <Dumbbell size={14} color={accent.lift} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Eyebrow color={accent.lift}>Active Plan</Eyebrow>
-          <Text
-            style={{
-              color: text.primary,
-              fontSize: 14,
-              fontWeight: '800',
-              marginTop: 2,
-            }}
-            numberOfLines={1}
-          >
-            {planName}
-          </Text>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          {weekLabel ? (
-            <Text
-              style={{
-                color: text.tertiary,
-                fontFamily: 'monospace',
-                fontSize: 11,
-                fontWeight: '800',
-                letterSpacing: 1.4,
-                fontVariant: fonts.tabularNums,
-                textTransform: 'uppercase',
-              }}
-            >
-              {weekLabel}
-            </Text>
-          ) : null}
-          {frequency ? (
-            <Text
-              style={{
-                color: text.quaternary,
-                fontFamily: 'monospace',
-                fontSize: 10,
-                fontWeight: '700',
-                letterSpacing: 1.4,
-                fontVariant: fonts.tabularNums,
-                textTransform: 'uppercase',
-                marginTop: 2,
-              }}
-            >
-              {frequency}× / week
-            </Text>
-          ) : null}
-        </View>
-      </View>
-    );
-  };
-
-  // Full action surface (alternate / manual / browse / 7-day strip) lives on
-  // the Plans tab. Home renders ONE primary action per state — tap it to
-  // start, otherwise tap the Gym tab for variants. Resolves FINDING-003.
-  const handleSeeAllPlans = () => onChangeView('gym');
-
-  const renderTodaysFocus = () => {
-    if (todaysWorkout) {
-      if (todaysWorkout.type === 'completed') {
-        const completedPill = (
-          <View
-            style={{
-              alignSelf: 'flex-start',
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: spacing.xs,
-              paddingVertical: 4,
-              paddingHorizontal: spacing.sm,
-              borderRadius: radii.full,
-              borderWidth: 1,
-              borderColor: accent.sessionUp,
-              backgroundColor: 'rgba(0, 200, 120, 0.08)',
-            }}
-          >
-            <CheckCircle size={12} color={accent.sessionUp} />
-            <Text
-              style={{
-                color: accent.sessionUp,
-                fontSize: 10,
-                fontWeight: '800',
-                letterSpacing: 1.4,
-                fontFamily: 'monospace',
-                textTransform: 'uppercase',
-              }}
-            >
-              Today · {todaysWorkout.name} Done
-            </Text>
-          </View>
-        );
-
-        if (!upcomingWorkout) {
-          return (
-            <View style={{ gap: spacing.md }}>
-              {renderActivePlanHeader()}
-              {completedPill}
-              <Text style={{ color: text.tertiary, fontSize: 14 }}>
-                Good job crushing {todaysWorkout.name}! Nothing else scheduled this week.
-              </Text>
-            </View>
-          );
-        }
-
-        return (
-          <View style={{ gap: spacing.lg }}>
-            {renderActivePlanHeader()}
-            {completedPill}
-
-            <View>
-              <Text
-                style={{
-                  color: text.primary,
-                  fontSize: 28,
-                  fontWeight: '900',
-                  letterSpacing: -0.6,
-                  marginBottom: spacing.xs,
-                }}
-              >
-                {upcomingWorkout.name.toUpperCase()}
-              </Text>
-              <Eyebrow color={accent.lift}>
-                Up Next · {upcomingLabel(upcomingWorkout.daysUntil, upcomingWorkout.date)}
-              </Eyebrow>
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: spacing.xl }}>
-              <Stat value={upcomingWorkout.exercises} label="Exercises" />
-              <Stat value={estimateMinutes(upcomingWorkout.exercises)} label="Minutes" />
-            </View>
-
-            <NeonButton
-              testID="home-start-upcoming"
-              onPress={() => startUpcoming(upcomingWorkout)}
-              style={{ width: '100%' }}
-            >
-              <Play size={18} color={palette.bg} />
-              <Text style={{ marginLeft: spacing.sm, fontSize: 13, fontWeight: '800', letterSpacing: 1.2, color: palette.bg }}>
-                START EARLY
-              </Text>
-            </NeonButton>
-
-            {renderNextSessionFooter(sessionAfterNext)}
-          </View>
-        );
-      }
-      if (todaysWorkout.type === 'planned') {
-        return (
-          <View style={{ gap: spacing.lg }}>
-            {renderActivePlanHeader()}
-
-            <View>
-              <Text
-                style={{
-                  color: text.primary,
-                  fontSize: 28,
-                  fontWeight: '900',
-                  letterSpacing: -0.6,
-                  marginBottom: spacing.xs,
-                }}
-              >
-                {todaysWorkout.name.toUpperCase()}
-              </Text>
-              <Eyebrow color={accent.lift}>Today's Session</Eyebrow>
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: spacing.xl }}>
-              <Stat value={todaysWorkout.exercises} label="Exercises" />
-              <Stat value={estimateMinutes(todaysWorkout.exercises)} label="Minutes" />
-            </View>
-
-            <NeonButton
-              onPress={() => {
-                const sid = (todaysWorkout as any).sessionId;
-                if (sid && onStartUpcoming) onStartUpcoming(sid);
-                else onChangeView('gym');
-              }}
-              style={{ width: '100%' }}
-            >
-              <Play size={18} color={palette.bg} />
-              <Text style={{ marginLeft: spacing.sm, fontSize: 13, fontWeight: '800', letterSpacing: 1.2, color: palette.bg }}>
-                START WORKOUT
-              </Text>
-            </NeonButton>
-
-            <TouchableOpacity
-              testID="home-see-all-plans"
-              onPress={handleSeeAllPlans}
-              accessibilityRole="button"
-              accessibilityLabel="Open Gym tab to alternate, build manual, or browse"
-              activeOpacity={0.7}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: spacing.xs,
-                paddingTop: spacing.sm,
-              }}
-            >
-              <Text
-                style={{
-                  color: text.tertiary,
-                  fontFamily: fonts.family.mono,
-                  fontSize: 11,
-                  letterSpacing: 1.6,
-                  fontWeight: '800',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Alternate, Custom, Browse · Gym Tab
-              </Text>
-              <ChevronRight size={13} color={text.tertiary} />
-            </TouchableOpacity>
-          </View>
-        );
-      }
-    }
-
-    if (!activePlan) {
-      return (
-        <View style={{ gap: spacing.lg }}>
-          <View>
-            <Text
-              style={{
-                color: text.primary,
-                fontSize: 28,
-                fontWeight: '900',
-                letterSpacing: -0.6,
-                marginBottom: spacing.xs,
-              }}
-            >
-              NO ACTIVE PLAN
-            </Text>
-            <Text style={{ color: text.tertiary, fontSize: 14 }}>
-              Pick a workout plan to schedule your week, or jump into a custom session from the Gym tab.
-            </Text>
-          </View>
-
-          <NeonButton onPress={handleSeeAllPlans} style={{ width: '100%' }}>
-            <Calendar size={18} color={palette.bg} />
-            <Text style={{ marginLeft: spacing.sm, fontSize: 13, fontWeight: '800', letterSpacing: 1.2, color: palette.bg }}>
-              BROWSE PLANS
-            </Text>
-          </NeonButton>
-        </View>
-      );
-    }
-
-    // Active plan, today is rest. REST DAY stays as the visual hero;
-    // Next Session moves to the top of the action stack so the most
-    // likely tap is closest to the headline. Variants live on the Gym tab.
-    return (
-      <View style={{ gap: spacing.lg }}>
-        {renderActivePlanHeader()}
-
-        <View>
-          <Text
-            style={{
-              color: text.primary,
-              fontSize: 28,
-              fontWeight: '900',
-              letterSpacing: -0.6,
-              marginBottom: spacing.xs,
-            }}
-          >
-            REST DAY
-          </Text>
-          <Text style={{ color: text.tertiary, fontSize: 14 }}>
-            Active recovery or light cardio recommended.
-          </Text>
-        </View>
-
-        {renderNextSessionFooter(upcomingWorkout)}
-
-        <TouchableOpacity
-          testID="home-see-all-plans-rest"
-          onPress={handleSeeAllPlans}
-          accessibilityRole="button"
-          accessibilityLabel="Open Gym tab to lift today anyway"
-          activeOpacity={0.7}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: spacing.xs,
-            paddingTop: spacing.xs,
-          }}
-        >
-          <Text
-            style={{
-              color: text.tertiary,
-              fontFamily: fonts.family.mono,
-              fontSize: 11,
-              letterSpacing: 1.6,
-              fontWeight: '800',
-              textTransform: 'uppercase',
-            }}
-          >
-            Lift Today Anyway · Gym Tab
-          </Text>
-          <ChevronRight size={13} color={text.tertiary} />
-        </TouchableOpacity>
-      </View>
-    );
-  };
 
   // Inline Fuel card — same data + same controls as the Nutrition tab.
   // Reused via NutritionDayProvider so logging here updates Nutrition too.
@@ -605,8 +134,6 @@ const HomeView = ({
         }}
       >
         <View style={{ padding: spacing.xl }}>
-          {/* Header — open Nutrition tab for goal edit + cheat planner.
-              Tap target spans the row; chevron telegraphs the deep link. */}
           <TouchableOpacity
             testID="home-fuel-header"
             onPress={() => onChangeView('nutrition')}
@@ -657,8 +184,6 @@ const HomeView = ({
             <ChevronRight size={16} color={text.tertiary} />
           </TouchableOpacity>
 
-          {/* Macro bars — same component pattern as Nutrition; kept identical
-              so logging from either surface produces the same readout. */}
           <View style={{ flexDirection: 'row', gap: 10, marginBottom: spacing.lg }}>
             <MacroPill label="Protein" current={proteinCurrent} target={proteinTarget} color={accent.lift} />
             <MacroPill label="Carbs"   current={carbCurrent}    target={carbTarget}    color={accent.sessionUp} />
@@ -666,8 +191,6 @@ const HomeView = ({
             <MacroPill label="Fiber"   current={fiberCurrent}   target={fiberTarget}   color={FIBER_COLOR} />
           </View>
 
-          {/* Inline logging — water + add meal. Doubled with Nutrition tab
-              by design; controls share state through NutritionDayProvider. */}
           <View style={{ gap: spacing.sm }}>
             <WaterControls
               totalMl={waterCurrent}
@@ -720,8 +243,7 @@ const HomeView = ({
   };
 
   // Insight tiles — three glanceable numbers backed by data we already have
-  // (no new fetches). Tapping anywhere opens the History + Analytics modal,
-  // which is where deep retro lives now that History isn't a tab.
+  // (no new fetches). Tapping anywhere opens the History + Analytics modal.
   const renderInsightTiles = () => {
     const xp = calculateXP(data);
     const streak = data.gymLogs?.length ?? 0;
@@ -863,32 +385,7 @@ const HomeView = ({
   return (
     <>
       <ScrollView style={homeStyles.homeView} contentContainerStyle={homeStyles.homeViewContent}>
-        {/* Today's Focus — primary card. Outer hairline border in lift-orange
-            when an active plan is in play; falls back to neutral surface
-            treatment when there's no plan to anchor it. */}
-        <View
-          style={{
-            marginBottom: spacing.xl,
-            borderRadius: radii.lg,
-            borderWidth: 1,
-            borderColor: activePlan ? accent.lift : palette.borderStrong,
-            backgroundColor: palette.surface,
-            overflow: 'hidden',
-            shadowColor: activePlan ? accent.lift : '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: activePlan ? 0.15 : 0.2,
-            shadowRadius: 8,
-          }}
-        >
-          <View style={{ padding: spacing.xl }}>{renderTodaysFocus()}</View>
-        </View>
-
-        {/* Fuel — inline macro pills + WaterControls + Add Meal CTA. Same
-            controls as the Nutrition tab; logging here updates Nutrition
-            and vice versa via NutritionDayProvider. */}
         {renderFuelCard()}
-
-        {/* Insight tiles — tap to open the History + Analytics modal. */}
         {renderInsightTiles()}
       </ScrollView>
 
