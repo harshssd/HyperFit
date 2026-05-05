@@ -229,7 +229,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
             >
               {verdict.line}
             </Text>
-            <Text style={{ color: text.tertiary, fontSize: 13 }} numberOfLines={1}>
+            <Text style={{ color: text.secondary, fontSize: 13, fontWeight: '500' }} numberOfLines={1}>
               {verdict.sub}
             </Text>
           </View>

@@ -44,7 +44,7 @@ const Header = ({ streak = 0, xp = 0, onOpenProfile, avatarInitials, username }:
               HYPER<Text style={headerStyles.headerTitleAccent}>FIT</Text>
             </Text>
             <View style={headerStyles.headerRank}>
-              <Text style={[headerStyles.headerRankText, { color: currentRank.color, borderColor: currentRank.color }]}>
+              <Text style={[headerStyles.headerRankText, { color: currentRank.color }]}>
                 {username || currentRank.title}
               </Text>
             </View>

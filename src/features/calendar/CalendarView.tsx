@@ -79,7 +79,7 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
       {/* Month header */}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md }}>
         <TouchableOpacity testID="calendar-prev-month" onPress={goPrev} accessibilityLabel="Previous month" style={{ padding: 8 }}>
-          <ChevronLeft size={20} color={text.primary} />
+          <ChevronLeft size={20} color={text.primary} strokeWidth={2.25} />
         </TouchableOpacity>
         <View style={{ alignItems: 'center' }}>
           <Text testID="calendar-month-label" style={{ color: text.primary, fontFamily: 'monospace', fontSize: 13, fontWeight: '700', letterSpacing: 1.6 }}>
@@ -92,7 +92,7 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
           </TouchableOpacity>
         </View>
         <TouchableOpacity testID="calendar-next-month" onPress={goNext} accessibilityLabel="Next month" style={{ padding: 8 }}>
-          <ChevronRight size={20} color={text.primary} />
+          <ChevronRight size={20} color={text.primary} strokeWidth={2.25} />
         </TouchableOpacity>
       </View>
 
