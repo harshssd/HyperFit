@@ -107,32 +107,43 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
   const activePlan = data.userWorkoutPlans?.find(p => p.isActive);
   const todaysWorkout = getWorkoutForDate(today, [], activePlan);
   const upcoming = getUpcomingWorkouts(activePlan, 1, 1)[0];
+  // Completed-today detection: getWorkoutForDate's recentWorkouts arg isn't
+  // available on UserData (only gymLogs), so check the date list directly.
+  // Without this the "DONE TODAY" branch below was unreachable.
+  const completedToday = data.gymLogs?.includes(localDayISO(0)) ?? false;
 
   // Verdict line — picks one of five states from plan + today + upcoming.
   // Kept terse on purpose: dashboard verdicts read better as 2-3 word
   // statements than as full sentences.
-  const verdict: { eyebrowColor: string; line: string; sub: string } = (() => {
+  const verdict: {
+    eyebrowColor: string;
+    eyebrowLabel: string;
+    line: string;
+    sub: string;
+  } = (() => {
+    if (activePlan && completedToday) {
+      const next = upcoming ? ` · next: ${upcoming.name}` : '';
+      const label = todaysWorkout?.type === 'completed' ? todaysWorkout.name : "Today's session";
+      return {
+        eyebrowColor: accent.sessionUp,
+        eyebrowLabel: 'DONE',
+        line: 'DONE TODAY',
+        sub: `${label} logged${next}`,
+      };
+    }
     if (activePlan && todaysWorkout?.type === 'planned') {
       return {
         eyebrowColor: accent.lift,
+        eyebrowLabel: 'READY',
         line: 'READY TO LIFT',
         sub: `Today: ${todaysWorkout.name}`,
-      };
-    }
-    if (activePlan && todaysWorkout?.type === 'completed') {
-      const next = upcoming
-        ? ` · next: ${upcoming.name}`
-        : '';
-      return {
-        eyebrowColor: accent.sessionUp,
-        line: 'DONE TODAY',
-        sub: `${todaysWorkout.name} logged${next}`,
       };
     }
     if (activePlan) {
       const next = upcoming ? `Next: ${upcoming.name}` : 'Active recovery recommended';
       return {
         eyebrowColor: text.secondary,
+        eyebrowLabel: 'REST',
         line: 'REST DAY',
         sub: next,
       };
@@ -140,12 +151,14 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
     if ((data.gymLogs?.length ?? 0) > 0) {
       return {
         eyebrowColor: accent.lift,
+        eyebrowLabel: 'NEXT STEP',
         line: 'PICK A PLAN',
         sub: 'Or jump into a custom workout from Gym',
       };
     }
     return {
       eyebrowColor: accent.lift,
+      eyebrowLabel: 'WELCOME',
       line: "LET'S START",
       sub: 'Pick a starter plan in the Workout tab',
     };
@@ -164,7 +177,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
         fontSize: 11,
         fontWeight: '800',
         letterSpacing: 1.6,
-        fontFamily: 'monospace',
+        fontFamily: fonts.family.mono,
         textTransform: 'uppercase',
       }}
     >
@@ -216,7 +229,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <View style={{ flex: 1, gap: 4 }}>
               <Eyebrow color={text.tertiary}>{dateEyebrow}</Eyebrow>
-              <Eyebrow color={verdict.eyebrowColor}>{verdict.line.split(' ')[0]}</Eyebrow>
+              <Eyebrow color={verdict.eyebrowColor}>{verdict.eyebrowLabel}</Eyebrow>
             </View>
             <MiniSilhouette intensities={muscle.intensities} size={36} />
           </View>
@@ -379,7 +392,10 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
                 >
                   <View
                     style={{
-                      width: `${Math.min(100, (waterCurrent / waterTarget) * 100)}%`,
+                      // Guard against waterTarget=0 — settings allows it, and
+                      // 0 division yields Infinity which RN renders as 100%
+                      // (or a layout warning). Treat as no progress.
+                      width: `${waterTarget > 0 ? Math.min(100, (waterCurrent / waterTarget) * 100) : 0}%`,
                       height: '100%',
                       backgroundColor: accent.sessionUp,
                     }}
@@ -421,14 +437,14 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
     // Walk back 6 days from today, mark each filled if its ISO date is in
     // gymLogs. The trailing entry is always today.
     const today0 = new Date();
-    const monday0 = new Date(today0);
+    const weekStart0 = new Date(today0);
     // Anchor on the most recent Sunday so the strip always reads as a
     // calendar week, not the trailing 7 days. (Saturday→Sunday rollover
     // resets the strip — matches how people think about "this week.")
-    monday0.setDate(today0.getDate() - today0.getDay());
+    weekStart0.setDate(today0.getDate() - today0.getDay());
     const days = Array.from({ length: 7 }).map((_, i) => {
-      const d = new Date(monday0);
-      d.setDate(monday0.getDate() + i);
+      const d = new Date(weekStart0);
+      d.setDate(weekStart0.getDate() + i);
       const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       return {
         label: DOW_LABELS[d.getDay()],
@@ -507,7 +523,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
                 >
                   {muscleVerdict(muscle.intensities)}
                 </Text>
-                <Eyebrow>{muscle.setCount} buckets · 7d</Eyebrow>
+                <Eyebrow>{muscle.setCount} sets · 7d</Eyebrow>
               </View>
             </View>
 
@@ -643,7 +659,7 @@ const DeltaReadout = ({
       <Text
         style={{
           color: text.quaternary,
-          fontFamily: 'monospace',
+          fontFamily: fonts.family.mono,
           fontSize: 9,
           fontWeight: '800',
           letterSpacing: 1.4,

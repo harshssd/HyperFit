@@ -41,6 +41,14 @@ const localISO = (d: Date): string =>
  * so the sparkline doesn't shift indices when sessions are sparse.
  *
  * Caller passes `days` (default 14 — two weeks for week-over-week math).
+ *
+ * KNOWN TZ DRIFT: `workout_date` is currently written as UTC (see
+ * useWorkoutSession.ts — `new Date().toISOString().split('T')[0]`). For
+ * users in negative UTC offsets, late-evening sessions can be tagged as
+ * "tomorrow" UTC and bucket into the wrong local day in the sparkline.
+ * The bucketing here uses local Y/M/D so `today` reads as today even when
+ * UTC has rolled over, but a stale UTC-tagged session may not appear in
+ * the right bucket. Tracked separately — fix at the write site, not here.
  */
 export const useRecentVolume = (
   userId: string | null | undefined,
