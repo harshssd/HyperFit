@@ -415,7 +415,6 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
   // number with trend glyph. Whole card → opens History modal.
   const renderBodyWeek = () => {
     const streak = data.gymLogs?.length ?? 0;
-    const hasAny = streak > 0;
     // Build the 7 day-of-week dots — Sunday-first to match Date.getDay().
     // Walk back 6 days from today, mark each filled if its ISO date is in
     // gymLogs. The trailing entry is always today.
@@ -425,16 +424,34 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
     // calendar week, not the trailing 7 days. (Saturday→Sunday rollover
     // resets the strip — matches how people think about "this week.")
     weekStart0.setDate(today0.getDate() - today0.getDay());
+    // Nutrition-logged days (entries OR water) keyed by ISO. Drives the
+    // green tick under each workout dot and the weekly nutrition summary.
+    const nutritionByISO = new Map(
+      (dayCtx.recentSummaries ?? []).map(s => [
+        s.date,
+        {
+          logged: (s.entry_count ?? 0) > 0 || (s.water_total_ml ?? 0) > 0,
+          kcal: s.kcal_total ?? 0,
+          entries: s.entry_count ?? 0,
+        },
+      ]),
+    );
+    let nutritionEntriesThisWeek = 0;
     const days = Array.from({ length: 7 }).map((_, i) => {
       const d = new Date(weekStart0);
       d.setDate(weekStart0.getDate() + i);
       const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const nutr = nutritionByISO.get(iso);
+      nutritionEntriesThisWeek += nutr?.entries ?? 0;
       return {
         label: DOW_LABELS[d.getDay()],
         logged: data.gymLogs?.includes(iso) ?? false,
+        nutritionLogged: nutr?.logged ?? false,
         isToday: iso === localDayISO(0),
       };
     });
+    const nutritionDaysThisWeek = days.filter(d => d.nutritionLogged).length;
+    const hasAny = streak > 0 || nutritionDaysThisWeek > 0;
 
     const trendGlyph = volume.trend === 'up' ? '▲' : volume.trend === 'down' ? '▼' : volume.trend === 'flat' ? '·' : '·';
     const trendColor = volume.trend === 'up' ? accent.sessionUp : volume.trend === 'down' ? accent.regression : text.quaternary;
@@ -510,11 +527,57 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
               </View>
             </View>
 
+            {/* Nutrition mini-summary — parallel signal to the workout verdict.
+                Counts logged days + total entries this week. */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.md,
+                paddingTop: spacing.md,
+                borderTopWidth: 1,
+                borderTopColor: palette.borderStrong,
+              }}
+            >
+              <View
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: radii.sm,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: palette.surfaceAlt,
+                  borderWidth: 1,
+                  borderColor: palette.borderStrong,
+                }}
+              >
+                <Salad size={14} color={accent.sessionUp} />
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text
+                  style={{
+                    color: text.primary,
+                    fontSize: 14,
+                    fontWeight: '800',
+                    letterSpacing: -0.2,
+                  }}
+                >
+                  {nutritionDaysThisWeek > 0
+                    ? `Fueled ${nutritionDaysThisWeek} of 7 days`
+                    : 'No fuel logged this week'}
+                </Text>
+                <Eyebrow>
+                  {nutritionEntriesThisWeek} {nutritionEntriesThisWeek === 1 ? 'entry' : 'entries'} · 7d
+                </Eyebrow>
+              </View>
+            </View>
+
             {/* Streak row — 7 day-of-week dots + count + trend glyph */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
               <View style={{ flex: 1, flexDirection: 'row', gap: 8 }}>
                 {days.map((d, i) => (
-                  <View key={i} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                  <View key={i} style={{ flex: 1, alignItems: 'center', gap: 3 }}>
+                    {/* Workout dot (orange) — top */}
                     <View
                       style={{
                         width: 8,
@@ -523,6 +586,17 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
                         backgroundColor: d.logged ? accent.lift : 'transparent',
                         borderWidth: 1,
                         borderColor: d.logged ? accent.lift : palette.borderStrong,
+                      }}
+                    />
+                    {/* Nutrition dot (green) — below; tracks meals/water logged */}
+                    <View
+                      style={{
+                        width: 6,
+                        height: 6,
+                        borderRadius: 3,
+                        backgroundColor: d.nutritionLogged ? accent.sessionUp : 'transparent',
+                        borderWidth: 1,
+                        borderColor: d.nutritionLogged ? accent.sessionUp : palette.borderStrong,
                       }}
                     />
                     <Text
@@ -560,8 +634,8 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
         ) : (
           <View style={{ padding: spacing.lg }}>
             <Placeholder
-              label="Log your first workout"
-              hint="Tap the Workout tab to start a session — your week shows up here once you finish"
+              label="Log your first workout or meal"
+              hint="Lift in the Workout tab or log a meal in Fuel — your week shows up here once you do"
             />
           </View>
         )}
