@@ -117,18 +117,18 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
     setSaving(true);
     try {
       await onSave({
-        kcal_target: parseInt(kcal, 10) || 2200,
-        protein_target_g: parseInt(protein, 10) || 160,
+        kcal_target: parseInt(kcal, 10) || DEFAULTS.kcal_target,
+        protein_target_g: parseInt(protein, 10) || DEFAULTS.protein_target_g,
         // Optional macros — empty input writes 0 ("not tracking").
         carb_target_g: parseInt(carb, 10) || 0,
         fat_target_g: parseInt(fat, 10) || 0,
         fiber_target_g: parseInt(fiber, 10) || 0,
-        cheat_days_per_week: parseInt(cheats, 10) || 1,
+        cheat_days_per_week: parseInt(cheats, 10) || DEFAULTS.cheat_days_per_week,
         // Optional water target — empty writes 0. Cup/bottle keep working
         // defaults since they only matter when the user is logging water.
         water_target_ml: toMlOrOff(waterTarget),
-        water_cup_ml: toMlFromInput(waterCup, 250),
-        water_bottle_ml: toMlFromInput(waterBottle, 500),
+        water_cup_ml: toMlFromInput(waterCup, DEFAULTS.water_cup_ml),
+        water_bottle_ml: toMlFromInput(waterBottle, DEFAULTS.water_bottle_ml),
         water_unit: waterUnit,
       });
       onClose();
@@ -321,7 +321,7 @@ const Field = ({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: palette.surface,
-        borderColor: isOff ? palette.borderStrong : palette.borderStrong,
+        borderColor: isOff ? palette.borderSubtle : palette.borderStrong,
         borderWidth: 1,
         borderRadius: radii.md,
         paddingHorizontal: spacing.md,
