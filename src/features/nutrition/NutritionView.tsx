@@ -11,6 +11,10 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
 import { ErrorState, LoadingState } from '../../components/StateView';
+import { SharePreviewSheet } from '../../components/share/SharePreviewSheet';
+import type { SharePayload } from '../../components/share/ShareableSummaryCard';
+import { buildDayPayload, buildMealPayload } from './shareHelpers';
+import type { NutritionEntry } from '../../services/nutritionService';
 import { HeroGradient } from '../../components/HeroGradient';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import { useNutritionDayContext } from './hooks/useNutritionDay';
@@ -74,6 +78,7 @@ export const NutritionView = ({
   const [goalOpen, setGoalOpen] = useState(false);
   const [addMealRequest, setAddMealRequest] = useState<AddMealRequest | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [sharePayload, setSharePayload] = useState<SharePayload | null>(null);
 
   useEffect(() => {
     if (!openAddMealOnMount) return;
@@ -303,7 +308,24 @@ export const NutritionView = ({
                 </Text>
               </TouchableOpacity>
 
-              <EntriesList entries={day.entries} onDelete={day.deleteEntry} />
+              <EntriesList
+                entries={day.entries}
+                onDelete={day.deleteEntry}
+                onShareDay={day.entries.length > 0
+                  ? () => setSharePayload(buildDayPayload({
+                      dateISO: day.date,
+                      summary: day.summary ?? null,
+                      entries: day.entries,
+                      proteinTarget,
+                      carbTarget,
+                      fatTarget,
+                      kcalTarget,
+                    }))
+                  : undefined}
+                onShareEntry={(entry: NutritionEntry) =>
+                  setSharePayload(buildMealPayload(entry, day.date, isCheat))
+                }
+              />
             </View>
           </View>
         </View>
@@ -345,6 +367,12 @@ export const NutritionView = ({
         defaultLabel={addMealRequest?.label ?? null}
         onClose={() => setAddMealRequest(null)}
         onSave={day.addEntry}
+      />
+
+      <SharePreviewSheet
+        visible={sharePayload !== null}
+        payload={sharePayload}
+        onClose={() => setSharePayload(null)}
       />
     </>
   );
