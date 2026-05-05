@@ -25,7 +25,7 @@ const headerStyles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '900',
+    fontFamily: 'Inter_900Black',
     color: text.primary,
     letterSpacing: -0.4,
     // Italic was very 90s-fitness. Dropping it for tighter modern type.
@@ -40,14 +40,15 @@ const headerStyles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     fontFamily: 'monospace',
+    backgroundColor: palette.surface,
     borderWidth: 1,
-    // borderColor is set inline alongside `color` (RN doesn't support
-    // CSS `currentColor` — must be passed explicitly).
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: radii.xs,
+    borderColor: palette.borderStrong,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    borderRadius: radii.full,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
+    overflow: 'hidden',
   },
   headerRight: {
     flexDirection: 'row',

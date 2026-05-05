@@ -222,14 +222,14 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
               style={{
                 color: text.primary,
                 fontSize: 30,
-                fontWeight: '900',
+                fontFamily: fonts.family.black,
                 letterSpacing: -0.6,
               }}
               numberOfLines={1}
             >
               {verdict.line}
             </Text>
-            <Text style={{ color: text.tertiary, fontSize: 13 }} numberOfLines={1}>
+            <Text style={{ color: text.secondary, fontSize: 13, fontWeight: '500' }} numberOfLines={1}>
               {verdict.sub}
             </Text>
           </View>

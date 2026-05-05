@@ -123,7 +123,7 @@ export const OnboardingTitle = ({ children }: { children: ReactNode }) => (
     style={{
       color: text.primary,
       fontSize: 26,
-      fontWeight: fonts.weight.black as '900',
+      fontFamily: fonts.family.black,
       letterSpacing: -0.5,
       marginBottom: spacing.sm,
     }}

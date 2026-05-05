@@ -123,11 +123,17 @@ export const radii = {
 
 export const fonts = {
   family: {
-    // 'System' resolves to SF Pro on iOS, Roboto on Android, system-ui on web.
-    // The display direction wants Inter; loading Inter via expo-font is a
-    // follow-up. Until then, system gets us 90% of the way on iOS.
-    base: 'System',
-    mono: 'monospace',  // SF Mono / Menlo / system mono fallback
+    // Inter loaded globally in App.tsx via expo-font + @expo-google-fonts/inter.
+    // Default Text fontFamily is set to Inter_400Regular via Text.defaultProps;
+    // for hero text use the explicit weight families below to avoid iOS's
+    // faux-bold synthesis at large sizes.
+    base:       'Inter_400Regular',
+    medium:     'Inter_500Medium',
+    semibold:   'Inter_600SemiBold',
+    bold:       'Inter_700Bold',
+    extrabold:  'Inter_800ExtraBold',
+    black:      'Inter_900Black',
+    mono:       'monospace',  // SF Mono / Menlo / system mono fallback (kept system for numerics)
   },
   weight: {
     regular:  '400',
