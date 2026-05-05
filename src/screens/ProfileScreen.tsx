@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChevronRight, LogOut, X } from 'lucide-react-native';
 import { useAuthContext } from '../contexts/AuthContext';
-import { setUnits as persistUnits, type Units } from '../services/profile';
+import { setUnitsCoupled, type Units } from '../services/profile';
 import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
 import { deriveInitials } from '../utils/initials';
 import type { RootStackParamList } from '../navigation/types';
@@ -33,7 +33,8 @@ export const ProfileScreen = () => {
     const next: Units = units === 'lb' ? 'kg' : 'lb';
     setUnitsState(next);
     try {
-      await persistUnits(next);
+      if (!user?.id) throw new Error('not signed in');
+      await setUnitsCoupled(next, user.id);
     } catch (e) {
       setUnitsState(units);
       Alert.alert('Could not save', 'Try again in a moment.');
@@ -149,7 +150,7 @@ export const ProfileScreen = () => {
         <Section>
           <Row
             label="Units"
-            value={units.toUpperCase()}
+            value={units === 'lb' ? 'LB · OZ' : 'KG · ML'}
             onPress={handleToggleUnits}
             hideChevron
           />

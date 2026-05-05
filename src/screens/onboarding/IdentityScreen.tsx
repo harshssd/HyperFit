@@ -3,7 +3,7 @@ import { Alert, TextInput, View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuthContext } from '../../contexts/AuthContext';
-import { setDisplayName, setUnits, type Units } from '../../services/profile';
+import { setDisplayName, setUnitsCoupled, type Units } from '../../services/profile';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import type { OnboardingStackParamList } from '../../navigation/types';
 import { OnboardingChrome, OnboardingTitle, OnboardingSubtitle } from './OnboardingChrome';
@@ -29,8 +29,8 @@ export const IdentityScreen = () => {
       if (persistName && name.trim() && name.trim() !== defaultName) {
         await setDisplayName(name);
       }
-      if (units !== defaultUnits) {
-        await setUnits(units);
+      if (units !== defaultUnits && user?.id) {
+        await setUnitsCoupled(units, user.id);
       }
       navigation.navigate('Goal');
     } catch (e) {
@@ -127,7 +127,7 @@ export const IdentityScreen = () => {
                   letterSpacing: 1.6,
                 }}
               >
-                {u.toUpperCase()}
+                {u === 'lb' ? 'LB · OZ' : 'KG · ML'}
               </Text>
             </TouchableOpacity>
           );
