@@ -111,8 +111,7 @@ export const cheatsInWeek = (
 
 /**
  * Generate N consecutive ISO dates starting from `startIso`. Used by
- * WeekRows (offset=-6 for "this week"-up-to-today) and CheatDayPlanner
- * (offset=0 for "today + future"). Returned ASC.
+ * WeekRows (offset=-6 for "this week"-up-to-today). Returned ASC.
  */
 export const isoDateRange = (startIso: string, count: number): string[] => {
   const out: string[] = [];

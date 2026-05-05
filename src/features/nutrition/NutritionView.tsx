@@ -22,7 +22,6 @@ import { GoalSetupSheet } from './components/GoalSetupSheet';
 import { EntriesList } from './components/EntriesList';
 import { WaterControls } from './components/WaterControls';
 import { CheatDayToggle } from './components/CheatDayToggle';
-import { CheatDayPlanner } from './components/CheatDayPlanner';
 import { WeekRows } from './components/WeekRows';
 import { AddMealModal } from './components/AddMealModal';
 import { heroEyebrow, formatKcal } from './helpers';
@@ -382,12 +381,6 @@ export const NutritionView = ({
             onToggle={day.toggleCheatDay}
           />
         </View>
-
-        <CheatDayPlanner
-          today={day.date}
-          summaries={day.recentSummaries}
-          onToggle={day.planCheatDay}
-        />
 
         <WeekRows
           today={day.date}
