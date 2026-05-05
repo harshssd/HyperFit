@@ -313,7 +313,10 @@ const ActionButton = ({
   >
     <Text
       style={{
-        color: tone === 'primary' ? accent.sessionUp : text.secondary,
+        // text.primary on the green-washed surface guarantees >=4.5:1 contrast.
+        // Green semantic meaning is carried by the border + (upstream) Droplet
+        // icon; doubling it on the label was borderline against the wash.
+        color: tone === 'primary' ? text.primary : text.secondary,
         fontFamily: fonts.family.mono,
         fontSize: 11,
         letterSpacing: 1.6,

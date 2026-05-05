@@ -219,15 +219,18 @@ const HistoryAnalyticsView = () => {
           </View>
         )}
 
-        {/* Total Count */}
-        <Text style={{ 
-          color: colors.muted, 
-          fontSize: 12, 
-          textAlign: 'center', 
-          marginTop: spacing.md 
-        }}>
-          Showing {sessions.length} of {totalCount} sessions
-        </Text>
+        {/* Total count — only show when something is hidden. "Showing 7 of 7"
+            is noise; the row count is visually obvious from the list. */}
+        {sessions.length < totalCount ? (
+          <Text style={{
+            color: colors.muted,
+            fontSize: 12,
+            textAlign: 'center',
+            marginTop: spacing.md,
+          }}>
+            Showing {sessions.length} of {totalCount} sessions
+          </Text>
+        ) : null}
       </ScrollView>
     );
   };
