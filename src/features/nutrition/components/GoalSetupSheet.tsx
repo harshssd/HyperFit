@@ -23,18 +23,25 @@ type Props = {
   onSave: (patch: Partial<NutritionSettings>) => Promise<void>;
 };
 
+// First-time defaults. Required goals (kcal + protein) get sensible starting
+// values; optional goals (carbs, fat, fiber, water) start UNSET so the user
+// only opts in to what they actually want to track. Saved 0 = "off".
 const DEFAULTS = {
   kcal_target: 2200,
   protein_target_g: 160,
-  carb_target_g: 250,
-  fat_target_g: 70,
-  fiber_target_g: 30,
+  carb_target_g: 0,
+  fat_target_g: 0,
+  fiber_target_g: 0,
   cheat_days_per_week: 1,
-  water_target_ml: 2000,
+  water_target_ml: 0,
   water_cup_ml: 250,
   water_bottle_ml: 500,
   water_unit: 'ml' as const,
 };
+
+// 0 in storage = "not tracking this". Render as empty input so the user
+// sees the "Off" placeholder, not a literal "0".
+const seedNumStr = (n: number) => (n > 0 ? String(n) : '');
 
 // 1 fl oz (US) = 29.5735 ml. Match the rounding used by formatVolume so the
 // displayed value here lines up with the WaterControls readout.
@@ -52,11 +59,11 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
   const seed = initial ?? DEFAULTS;
   const [kcal, setKcal] = useState(String(seed.kcal_target));
   const [protein, setProtein] = useState(String(seed.protein_target_g));
-  const [carb, setCarb] = useState(String(seed.carb_target_g));
-  const [fat, setFat] = useState(String(seed.fat_target_g));
-  const [fiber, setFiber] = useState(String(seed.fiber_target_g));
+  const [carb, setCarb] = useState(seedNumStr(seed.carb_target_g));
+  const [fat, setFat] = useState(seedNumStr(seed.fat_target_g));
+  const [fiber, setFiber] = useState(seedNumStr(seed.fiber_target_g));
   const [cheats, setCheats] = useState(String(seed.cheat_days_per_week));
-  const [waterTarget, setWaterTarget] = useState(seedWaterStr(seed.water_target_ml, seed.water_unit));
+  const [waterTarget, setWaterTarget] = useState(seed.water_target_ml > 0 ? seedWaterStr(seed.water_target_ml, seed.water_unit) : '');
   const [waterCup, setWaterCup] = useState(seedWaterStr(seed.water_cup_ml, seed.water_unit));
   const [waterBottle, setWaterBottle] = useState(seedWaterStr(seed.water_bottle_ml, seed.water_unit));
   const [waterUnit, setWaterUnit] = useState<'ml' | 'oz'>(seed.water_unit);
@@ -69,11 +76,11 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
     const s = initial ?? DEFAULTS;
     setKcal(String(s.kcal_target));
     setProtein(String(s.protein_target_g));
-    setCarb(String(s.carb_target_g));
-    setFat(String(s.fat_target_g));
-    setFiber(String(s.fiber_target_g));
+    setCarb(seedNumStr(s.carb_target_g));
+    setFat(seedNumStr(s.fat_target_g));
+    setFiber(seedNumStr(s.fiber_target_g));
     setCheats(String(s.cheat_days_per_week));
-    setWaterTarget(seedWaterStr(s.water_target_ml, s.water_unit));
+    setWaterTarget(s.water_target_ml > 0 ? seedWaterStr(s.water_target_ml, s.water_unit) : '');
     setWaterCup(seedWaterStr(s.water_cup_ml, s.water_unit));
     setWaterBottle(seedWaterStr(s.water_bottle_ml, s.water_unit));
     setWaterUnit(s.water_unit);
@@ -83,6 +90,13 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
   const toMlFromInput = (s: string, fallback: number) => {
     if (waterUnit === 'oz') return ozStrToMl(s, fallback);
     return parseInt(s, 10) || fallback;
+  };
+  // Same as above but returns 0 (the "off" sentinel) when empty instead
+  // of falling back to a default. Optional fields (water target).
+  const toMlOrOff = (s: string) => {
+    if (!s.trim()) return 0;
+    if (waterUnit === 'oz') return ozStrToMl(s, 0);
+    return parseInt(s, 10) || 0;
   };
 
   // Toggle unit: re-render the three water fields in the new unit so the
@@ -103,15 +117,18 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
     setSaving(true);
     try {
       await onSave({
-        kcal_target: parseInt(kcal, 10) || DEFAULTS.kcal_target,
-        protein_target_g: parseInt(protein, 10) || DEFAULTS.protein_target_g,
-        carb_target_g: parseInt(carb, 10) || DEFAULTS.carb_target_g,
-        fat_target_g: parseInt(fat, 10) || DEFAULTS.fat_target_g,
-        fiber_target_g: parseInt(fiber, 10) || DEFAULTS.fiber_target_g,
-        cheat_days_per_week: parseInt(cheats, 10) || DEFAULTS.cheat_days_per_week,
-        water_target_ml: toMlFromInput(waterTarget, DEFAULTS.water_target_ml),
-        water_cup_ml: toMlFromInput(waterCup, DEFAULTS.water_cup_ml),
-        water_bottle_ml: toMlFromInput(waterBottle, DEFAULTS.water_bottle_ml),
+        kcal_target: parseInt(kcal, 10) || 2200,
+        protein_target_g: parseInt(protein, 10) || 160,
+        // Optional macros — empty input writes 0 ("not tracking").
+        carb_target_g: parseInt(carb, 10) || 0,
+        fat_target_g: parseInt(fat, 10) || 0,
+        fiber_target_g: parseInt(fiber, 10) || 0,
+        cheat_days_per_week: parseInt(cheats, 10) || 1,
+        // Optional water target — empty writes 0. Cup/bottle keep working
+        // defaults since they only matter when the user is logging water.
+        water_target_ml: toMlOrOff(waterTarget),
+        water_cup_ml: toMlFromInput(waterCup, 250),
+        water_bottle_ml: toMlFromInput(waterBottle, 500),
         water_unit: waterUnit,
       });
       onClose();
@@ -169,14 +186,14 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
           <SectionLabel>Macros</SectionLabel>
           <Field label="Calories" unit="kcal" value={kcal} onChange={setKcal} />
           <Field label="Protein" unit="g"  value={protein} onChange={setProtein} />
-          <Field label="Carbs"   unit="g"  value={carb} onChange={setCarb} />
-          <Field label="Fat"     unit="g"  value={fat} onChange={setFat} />
-          <Field label="Fiber"   unit="g"  value={fiber} onChange={setFiber} />
+          <Field label="Carbs"   unit="g"  value={carb}  onChange={setCarb}  optional />
+          <Field label="Fat"     unit="g"  value={fat}   onChange={setFat}   optional />
+          <Field label="Fiber"   unit="g"  value={fiber} onChange={setFiber} optional />
           <Field label="Cheat days / week" unit="" value={cheats} onChange={setCheats} />
 
           <SectionLabel>Water</SectionLabel>
-          <Field label="Daily target" unit={waterUnit} value={waterTarget} onChange={setWaterTarget} />
-          <Field label="Cup size"     unit={waterUnit} value={waterCup} onChange={setWaterCup} />
+          <Field label="Daily target" unit={waterUnit} value={waterTarget} onChange={setWaterTarget} optional />
+          <Field label="Cup size"     unit={waterUnit} value={waterCup}    onChange={setWaterCup} />
           <Field label="Bottle size"  unit={waterUnit} value={waterBottle} onChange={setWaterBottle} />
 
           <View>
@@ -286,54 +303,84 @@ const Field = ({
   unit,
   value,
   onChange,
+  optional,
 }: {
   label: string;
   unit: string;
   value: string;
   onChange: (v: string) => void;
-}) => (
-  <View
-    style={{
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: palette.surface,
-      borderColor: palette.borderStrong,
-      borderWidth: 1,
-      borderRadius: radii.md,
-      paddingHorizontal: spacing.md,
-      paddingVertical: spacing.sm,
-      gap: spacing.md,
-    }}
-  >
-    <Text style={{ flex: 1, color: text.secondary, fontSize: 14, fontWeight: '600' }}>{label}</Text>
-    <TextInput
-      value={value}
-      onChangeText={onChange}
-      keyboardType="number-pad"
+  /** If true, an empty value reads as "Off" (not tracking). The input
+   *  shows an OFF pill instead of a number when empty, and tapping it
+   *  focuses the input so the user can opt back in by typing. */
+  optional?: boolean;
+}) => {
+  const isOff = optional && !value.trim();
+  return (
+    <View
       style={{
-        minWidth: 70,
-        textAlign: 'right',
-        color: text.primary,
-        fontSize: 16,
-        fontWeight: '800',
-        fontVariant: fonts.tabularNums,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: palette.surface,
+        borderColor: isOff ? palette.borderStrong : palette.borderStrong,
+        borderWidth: 1,
+        borderRadius: radii.md,
+        paddingHorizontal: spacing.md,
+        paddingVertical: spacing.sm,
+        gap: spacing.md,
+        opacity: isOff ? 0.7 : 1,
       }}
-      selectTextOnFocus
-    />
-    {unit ? (
-      <Text
+    >
+      <Text style={{ flex: 1, color: text.secondary, fontSize: 14, fontWeight: '600' }}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChange}
+        keyboardType="number-pad"
+        placeholder={optional ? 'Off' : ''}
+        placeholderTextColor={text.quaternary}
         style={{
-          color: text.quaternary,
-          fontFamily: fonts.family.mono,
-          fontSize: 11,
-          letterSpacing: 1.4,
-          textTransform: 'uppercase',
-          fontWeight: '700',
-          minWidth: 28,
+          minWidth: 70,
+          textAlign: 'right',
+          color: text.primary,
+          fontSize: 16,
+          fontWeight: '800',
+          fontVariant: fonts.tabularNums,
         }}
-      >
-        {unit}
-      </Text>
-    ) : null}
-  </View>
-);
+        selectTextOnFocus
+      />
+      {unit ? (
+        <Text
+          style={{
+            color: text.quaternary,
+            fontFamily: fonts.family.mono,
+            fontSize: 11,
+            letterSpacing: 1.4,
+            textTransform: 'uppercase',
+            fontWeight: '700',
+            minWidth: 28,
+          }}
+        >
+          {unit}
+        </Text>
+      ) : null}
+      {optional && !isOff ? (
+        <TouchableOpacity
+          onPress={() => onChange('')}
+          accessibilityRole="button"
+          accessibilityLabel={`Stop tracking ${label}`}
+          hitSlop={6}
+        >
+          <Text
+            style={{
+              color: text.quaternary,
+              fontSize: 14,
+              fontWeight: '700',
+              paddingHorizontal: 4,
+            }}
+          >
+            ✕
+          </Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+};

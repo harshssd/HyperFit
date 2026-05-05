@@ -88,7 +88,11 @@ export type ShareNutritionDayPayload = {
   fat_total_g: number;
   fat_target_g: number;
   fiber_total_g: number;
+  /** When 0, the user isn't tracking fiber — tile is hidden. */
+  fiber_target_g: number;
   water_total_ml: number;
+  /** When 0, the user isn't tracking water — tile is hidden. */
+  water_target_ml: number;
   /** 'hit' | 'over' | 'under' | 'empty' from nutrition_day_summary_view. */
   status: 'hit' | 'over' | 'under' | 'empty';
   is_cheat_day: boolean;
@@ -435,8 +439,12 @@ const DayCardBody = ({ payload }: { payload: ShareNutritionDayPayload }) => {
 
       <Text style={styles.sectionLabel}>MACROS</Text>
       <MacroBar label="PROTEIN" value={payload.protein_total_g} target={payload.protein_target_g} color={accent.lift} />
-      <MacroBar label="CARBS" value={payload.carb_total_g} target={payload.carb_target_g} color={accent.sessionUp} />
-      <MacroBar label="FAT" value={payload.fat_total_g} target={payload.fat_target_g} color={accent.macroFat} />
+      {payload.carb_target_g > 0 ? (
+        <MacroBar label="CARBS" value={payload.carb_total_g} target={payload.carb_target_g} color={accent.sessionUp} />
+      ) : null}
+      {payload.fat_target_g > 0 ? (
+        <MacroBar label="FAT" value={payload.fat_total_g} target={payload.fat_target_g} color={accent.macroFat} />
+      ) : null}
 
       <View style={styles.divider} />
 
@@ -467,15 +475,19 @@ const DayCardBody = ({ payload }: { payload: ShareNutritionDayPayload }) => {
       <View style={styles.tileRow}>
         <Tile value={payload.kcal_total.toLocaleString()} label="KCAL" />
         <Tile value={`${payload.protein_total_g}g`} label="PROT" />
-        <Tile value={`${payload.fiber_total_g}g`} label="FIBER" />
-        <Tile
-          value={
-            payload.water_total_ml >= 1000
-              ? `${(payload.water_total_ml / 1000).toFixed(1)}L`
-              : `${payload.water_total_ml}ml`
-          }
-          label="WATER"
-        />
+        {payload.fiber_target_g > 0 ? (
+          <Tile value={`${payload.fiber_total_g}g`} label="FIBER" />
+        ) : null}
+        {payload.water_target_ml > 0 ? (
+          <Tile
+            value={
+              payload.water_total_ml >= 1000
+                ? `${(payload.water_total_ml / 1000).toFixed(1)}L`
+                : `${payload.water_total_ml}ml`
+            }
+            label="WATER"
+          />
+        ) : null}
       </View>
 
       <Text

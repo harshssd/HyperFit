@@ -109,19 +109,25 @@ export const NutritionView = ({
   const status = day.summary?.status ?? 'empty';
   const eyebrow = heroEyebrow(status, isCheat, day.hasGoal);
 
-  // Targets resolve from settings when set; fall back to migration defaults
-  // so the empty-state silhouette still has a shape to fill, with the
-  // eyebrow flagging "NO GOAL SET" so the user knows to tap the header.
+  // Required targets fall back to migration defaults (kcal + protein are
+  // the minimum every nutrition user opts in to). Optional targets read
+  // raw — 0 in the DB means "not tracking", and the UI hides those
+  // surfaces entirely so the user isn't fighting a phantom progress bar.
   const kcalTarget    = day.settings?.kcal_target      ?? 2200;
   const proteinTarget = day.settings?.protein_target_g ?? 160;
-  const carbTarget    = day.settings?.carb_target_g    ?? 250;
-  const fatTarget     = day.settings?.fat_target_g     ?? 70;
-  const fiberTarget   = day.settings?.fiber_target_g   ?? 30;
-  const waterTarget   = day.settings?.water_target_ml  ?? 2000;
+  const carbTarget    = day.settings?.carb_target_g    ?? 0;
+  const fatTarget     = day.settings?.fat_target_g     ?? 0;
+  const fiberTarget   = day.settings?.fiber_target_g   ?? 0;
+  const waterTarget   = day.settings?.water_target_ml  ?? 0;
   const waterCup      = day.settings?.water_cup_ml     ?? 250;
   const waterBottle   = day.settings?.water_bottle_ml  ?? 500;
   const waterUnit     = day.settings?.water_unit       ?? 'ml';
   const cheatBudget   = day.settings?.cheat_days_per_week ?? 1;
+
+  const tracksCarbs = carbTarget > 0;
+  const tracksFat = fatTarget > 0;
+  const tracksFiber = fiberTarget > 0;
+  const tracksWater = waterTarget > 0;
 
   const kcalCurrent    = day.summary?.kcal_total      ?? 0;
   const proteinCurrent = day.summary?.protein_total_g ?? 0;
@@ -252,9 +258,9 @@ export const NutritionView = ({
             {/* Macro bars row */}
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: spacing.lg }}>
               <MacroPill label="Protein" current={proteinCurrent} target={proteinTarget} color={accent.lift} />
-              <MacroPill label="Carbs"   current={carbCurrent}    target={carbTarget}    color={accent.sessionUp} />
-              <MacroPill label="Fat"     current={fatCurrent}     target={fatTarget}     color={text.tertiary} />
-              <MacroPill label="Fiber"   current={fiberCurrent}   target={fiberTarget}   color={FIBER_COLOR} />
+              {tracksCarbs ? <MacroPill label="Carbs" current={carbCurrent}  target={carbTarget}  color={accent.sessionUp} /> : null}
+              {tracksFat   ? <MacroPill label="Fat"   current={fatCurrent}   target={fatTarget}   color={text.tertiary} /> : null}
+              {tracksFiber ? <MacroPill label="Fiber" current={fiberCurrent} target={fiberTarget} color={FIBER_COLOR} /> : null}
             </View>
 
             {/* Water → ADD MEAL CTA → flat EntriesList. The CTA sits
@@ -263,15 +269,17 @@ export const NutritionView = ({
              * receipt. Slot is picked inside AddMealModal — no per-slot
              * cards on the screen. */}
             <View style={{ gap: spacing.sm }}>
-              <WaterControls
-                totalMl={waterCurrent}
-                targetMl={waterTarget}
-                cupMl={waterCup}
-                bottleMl={waterBottle}
-                unit={waterUnit}
-                onAddMl={day.addWater}
-                onUndo={day.undoLastWater}
-              />
+              {tracksWater ? (
+                <WaterControls
+                  totalMl={waterCurrent}
+                  targetMl={waterTarget}
+                  cupMl={waterCup}
+                  bottleMl={waterBottle}
+                  unit={waterUnit}
+                  onAddMl={day.addWater}
+                  onUndo={day.undoLastWater}
+                />
+              ) : null}
 
               <TouchableOpacity
                 testID="nutrition-add-meal"
@@ -319,6 +327,8 @@ export const NutritionView = ({
                       proteinTarget,
                       carbTarget,
                       fatTarget,
+                      fiberTarget,
+                      waterTarget,
                       kcalTarget,
                     }))
                   : undefined}

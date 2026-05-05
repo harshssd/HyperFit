@@ -82,6 +82,8 @@ type DayInputs = {
   proteinTarget: number;
   carbTarget: number;
   fatTarget: number;
+  fiberTarget: number;
+  waterTarget: number;
   kcalTarget: number;
 };
 
@@ -103,6 +105,8 @@ export const buildDayPayload = ({
   proteinTarget,
   carbTarget,
   fatTarget,
+  fiberTarget,
+  waterTarget,
   kcalTarget,
 }: DayInputs): ShareNutritionDayPayload => ({
   kind: 'nutrition-day',
@@ -117,7 +121,9 @@ export const buildDayPayload = ({
   fat_total_g: summary?.fat_total_g ?? 0,
   fat_target_g: fatTarget,
   fiber_total_g: summary?.fiber_total_g ?? 0,
+  fiber_target_g: fiberTarget,
   water_total_ml: summary?.water_total_ml ?? 0,
+  water_target_ml: waterTarget,
   status: (summary?.status as 'hit' | 'over' | 'under' | 'empty') ?? 'empty',
   is_cheat_day: summary?.is_cheat_day ?? false,
   entries: pickTopEntries(entries),
