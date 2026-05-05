@@ -1,6 +1,6 @@
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
-import { Trash2 } from 'lucide-react-native';
+import { Share2, Trash2 } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import type { NutritionEntry } from '../../../services/nutritionService';
 import type { MealSlot } from '../../../types/supabase';
@@ -21,6 +21,10 @@ import type { MealSlot } from '../../../types/supabase';
 type Props = {
   entries: NutritionEntry[];
   onDelete: (entryId: string) => Promise<void>;
+  /** Optional — when present, the header shows a SHARE DAY button. */
+  onShareDay?: () => void;
+  /** Optional — when present, each row shows a share icon next to the trash. */
+  onShareEntry?: (entry: NutritionEntry) => void;
 };
 
 const SLOT_LABELS: Record<MealSlot, string> = {
@@ -30,7 +34,7 @@ const SLOT_LABELS: Record<MealSlot, string> = {
   snack:     'SNACK',
 };
 
-export const EntriesList = ({ entries, onDelete }: Props) => {
+export const EntriesList = ({ entries, onDelete, onShareDay, onShareEntry }: Props) => {
   if (entries.length === 0) {
     return (
       <View
@@ -106,24 +110,59 @@ export const EntriesList = ({ entries, onDelete }: Props) => {
         >
           Today's entries
         </Text>
-        <Text
-          style={{
-            color: text.quaternary,
-            fontFamily: fonts.family.mono,
-            fontSize: 11,
-            letterSpacing: 1.4,
-            fontWeight: fonts.weight.bold as '700',
-            fontVariant: fonts.tabularNums,
-          }}
-        >
-          {entries.length} {entries.length === 1 ? 'ITEM' : 'ITEMS'}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+          <Text
+            style={{
+              color: text.quaternary,
+              fontFamily: fonts.family.mono,
+              fontSize: 11,
+              letterSpacing: 1.4,
+              fontWeight: fonts.weight.bold as '700',
+              fontVariant: fonts.tabularNums,
+            }}
+          >
+            {entries.length} {entries.length === 1 ? 'ITEM' : 'ITEMS'}
+          </Text>
+          {onShareDay ? (
+            <TouchableOpacity
+              onPress={onShareDay}
+              accessibilityRole="button"
+              accessibilityLabel="Share today's nutrition"
+              hitSlop={6}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: spacing.sm,
+                paddingVertical: 4,
+                borderRadius: radii.full,
+                borderWidth: 1,
+                borderColor: accent.lift,
+                backgroundColor: 'rgba(252, 76, 2, 0.10)',
+              }}
+            >
+              <Share2 size={11} color={accent.lift} />
+              <Text
+                style={{
+                  color: accent.lift,
+                  fontFamily: fonts.family.mono,
+                  fontSize: 9,
+                  letterSpacing: 1.2,
+                  fontWeight: fonts.weight.heavy as '800',
+                }}
+              >
+                SHARE
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
       {sorted.map((entry, idx) => (
         <EntryRow
           key={entry.id}
           entry={entry}
           onDelete={onDelete}
+          onShare={onShareEntry}
           isFirst={idx === 0}
         />
       ))}
@@ -134,10 +173,12 @@ export const EntriesList = ({ entries, onDelete }: Props) => {
 const EntryRow = ({
   entry,
   onDelete,
+  onShare,
   isFirst,
 }: {
   entry: NutritionEntry;
   onDelete: (id: string) => Promise<void>;
+  onShare?: (entry: NutritionEntry) => void;
   isFirst: boolean;
 }) => {
   const slot = entry.meal_slot as MealSlot | null;
@@ -200,6 +241,16 @@ const EntryRow = ({
       >
         {entry.kcal} · {entry.protein_g}P
       </Text>
+      {onShare ? (
+        <TouchableOpacity
+          onPress={() => onShare(entry)}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={`Share ${entry.name ?? 'meal'}`}
+        >
+          <Share2 size={14} color={text.tertiary} />
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity
         onPress={() => onDelete(entry.id)}
         hitSlop={8}

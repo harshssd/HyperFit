@@ -50,7 +50,17 @@ export const SharePreviewSheet = ({ visible, payload, loading, error, onClose }:
     if (visible && payload) setTitle(payload.title);
   }, [visible, payload?.kind, payload?.title]);
 
-  const isPlan = payload?.kind === 'plan';
+  const kind = payload?.kind;
+  const headerLabel =
+    kind === 'plan' ? 'SHARE PLAN'
+      : kind === 'meal' ? 'SHARE MEAL'
+        : kind === 'nutrition-day' ? 'SHARE DAY'
+          : 'SHARE WORKOUT';
+  const inputPlaceholder =
+    kind === 'plan' ? 'WORKOUT PLAN'
+      : kind === 'meal' ? 'MEAL'
+        : kind === 'nutrition-day' ? 'DAY'
+          : 'WORKOUT';
   const trimmed = title.trim();
   const effectivePayload = payload
     ? { ...payload, title: trimmed || payload.title }
@@ -70,7 +80,7 @@ export const SharePreviewSheet = ({ visible, payload, loading, error, onClose }:
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>{isPlan ? 'SHARE PLAN' : 'SHARE WORKOUT'}</Text>
+          <Text style={styles.headerTitle}>{headerLabel}</Text>
           <TouchableOpacity
             onPress={onClose}
             accessibilityLabel="Close"
@@ -88,7 +98,7 @@ export const SharePreviewSheet = ({ visible, payload, loading, error, onClose }:
           <TextInput
             value={title}
             onChangeText={setTitle}
-            placeholder={isPlan ? 'WORKOUT PLAN' : 'WORKOUT'}
+            placeholder={inputPlaceholder}
             placeholderTextColor={text.quaternary}
             style={styles.input}
             maxLength={48}
@@ -134,9 +144,7 @@ export const SharePreviewSheet = ({ visible, payload, loading, error, onClose }:
                 ? 'CAPTURING…'
                 : state === 'sharing'
                   ? 'SHARING…'
-                  : isPlan
-                    ? 'SHARE PLAN'
-                    : 'SHARE WORKOUT'}
+                  : headerLabel}
             </Text>
           </TouchableOpacity>
         </ScrollView>

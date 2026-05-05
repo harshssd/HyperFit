@@ -48,7 +48,7 @@ export const useShareCard = () => {
 
       await Sharing.shareAsync(uri, {
         mimeType: 'image/png',
-        dialogTitle: 'Share workout',
+        dialogTitle: 'Share',
         UTI: 'public.png',
       });
       setState('done');
