@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react';
-import { Home, Dumbbell, History, Zap } from 'lucide-react-native';
+import { Home, Dumbbell, History, Salad } from 'lucide-react-native';
 
 export type IconType = ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 
@@ -14,6 +14,6 @@ export type NavItemConfig = {
 export const NAV_ITEMS: NavItemConfig[] = [
   { id: 'home', label: 'Home', icon: Home },
   { id: 'gym', label: 'Gym', icon: Dumbbell },
-  { id: 'nutrition', label: 'Fuel', icon: Zap },
+  { id: 'nutrition', label: 'Fuel', icon: Salad },
   { id: 'history', label: 'History', icon: History },
 ];

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { X, Zap } from 'lucide-react-native';
+import { X, Salad } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import type { NutritionSettings } from '../../../services/nutritionService';
 
@@ -143,7 +143,7 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <Zap size={20} color={accent.lift} strokeWidth={2} />
+            <Salad size={20} color={accent.lift} strokeWidth={2} />
             <Text style={{ color: text.primary, fontSize: 18, fontWeight: '900', letterSpacing: -0.3 }}>
               Daily Goal
             </Text>
