@@ -153,6 +153,8 @@ export const NutritionView = ({
             borderRadius: radii.lg,
             borderWidth: 1,
             borderColor: surfaceBorder,
+            borderTopWidth: 2,
+            borderTopColor: isCheat ? surfaceBorder : accent.sessionUp,
             backgroundColor: palette.surface,
             overflow: 'hidden',
             shadowColor: surfaceBorder,

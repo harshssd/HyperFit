@@ -6,7 +6,7 @@ import GlassCard from '../../../components/GlassCard';
 import SharePlanSheet from '../../../components/share/SharePlanSheet';
 import workoutStyles from '../../../styles/workout';
 import homeStyles from '../../../styles/home';
-import { colors, spacing, radii, palette } from '../../../styles/theme';
+import { colors, spacing, radii, palette, accent } from '../../../styles/theme';
 import { WorkoutPlan } from '../../../types/workout';
 import { getWorkoutForDate } from '../helpers';
 import PlanManagementMenu from './PlanManagementMenu';
@@ -94,12 +94,14 @@ const WorkoutPlanner = ({
       showsVerticalScrollIndicator={false}
     >
       {/* 🎯 UNIFIED WORKOUT CENTRAL - Hero Section */}
-      <GlassCard style={{ 
-        padding: 0, 
-        marginBottom: spacing.xl, 
+      <GlassCard style={{
+        padding: 0,
+        marginBottom: spacing.xl,
         overflow: 'hidden',
         borderWidth: 1,
         borderColor: palette.borderStrong,
+        borderTopWidth: 2,
+        borderTopColor: palette.liftActive,
       }}>
         {/* Header: Active Plan Status */}
         <View style={{ 
@@ -107,12 +109,12 @@ const WorkoutPlanner = ({
           paddingBottom: spacing.lg,
           borderBottomWidth: 1,
           borderBottomColor: 'rgba(255, 255, 255, 0.08)',
-          backgroundColor: activePlan ? 'rgba(249, 115, 22, 0.05)' : 'rgba(255, 255, 255, 0.02)'
+          backgroundColor: 'rgba(255, 255, 255, 0.02)'
         }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: spacing.sm }}>
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xs }}>
-                <Dumbbell size={18} color={activePlan ? colors.primary : colors.muted} />
+                <Dumbbell size={18} color={colors.muted} />
                 <Text style={{
                   fontSize: 11,
                   fontWeight: 'bold',
@@ -159,7 +161,7 @@ const WorkoutPlanner = ({
           {activePlan && (
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm }}>
               <View style={{ flex: 1, height: 6, backgroundColor: 'rgba(255, 255, 255, 0.1)', borderRadius: radii.full, marginRight: spacing.sm }}>
-                <View style={{ width: '40%', height: '100%', backgroundColor: colors.primary, borderRadius: radii.full }} />
+                <View style={{ width: '40%', height: '100%', backgroundColor: accent.sessionUp, borderRadius: radii.full }} />
               </View>
               <Text style={{ color: colors.muted, fontSize: 10, fontWeight: 'bold' }}>
                 WEEK 2/{activePlan.planData?.duration || 4}
@@ -265,11 +267,11 @@ const WorkoutPlanner = ({
                   paddingVertical: spacing.sm,
                 }}
               >
-                <Layout size={13} color={colors.primary} />
+                <Layout size={13} color={colors.muted} />
                 <Text style={{ marginLeft: spacing.xs, color: colors.muted, fontSize: 11, fontWeight: '800', letterSpacing: 1.4, textTransform: 'uppercase' }}>
                   Browse Plan Library
                 </Text>
-                <ChevronRight size={13} color={colors.primary} style={{ marginLeft: 2 }} />
+                <ChevronRight size={13} color={colors.muted} style={{ marginLeft: 2 }} />
               </TouchableOpacity>
             </View>
           ) : (
@@ -381,7 +383,7 @@ const WorkoutPlanner = ({
       <GlassCard style={{ padding: spacing.xl, marginBottom: spacing.xl }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Calendar size={18} color={colors.primary} />
+            <Calendar size={18} color={colors.muted} />
             <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginLeft: spacing.sm }}>
               NEXT 7 DAYS
             </Text>

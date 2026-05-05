@@ -1,7 +1,6 @@
 import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import Svg, { Polyline } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   ChevronRight,
   Droplet,
@@ -185,10 +184,6 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
     </Text>
   );
 
-  // Hero — the ribbon at the top. Radial orange wash via a stack of two
-  // LinearGradients (RN has no native radial; this approximates one with
-  // an orange-tint top-left fading to surface, plus a soft fade to bg
-  // along the bottom edge so the section blends into the rest of Home).
   const renderHero = () => {
     const dateEyebrow = today
       .toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: '2-digit' })
@@ -203,27 +198,12 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
           borderRadius: radii.lg,
           borderWidth: 1,
           borderColor: palette.borderStrong,
+          borderTopWidth: 2,
+          borderTopColor: palette.liftActive,
           backgroundColor: palette.surface,
           overflow: 'hidden',
         }}
       >
-        {/* Top-left orange wash — Strava-style hero accent. Soft so it
-            doesn't compete with the verdict line on top of it. */}
-        <LinearGradient
-          colors={['rgba(252, 76, 2, 0.20)', 'rgba(252, 76, 2, 0)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.7, y: 0.7 }}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-        />
-        {/* Bottom fade to surface so the section reads as one piece, not
-            a card sitting on a wash. */}
-        <LinearGradient
-          colors={['transparent', palette.surface]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 0, y: 1 }}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-        />
-
         <View style={{ padding: spacing.xl, gap: spacing.md, minHeight: 200 }}>
           {/* Eyebrow row: date on the left, mini silhouette on the right */}
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>

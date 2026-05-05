@@ -216,6 +216,8 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
           borderRadius: radii.lg,
           borderWidth: 1,
           borderColor: palette.borderStrong,
+          borderTopWidth: 2,
+          borderTopColor: palette.textTertiary,
           backgroundColor: palette.surface,
           overflow: 'hidden',
         }}
@@ -409,6 +411,23 @@ const DayCell = ({
       }}
       accessibilityLabel={day.iso}
     >
+      {hasLogged && hasCoverage && (
+        // Silhouette sits absolutely behind the number at low opacity so
+        // the date stays grid-aligned. The same recruitment-weighted hue
+        // ramp as the full heatmap, just faded.
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: 1,
+          }}
+        >
+          <MiniSilhouette intensities={intensities ?? {}} size={24} tone="ghost" />
+        </View>
+      )}
       <Text
         style={{
           color: day.isToday ? accent.lift : text.primary,
@@ -420,15 +439,16 @@ const DayCell = ({
       >
         {day.date.getDate()}
       </Text>
-      {hasLogged && hasCoverage ? (
-        // Replace the "logged" dot with a tiny silhouette colored by the
-        // day's recruitment-weighted muscle volume — the same hue ramp as
-        // the full heatmap, just static and miniature for the grid.
-        <View style={{ marginTop: 2, alignItems: 'center' }}>
-          <MiniSilhouette intensities={intensities ?? {}} size={24} />
-        </View>
-      ) : (
-        <View style={{ flexDirection: 'row', gap: 2, marginTop: 3, height: 4 }}>
+      {!(hasLogged && hasCoverage) && (hasLogged || hasPlanned) && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            bottom: 3,
+            flexDirection: 'row',
+            gap: 2,
+          }}
+        >
           {hasLogged && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: accent.sessionUp }} />}
           {hasPlanned && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: accent.lift }} />}
         </View>

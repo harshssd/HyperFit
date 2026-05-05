@@ -160,16 +160,6 @@ export const shadows = {
   },
 };
 
-export const gradients = {
-  // Hero gradient: radial orange (top-left) + radial green (bottom-right) +
-  // linear bottom-fade. Implemented in components via expo-linear-gradient
-  // and an absolute-positioned radial overlay. These arrays are the
-  // simplified linear approximations for places where a radial isn't worth it.
-  primary: [palette.liftActive, '#ff6a2b'],
-  heroFade: ['transparent', palette.bg],
-  glassOverlay: ['rgba(10, 10, 10, 0.4)', 'rgba(10, 10, 10, 0.92)'],
-};
-
 export const theme = {
   colors,
   palette,
@@ -180,7 +170,6 @@ export const theme = {
   radii,
   fonts,
   shadows,
-  gradients,
 };
 
 export type Theme = typeof theme;
