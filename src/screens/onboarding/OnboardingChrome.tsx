@@ -2,6 +2,7 @@ import React, { ReactNode } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
+import { HeroGradient } from '../../components/HeroGradient';
 
 type Props = {
   step: 1 | 2 | 3;
@@ -26,7 +27,8 @@ export const OnboardingChrome = ({
   children,
 }: Props) => {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: palette.bg, overflow: 'hidden' }}>
+      <HeroGradient tint="orange" />
       <View
         style={{
           flexDirection: 'row',

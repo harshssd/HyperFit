@@ -5,7 +5,8 @@ import type { NativeStackNavigationProp, NativeStackScreenProps } from '@react-n
 import { ScreenLayout } from '../components/ScreenLayout';
 import GlassCard from '../components/GlassCard';
 import NeonButton from '../components/NeonButton';
-import { text, accent, spacing, radii } from '../styles/theme';
+import { HeroGradient } from '../components/HeroGradient';
+import { text, accent, palette, spacing, radii } from '../styles/theme';
 import { showError, showSuccess } from '../utils/alerts';
 import { useUser } from '../contexts/UserContext';
 import { useAppData } from '../contexts/AppDataContext';
@@ -103,7 +104,14 @@ export const SharedPlanScreen = ({ route }: Props) => {
 
         {!loading && plan && (
           <>
-            <GlassCard style={{ padding: spacing.lg, gap: spacing.sm }}>
+            <GlassCard style={{
+              padding: spacing.lg,
+              gap: spacing.sm,
+              overflow: 'hidden',
+              borderTopWidth: 2,
+              borderTopColor: palette.liftActive,
+            }}>
+              <HeroGradient tint="orange" />
               <Text style={{ color: text.tertiary, fontSize: 11, letterSpacing: 1, fontWeight: '700' }}>
                 SHARED PLAN
               </Text>
