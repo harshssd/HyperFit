@@ -6,8 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ChevronRight, Flame, Plus } from 'lucide-react-native';
-import { ForkKnifeCrossed } from '../../components/icons/ForkKnifeCrossed';
+import { ChevronRight, Flame, Plus, Zap } from 'lucide-react-native';
 import { ErrorState, LoadingState } from '../../components/StateView';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import { useNutritionDay } from './hooks/useNutritionDay';
@@ -194,7 +193,7 @@ export const NutritionView = ({
                   borderColor: accent.lift,
                 }}
               >
-                <ForkKnifeCrossed size={16} color={accent.lift} strokeWidth={2} />
+                <Zap size={16} color={accent.lift} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Eyebrow color={eyebrowColor}>{eyebrow}</Eyebrow>
