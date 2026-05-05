@@ -484,7 +484,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
           <View style={{ flex: 1 }}>
             <Eyebrow>This Week</Eyebrow>
             <Text style={{ color: text.primary, fontSize: 14, fontWeight: '800', marginTop: 2 }}>
-              Tap for full history & analytics
+              View history
             </Text>
           </View>
           <ChevronRight size={16} color={text.tertiary} />
