@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { AlertTriangle, MailCheck } from 'lucide-react-native';
 import { HeroGradient } from './HeroGradient';
 import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
@@ -17,6 +18,8 @@ import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
 type LoginViewProps = {
   onEmailLogin: (email: string, password: string) => Promise<any>;
   onGoogleLogin: () => Promise<any>;
+  /** Optional — wired only on iOS where the native Apple flow exists. */
+  onAppleLogin?: () => Promise<any>;
   onSignUp: (
     email: string,
     password: string,
@@ -24,7 +27,13 @@ type LoginViewProps = {
   onResetPassword: (email: string) => Promise<void>;
 };
 
-const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp, onResetPassword }: LoginViewProps) => {
+const LoginView = ({
+  onEmailLogin,
+  onGoogleLogin,
+  onAppleLogin,
+  onSignUp,
+  onResetPassword,
+}: LoginViewProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -69,6 +78,20 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp, onResetPassword }: L
       await onGoogleLogin();
     } catch (err: any) {
       setError(err.message || 'Google sign in failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAppleLogin = async () => {
+    if (!onAppleLogin) return;
+    setIsLoading(true);
+    setError('');
+    setInfo('');
+    try {
+      await onAppleLogin();
+    } catch (err: any) {
+      setError(err.message || 'Apple sign in failed');
     } finally {
       setIsLoading(false);
     }
@@ -296,6 +319,19 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp, onResetPassword }: L
             </Text>
             <View style={{ flex: 1, height: 1, backgroundColor: palette.borderStrong }} />
           </View>
+
+          {/* Apple primary (iOS-only). App Store guideline 4.8 requires
+              Sign in with Apple to be offered when third-party sign-in is
+              present and at least as prominent — render it above Google. */}
+          {Platform.OS === 'ios' && onAppleLogin ? (
+            <AppleAuthentication.AppleAuthenticationButton
+              buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
+              buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE}
+              cornerRadius={radii.md}
+              style={{ height: 48, marginBottom: spacing.md }}
+              onPress={handleAppleLogin}
+            />
+          ) : null}
 
           {/* Google secondary */}
           <TouchableOpacity

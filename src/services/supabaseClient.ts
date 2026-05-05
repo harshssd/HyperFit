@@ -24,6 +24,13 @@ export const signInWithGoogle = (redirectTo: string) =>
     options: { redirectTo, skipBrowserRedirect: true },
   });
 
+// Apple sign-in via the native iOS flow. The caller (useAuth) drives
+// AppleAuthentication.signInAsync, harvests the identity_token + raw
+// nonce, then hands them here. Supabase verifies the ID token's nonce
+// hash against the raw nonce server-side — stops replay attacks.
+export const signInWithAppleIdToken = (idToken: string, nonce: string) =>
+  supabase.auth.signInWithIdToken({ provider: 'apple', token: idToken, nonce });
+
 export const resetPasswordForEmail = (email: string, redirectTo?: string) =>
   supabase.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
 

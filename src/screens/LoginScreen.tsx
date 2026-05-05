@@ -8,6 +8,7 @@ export const LoginScreen = () => {
     <LoginView
       onEmailLogin={auth.signInWithEmail}
       onGoogleLogin={auth.signInWithGoogle}
+      onAppleLogin={auth.signInWithApple}
       onSignUp={auth.signUpWithEmail}
       onResetPassword={auth.resetPassword}
     />

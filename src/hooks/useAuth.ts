@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import type { User } from '@supabase/supabase-js';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
+import * as AppleAuthentication from 'expo-apple-authentication';
+import * as Crypto from 'expo-crypto';
 import Constants from 'expo-constants';
 import { supabase } from '../services/supabase';
 import {
@@ -10,6 +13,7 @@ import {
   signInWithEmail as svcSignInWithEmail,
   signUpWithEmail as svcSignUpWithEmail,
   signInWithGoogle as svcSignInWithGoogle,
+  signInWithAppleIdToken as svcSignInWithAppleIdToken,
   resetPasswordForEmail as svcResetPasswordForEmail,
   signOut as svcSignOut,
 } from '../services/supabaseClient';
@@ -26,6 +30,7 @@ export type UseAuthReturn = {
     password: string,
   ) => Promise<{ needsConfirmation: boolean; alreadyExists: boolean }>;
   signInWithGoogle: () => Promise<void>;
+  signInWithApple: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
@@ -114,6 +119,58 @@ export const useAuth = (): UseAuthReturn => {
     }
   }, []);
 
+  // Apple sign-in (iOS native flow). App Store guideline 4.8 requires this
+  // since we ship Google OAuth. Throws on platform mismatch so callers can
+  // hide the button entirely on non-iOS rather than silently swallowing.
+  //
+  // Nonce handshake:
+  //   1. Generate a 32-byte random `rawNonce` and SHA-256 hash it.
+  //   2. Pass the hashed nonce to AppleAuthentication.signInAsync — Apple
+  //      embeds it in the issued identity_token.
+  //   3. Hand the rawNonce + identity_token to Supabase. Supabase re-hashes
+  //      the rawNonce server-side and verifies it matches the token claim.
+  // Skipping the nonce here would let an attacker replay a captured token.
+  const signInWithApple = useCallback(async () => {
+    if (Platform.OS !== 'ios') {
+      throw new Error('Apple sign-in is iOS only');
+    }
+    const isAvailable = await AppleAuthentication.isAvailableAsync();
+    if (!isAvailable) {
+      throw new Error('Apple sign-in is not available on this device');
+    }
+
+    const rawNonce = Array.from(Crypto.getRandomBytes(32))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    const hashedNonce = await Crypto.digestStringAsync(
+      Crypto.CryptoDigestAlgorithm.SHA256,
+      rawNonce,
+    );
+
+    let credential: AppleAuthentication.AppleAuthenticationCredential;
+    try {
+      credential = await AppleAuthentication.signInAsync({
+        requestedScopes: [
+          AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+          AppleAuthentication.AppleAuthenticationScope.EMAIL,
+        ],
+        nonce: hashedNonce,
+      });
+    } catch (err: any) {
+      // User-cancelled is not an error path — return silently.
+      if (err?.code === 'ERR_REQUEST_CANCELED') return;
+      throw new Error(err?.message || 'Apple sign-in failed');
+    }
+
+    const idToken = credential.identityToken;
+    if (!idToken) {
+      throw new Error('Apple did not return an identity token');
+    }
+
+    const { error } = await svcSignInWithAppleIdToken(idToken, rawNonce);
+    if (error) throw new Error(friendlyAuthError(error));
+  }, []);
+
   const resetPassword = useCallback(async (email: string) => {
     // No deep-link handler yet — Supabase's hosted reset page handles the
     // new-password form. When we add an in-app reset screen, pass redirectTo
@@ -126,5 +183,14 @@ export const useAuth = (): UseAuthReturn => {
     await svcSignOut();
   }, []);
 
-  return { user, status, signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword, signOut };
+  return {
+    user,
+    status,
+    signInWithEmail,
+    signUpWithEmail,
+    signInWithGoogle,
+    signInWithApple,
+    resetPassword,
+    signOut,
+  };
 };
