@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import {
   ChevronRight,
+  Droplet,
   Flame,
-  Plus,
   Salad,
   TrendingUp,
   BarChart2,
@@ -13,10 +13,7 @@ import { palette, text, accent, spacing, radii, fonts } from '../styles/theme';
 import { UserData } from '../types/workout';
 import { calculateXP } from '../features/workout/helpers';
 import { useNutritionDayContext } from '../features/nutrition/hooks/useNutritionDay';
-import { WaterControls } from '../features/nutrition/components/WaterControls';
-import { AddMealModal } from '../features/nutrition/components/AddMealModal';
 import { formatKcal, heroEyebrow } from '../features/nutrition/helpers';
-import type { MealSlot } from '../types/supabase';
 
 type HomeViewProps = {
   data: UserData;
@@ -28,40 +25,26 @@ type HomeViewProps = {
   onOpenHistory?: () => void;
 };
 
-// Daypart-aware default slot for the "+ Add meal" CTA. Modal still lets
-// the user pick a different slot; this is the cheap "right answer."
-const slotForHour = (hour: number): MealSlot => {
-  if (hour < 10) return 'breakfast';
-  if (hour < 14) return 'lunch';
-  if (hour < 17) return 'snack';
-  if (hour < 21) return 'dinner';
-  return 'snack';
-};
-
 const FIBER_COLOR = '#4fb3a8';
 const CHEAT_BORDER = '#a855f7';
 
 /**
- * HomeView — pure dashboard. Two surfaces:
+ * HomeView — pure dashboard. Two read-only insight surfaces:
  *
- *  1. Fuel card: inline macro pills + WaterControls + Add Meal CTA. Same
- *     state as the Nutrition tab via NutritionDayProvider, so logging from
- *     either surface updates the other immediately.
- *  2. Insight tiles: streak / sessions this week / total XP. Tap anywhere →
+ *  1. Nutrition glance: kcal readout + macro pills + water progress. Tap
+ *     opens the Nutrition tab where logging happens.
+ *  2. Workout insight tiles: streak / sessions this week / total XP. Tap
  *     opens the History + Analytics modal.
  *
- * No "start a workout" affordance lives here. The Workout tab owns the full
- * session-start surface (Today's Session, Alternate, Manual, Browse Library,
- * Next 7 Days). Resolves FINDING-003 — Home/Plans IA overlap — by giving
- * each tab one job.
+ * No action controls live here. Workout actions live on the Workout tab,
+ * nutrition actions live on the Nutrition tab. Each tab has one job.
+ * Placeholders fill empty insight slots so the dashboard always reads as
+ * a coherent shape, not a half-loaded page.
  */
 
 const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
   const dayCtx = useNutritionDayContext();
-  const [addMealRequest, setAddMealRequest] = useState<{ slot: MealSlot } | null>(null);
 
-  // Reusable section caption — small uppercase mono label that anchors each
-  // sub-block to the broader visual language.
   const Eyebrow = ({
     children,
     color = text.quaternary,
@@ -83,9 +66,10 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
     </Text>
   );
 
-  // Inline Fuel card — same data + same controls as the Nutrition tab.
-  // Reused via NutritionDayProvider so logging here updates Nutrition too.
-  const renderFuelCard = () => {
+  // Nutrition glance — read-only insight. Tap opens Nutrition tab where
+  // WaterControls, Add Meal CTA, and the day feed live. When no goal is
+  // set we show a "Set a nutrition goal" placeholder instead of macros.
+  const renderNutritionGlance = () => {
     const isCheat = dayCtx.summary?.is_cheat_day ?? false;
     const status = dayCtx.summary?.status ?? 'empty';
     const eyebrow = heroEyebrow(status, isCheat, dayCtx.hasGoal);
@@ -106,9 +90,6 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
     const fatTarget     = dayCtx.settings?.fat_target_g     ?? 70;
     const fiberTarget   = dayCtx.settings?.fiber_target_g   ?? 30;
     const waterTarget   = dayCtx.settings?.water_target_ml  ?? 2000;
-    const waterCup      = dayCtx.settings?.water_cup_ml     ?? 250;
-    const waterBottle   = dayCtx.settings?.water_bottle_ml  ?? 500;
-    const waterUnit     = dayCtx.settings?.water_unit       ?? 'ml';
 
     const kcalCurrent    = dayCtx.summary?.kcal_total      ?? 0;
     const proteinCurrent = dayCtx.summary?.protein_total_g ?? 0;
@@ -116,10 +97,15 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
     const fatCurrent     = dayCtx.summary?.fat_total_g     ?? 0;
     const fiberCurrent   = dayCtx.summary?.fiber_total_g   ?? 0;
     const waterCurrent   = dayCtx.summary?.water_total_ml  ?? 0;
+    const waterPct       = waterTarget > 0 ? Math.min(1, waterCurrent / waterTarget) : 0;
 
     return (
-      <View
-        testID="home-fuel"
+      <TouchableOpacity
+        testID="home-nutrition"
+        onPress={() => onChangeView('nutrition')}
+        accessibilityRole="button"
+        accessibilityLabel="Open nutrition tab to log meals and water"
+        activeOpacity={0.85}
         style={{
           marginBottom: spacing.xl,
           borderRadius: radii.lg,
@@ -134,10 +120,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
         }}
       >
         <View style={{ padding: spacing.xl }}>
-          <TouchableOpacity
-            testID="home-fuel-header"
-            onPress={() => onChangeView('nutrition')}
-            activeOpacity={0.85}
+          <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
@@ -182,68 +165,61 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
               </Text>
             </View>
             <ChevronRight size={16} color={text.tertiary} />
-          </TouchableOpacity>
-
-          <View style={{ flexDirection: 'row', gap: 10, marginBottom: spacing.lg }}>
-            <MacroPill label="Protein" current={proteinCurrent} target={proteinTarget} color={accent.lift} />
-            <MacroPill label="Carbs"   current={carbCurrent}    target={carbTarget}    color={accent.sessionUp} />
-            <MacroPill label="Fat"     current={fatCurrent}     target={fatTarget}     color={text.tertiary} />
-            <MacroPill label="Fiber"   current={fiberCurrent}   target={fiberTarget}   color={FIBER_COLOR} />
           </View>
 
-          <View style={{ gap: spacing.sm }}>
-            <WaterControls
-              totalMl={waterCurrent}
-              targetMl={waterTarget}
-              cupMl={waterCup}
-              bottleMl={waterBottle}
-              unit={waterUnit}
-              onAddMl={dayCtx.addWater}
-              onUndo={dayCtx.undoLastWater}
+          {dayCtx.hasGoal ? (
+            <>
+              <View style={{ flexDirection: 'row', gap: 10, marginBottom: spacing.lg }}>
+                <MacroPill label="Protein" current={proteinCurrent} target={proteinTarget} color={accent.lift} />
+                <MacroPill label="Carbs"   current={carbCurrent}    target={carbTarget}    color={accent.sessionUp} />
+                <MacroPill label="Fat"     current={fatCurrent}     target={fatTarget}     color={text.tertiary} />
+                <MacroPill label="Fiber"   current={fiberCurrent}   target={fiberTarget}   color={FIBER_COLOR} />
+              </View>
+
+              {/* Water progress strip — read-only mirror of the Nutrition
+                  tab's WaterControls. Tap-through opens the tab where
+                  +CUP / +BOTTLE buttons live. */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <Droplet size={14} color={accent.sessionUp} />
+                <View
+                  style={{
+                    flex: 1,
+                    height: 6,
+                    borderRadius: 3,
+                    backgroundColor: palette.surfaceAlt,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <View style={{ width: `${waterPct * 100}%`, height: '100%', backgroundColor: accent.sessionUp }} />
+                </View>
+                <Text
+                  style={{
+                    color: text.tertiary,
+                    fontFamily: fonts.family.mono,
+                    fontSize: 11,
+                    fontWeight: '800',
+                    letterSpacing: 1.2,
+                    fontVariant: fonts.tabularNums,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {Math.round(waterCurrent / 1000 * 10) / 10}L / {Math.round(waterTarget / 1000 * 10) / 10}L
+                </Text>
+              </View>
+            </>
+          ) : (
+            <Placeholder
+              label="Set a nutrition goal"
+              hint="Tap to pick kcal + macro targets in the Nutrition tab"
             />
-
-            <TouchableOpacity
-              testID="home-add-meal"
-              onPress={() => {
-                const hour = new Date().getHours();
-                setAddMealRequest({ slot: slotForHour(hour) });
-              }}
-              accessibilityRole="button"
-              accessibilityLabel="Add meal entry"
-              activeOpacity={0.85}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: spacing.sm,
-                paddingVertical: spacing.md,
-                marginTop: spacing.xs,
-                borderRadius: radii.md,
-                backgroundColor: accent.lift,
-              }}
-            >
-              <Plus size={16} color="#fff" strokeWidth={3} />
-              <Text
-                style={{
-                  color: '#fff',
-                  fontFamily: fonts.family.mono,
-                  fontSize: 12,
-                  letterSpacing: 2.2,
-                  textTransform: 'uppercase',
-                  fontWeight: '800',
-                }}
-              >
-                Add meal
-              </Text>
-            </TouchableOpacity>
-          </View>
+          )}
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 
-  // Insight tiles — three glanceable numbers backed by data we already have
-  // (no new fetches). Tapping anywhere opens the History + Analytics modal.
+  // Workout insight tiles — three glanceable numbers. Tap opens the History
+  // + Analytics modal. Always shows numbers (0 is a valid placeholder shape).
   const renderInsightTiles = () => {
     const xp = calculateXP(data);
     const streak = data.gymLogs?.length ?? 0;
@@ -251,6 +227,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
     sevenDayCutoff.setDate(sevenDayCutoff.getDate() - 6);
     const sevenDayCutoffISO = sevenDayCutoff.toISOString().slice(0, 10);
     const sessionsThisWeek = (data.gymLogs ?? []).filter(d => d >= sevenDayCutoffISO).length;
+    const hasAnyHistory = streak > 0 || xp > 0;
 
     const Tile = ({
       icon,
@@ -337,7 +314,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
             <BarChart2 size={14} color={text.secondary} />
           </View>
           <View style={{ flex: 1 }}>
-            <Eyebrow>Insights</Eyebrow>
+            <Eyebrow>Workout Insights</Eyebrow>
             <Text
               style={{
                 color: text.primary,
@@ -346,59 +323,93 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
                 marginTop: 2,
               }}
             >
-              Tap for full history & analytics
+              {hasAnyHistory ? 'Tap for full history & analytics' : 'No sessions yet'}
             </Text>
           </View>
           <ChevronRight size={16} color={text.tertiary} />
         </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            paddingHorizontal: spacing.lg,
-            paddingVertical: spacing.lg,
-            gap: spacing.md,
-          }}
-        >
-          <Tile
-            icon={<Flame size={14} color={accent.lift} />}
-            value={streak}
-            label="Day Streak"
-            tint={accent.lift}
-          />
-          <Tile
-            icon={<TrendingUp size={14} color={accent.sessionUp} />}
-            value={sessionsThisWeek}
-            label="This Week"
-            tint={accent.sessionUp}
-          />
-          <Tile
-            icon={<BarChart2 size={14} color={text.secondary} />}
-            value={xp}
-            label="Total XP"
-            tint={palette.borderStrong}
-          />
-        </View>
+        {hasAnyHistory ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              paddingHorizontal: spacing.lg,
+              paddingVertical: spacing.lg,
+              gap: spacing.md,
+            }}
+          >
+            <Tile
+              icon={<Flame size={14} color={accent.lift} />}
+              value={streak}
+              label="Day Streak"
+              tint={accent.lift}
+            />
+            <Tile
+              icon={<TrendingUp size={14} color={accent.sessionUp} />}
+              value={sessionsThisWeek}
+              label="This Week"
+              tint={accent.sessionUp}
+            />
+            <Tile
+              icon={<BarChart2 size={14} color={text.secondary} />}
+              value={xp}
+              label="Total XP"
+              tint={palette.borderStrong}
+            />
+          </View>
+        ) : (
+          <View style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.lg }}>
+            <Placeholder
+              label="Log your first workout"
+              hint="Tap the Workout tab to start a session — stats appear here once you finish"
+            />
+          </View>
+        )}
       </TouchableOpacity>
     );
   };
 
   return (
-    <>
-      <ScrollView style={homeStyles.homeView} contentContainerStyle={homeStyles.homeViewContent}>
-        {renderFuelCard()}
-        {renderInsightTiles()}
-      </ScrollView>
-
-      <AddMealModal
-        visible={addMealRequest !== null}
-        defaultSlot={addMealRequest?.slot ?? 'snack'}
-        defaultLabel={null}
-        onClose={() => setAddMealRequest(null)}
-        onSave={dayCtx.addEntry}
-      />
-    </>
+    <ScrollView style={homeStyles.homeView} contentContainerStyle={homeStyles.homeViewContent}>
+      {renderNutritionGlance()}
+      {renderInsightTiles()}
+    </ScrollView>
   );
 };
+
+// Empty-state filler used inside an insight surface when there's no data
+// to show yet. Kept dim and uppercase so it reads as a placeholder, not a
+// real metric. Caller is responsible for the surrounding tap-through.
+const Placeholder = ({ label, hint }: { label: string; hint: string }) => (
+  <View
+    style={{
+      paddingVertical: spacing.md,
+      alignItems: 'center',
+      gap: 4,
+    }}
+  >
+    <Text
+      style={{
+        color: text.tertiary,
+        fontFamily: fonts.family.mono,
+        fontSize: 12,
+        fontWeight: '800',
+        letterSpacing: 1.6,
+        textTransform: 'uppercase',
+      }}
+    >
+      {label}
+    </Text>
+    <Text
+      style={{
+        color: text.quaternary,
+        fontSize: 12,
+        textAlign: 'center',
+      }}
+    >
+      {hint}
+    </Text>
+  </View>
+);
 
 const MacroPill = ({
   label,
