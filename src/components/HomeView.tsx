@@ -131,6 +131,7 @@ const HomeView = ({
     onPress,
     testID,
     accessibilityLabel,
+    flat = false,
   }: {
     icon: React.ReactNode;
     iconColor?: string;
@@ -144,6 +145,10 @@ const HomeView = ({
     onPress?: () => void;
     testID?: string;
     accessibilityLabel?: string;
+    // When inside a card already (e.g. the Active Plan card), use flat to
+    // drop the border/background so the row reads as a list item, not a
+    // nested mini-card. Caller renders dividers between flat rows.
+    flat?: boolean;
   }) => {
     const inner = (
       <View
@@ -151,11 +156,12 @@ const HomeView = ({
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.md,
-          padding: spacing.md,
-          borderRadius: radii.md,
-          borderWidth: 1,
+          paddingVertical: flat ? spacing.sm : spacing.md,
+          paddingHorizontal: flat ? 0 : spacing.md,
+          borderRadius: flat ? 0 : radii.md,
+          borderWidth: flat ? 0 : 1,
           borderColor: palette.borderStrong,
-          backgroundColor: palette.surfaceAlt,
+          backgroundColor: flat ? 'transparent' : palette.surfaceAlt,
         }}
       >
         <View
@@ -477,28 +483,40 @@ const HomeView = ({
             </NeonButton>
 
             {/* Even with a session scheduled today, the user may want to swap
-                in a different plan-session or build something custom. */}
-            <BannerRow
-              testID="home-pick-from-library-planned"
-              onPress={handlePickFromLibrary}
-              accessibilityLabel="Pick a different workout from any plan"
-              icon={<Layout size={16} color={text.primary} />}
-              eyebrow="From any plan"
-              title="Pick a Different Workout"
-              sub="Swap today's session for any other"
-              rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-            />
-
-            <BannerRow
-              testID="home-start-custom-planned"
-              onPress={handleStartCustom}
-              accessibilityLabel="Start custom workout"
-              icon={<PlusCircle size={16} color={text.primary} />}
-              eyebrow="Blank Session"
-              title="Start Custom Workout"
-              sub="Build something exercise by exercise"
-              rightSlot={<ChevronRight size={18} color={text.tertiary} />}
-            />
+                in a different plan-session or build something custom. Render
+                as flat list rows (not nested cards) so the active-plan card
+                doesn't card-in-card-in-card itself. */}
+            <View
+              style={{
+                paddingTop: spacing.sm,
+                borderTopWidth: 1,
+                borderTopColor: palette.borderStrong,
+              }}
+            >
+              <BannerRow
+                flat
+                testID="home-pick-from-library-planned"
+                onPress={handlePickFromLibrary}
+                accessibilityLabel="Pick a different workout from any plan"
+                icon={<Layout size={16} color={text.primary} />}
+                eyebrow="From any plan"
+                title="Pick a Different Workout"
+                sub="Swap today's session for any other"
+                rightSlot={<ChevronRight size={18} color={text.tertiary} />}
+              />
+              <View style={{ height: 1, backgroundColor: palette.borderStrong }} />
+              <BannerRow
+                flat
+                testID="home-start-custom-planned"
+                onPress={handleStartCustom}
+                accessibilityLabel="Start custom workout"
+                icon={<PlusCircle size={16} color={text.primary} />}
+                eyebrow="Blank Session"
+                title="Start Custom Workout"
+                sub="Build something exercise by exercise"
+                rightSlot={<ChevronRight size={18} color={text.tertiary} />}
+              />
+            </View>
           </View>
         );
       }
