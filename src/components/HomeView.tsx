@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import {
   Dumbbell,
   Play,
@@ -504,7 +504,7 @@ const HomeView = ({
                 sub="Swap today's session for any other"
                 rightSlot={<ChevronRight size={18} color={text.tertiary} />}
               />
-              <View style={{ height: 1, backgroundColor: palette.borderStrong }} />
+              <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: palette.borderStrong }} />
               <BannerRow
                 flat
                 testID="home-start-custom-planned"

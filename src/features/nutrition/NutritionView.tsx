@@ -387,7 +387,7 @@ const MacroPill = ({
       >
         {current}
         <Text style={{ color: text.quaternary, fontWeight: '600', fontSize: 12 }}>
-          {' / '}{target}g
+          {target > 0 ? ` / ${target}g` : 'g'}
         </Text>
       </Text>
       <View
