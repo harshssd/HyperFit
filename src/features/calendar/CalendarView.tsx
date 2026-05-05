@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronRight as ChevronRightIcon } from 'lucide-react-native';
 import GlassCard from '../../components/GlassCard';
 import { palette, text, accent, spacing, radii, fonts } from '../../styles/theme';
 import { useUser } from '../../contexts/UserContext';
@@ -12,6 +12,7 @@ import { useMonthMuscleIntensities } from './useMonthMuscleIntensities';
 import { MiniSilhouette } from '../analytics/heatmap/MiniSilhouette';
 import type { MuscleId } from '../analytics/heatmap/muscleRegions';
 import type { RootStackParamList } from '../../navigation/types';
+import { getUpcomingWorkouts } from '../workout/helpers';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -198,12 +199,174 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
     return <View>{body}</View>;
   }
 
+  // Wrap body in the same card chrome as Home / Plans / Nutrition: hairline
+  // border on `palette.surface`, icon-chip + eyebrow header, padding inside.
+  // Without this, Calendar reads as a bare grid floating on bg while the
+  // other tabs read as composed dashboards. Same pattern, same surface.
+  const upcoming = getUpcomingWorkouts(activePlan ?? undefined, 5, 0);
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: palette.bg }}
       contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}
     >
-      {body}
+      <View
+        style={{
+          marginBottom: spacing.xl,
+          borderRadius: radii.lg,
+          borderWidth: 1,
+          borderColor: palette.borderStrong,
+          backgroundColor: palette.surface,
+          overflow: 'hidden',
+        }}
+      >
+        {/* Card header — icon-chip + eyebrow + month label. Mirrors the
+            "ACTIVE PLAN" / "FUEL" / "THIS WEEK" header pattern from the
+            other tabs so all dashboards read as one design system. */}
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: spacing.sm,
+            paddingHorizontal: spacing.lg,
+            paddingTop: spacing.lg,
+            paddingBottom: spacing.md,
+            borderBottomWidth: 1,
+            borderBottomColor: palette.borderStrong,
+          }}
+        >
+          <View
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: radii.sm,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: palette.surfaceAlt,
+              borderWidth: 1,
+              borderColor: palette.borderStrong,
+            }}
+          >
+            <CalendarIcon size={14} color={text.secondary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: text.quaternary, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>
+              Schedule
+            </Text>
+            <Text style={{ color: text.primary, fontSize: 14, fontWeight: '800', marginTop: 2 }}>
+              Month at a glance
+            </Text>
+          </View>
+        </View>
+        <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg }}>
+          {body}
+        </View>
+      </View>
+
+      {/* Upcoming sibling card — fills the empty space below the calendar
+          and gives users a quick "what's next" feed without having to read
+          the grid. Pulled from the active plan's schedule. */}
+      {activePlan && upcoming.length > 0 ? (
+        <View
+          style={{
+            marginBottom: spacing.xl,
+            borderRadius: radii.lg,
+            borderWidth: 1,
+            borderColor: palette.borderStrong,
+            backgroundColor: palette.surface,
+            overflow: 'hidden',
+          }}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.sm,
+              paddingHorizontal: spacing.lg,
+              paddingTop: spacing.lg,
+              paddingBottom: spacing.md,
+              borderBottomWidth: 1,
+              borderBottomColor: palette.borderStrong,
+            }}
+          >
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: radii.sm,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(252, 76, 2, 0.12)',
+                borderWidth: 1,
+                borderColor: accent.lift,
+              }}
+            >
+              <CalendarIcon size={14} color={accent.lift} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: accent.lift, fontSize: 11, fontWeight: '800', letterSpacing: 1.6, fontFamily: 'monospace', textTransform: 'uppercase' }}>
+                Upcoming
+              </Text>
+              <Text style={{ color: text.primary, fontSize: 14, fontWeight: '800', marginTop: 2 }}>
+                Next {upcoming.length} session{upcoming.length === 1 ? '' : 's'}
+              </Text>
+            </View>
+          </View>
+          <View>
+            {upcoming.map((u, i) => (
+              <View
+                key={`${u.sessionId}-${i}`}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: spacing.lg,
+                  paddingVertical: spacing.md,
+                  borderBottomWidth: i < upcoming.length - 1 ? 1 : 0,
+                  borderBottomColor: palette.borderSubtle,
+                  gap: spacing.md,
+                }}
+              >
+                <View style={{ minWidth: 60 }}>
+                  <Text
+                    style={{
+                      color: u.daysUntil === 0 ? accent.lift : text.tertiary,
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      fontWeight: '800',
+                      letterSpacing: 1.4,
+                      fontVariant: fonts.tabularNums,
+                    }}
+                  >
+                    {u.daysUntil === 0
+                      ? 'TODAY'
+                      : u.daysUntil === 1
+                        ? 'TOMORROW'
+                        : u.date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: '2-digit' }).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: text.primary, fontSize: 14, fontWeight: '700' }} numberOfLines={1}>
+                    {u.name}
+                  </Text>
+                  <Text
+                    style={{
+                      color: text.quaternary,
+                      fontFamily: 'monospace',
+                      fontSize: 10,
+                      fontWeight: '700',
+                      letterSpacing: 1.2,
+                      marginTop: 2,
+                    }}
+                  >
+                    {u.exercises} EXERCISES
+                  </Text>
+                </View>
+                <ChevronRightIcon size={14} color={text.tertiary} />
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
     </ScrollView>
   );
 };

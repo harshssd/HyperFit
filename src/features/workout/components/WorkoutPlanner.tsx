@@ -6,7 +6,7 @@ import GlassCard from '../../../components/GlassCard';
 import SharePlanSheet from '../../../components/share/SharePlanSheet';
 import workoutStyles from '../../../styles/workout';
 import homeStyles from '../../../styles/home';
-import { colors, spacing, radii } from '../../../styles/theme';
+import { colors, spacing, radii, palette } from '../../../styles/theme';
 import { WorkoutPlan } from '../../../types/workout';
 import { getWorkoutForDate } from '../helpers';
 import PlanManagementMenu from './PlanManagementMenu';
@@ -98,8 +98,8 @@ const WorkoutPlanner = ({
         padding: 0, 
         marginBottom: spacing.xl, 
         overflow: 'hidden',
-        borderWidth: 2,
-        borderColor: activePlan ? colors.primary : 'rgba(255, 255, 255, 0.1)'
+        borderWidth: 1,
+        borderColor: palette.borderStrong,
       }}>
         {/* Header: Active Plan Status */}
         <View style={{ 
