@@ -301,65 +301,56 @@ const HistoryAnalyticsView = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      {/* History/Analytics toggle. Sits inside the standard ScreenLayout
-          shell — no self-painted bg, no extra heading. Padding matches
-          Home and Plans (spacing.xl) so all tabs feel unified. */}
+      {/* Segmented control. Pill chrome matching the rest of the app: orange-
+          tinted active state, surface-on-bg inactive, Inter caps on labels. */}
       <View style={{
-        paddingHorizontal: spacing.xl,
-        paddingTop: spacing.xl,
+        paddingHorizontal: spacing.lg,
+        paddingTop: spacing.lg,
         paddingBottom: spacing.md,
       }}>
         <View style={{
           flexDirection: 'row',
-          backgroundColor: palette.surfaceAlt,
-          borderRadius: radii.md,
+          backgroundColor: palette.surface,
+          borderWidth: 1,
+          borderColor: palette.borderStrong,
+          borderRadius: radii.full,
           padding: 4,
+          gap: 4,
         }}>
-          <TouchableOpacity
-            onPress={() => setViewMode('history')}
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: spacing.sm,
-              backgroundColor: viewMode === 'history' ? colors.primary : 'transparent',
-              borderRadius: radii.sm,
-              gap: spacing.xs,
-            }}
-          >
-            <History size={18} color={viewMode === 'history' ? '#0f172a' : colors.muted} />
-            <Text style={{
-              color: viewMode === 'history' ? '#0f172a' : colors.muted,
-              fontWeight: 'bold',
-              fontSize: 14,
-            }}>
-              History
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setViewMode('analytics')}
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              paddingVertical: spacing.sm,
-              backgroundColor: viewMode === 'analytics' ? colors.primary : 'transparent',
-              borderRadius: radii.sm,
-              gap: spacing.xs,
-            }}
-          >
-            <BarChart2 size={18} color={viewMode === 'analytics' ? '#0f172a' : colors.muted} />
-            <Text style={{
-              color: viewMode === 'analytics' ? '#0f172a' : colors.muted,
-              fontWeight: 'bold',
-              fontSize: 14,
-            }}>
-              Analytics
-            </Text>
-          </TouchableOpacity>
+          {([
+            { key: 'history', label: 'HISTORY', Icon: History },
+            { key: 'analytics', label: 'ANALYTICS', Icon: BarChart2 },
+          ] as const).map(({ key, label, Icon }) => {
+            const active = viewMode === key;
+            return (
+              <TouchableOpacity
+                key={key}
+                onPress={() => setViewMode(key)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: active }}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingVertical: spacing.sm + 2,
+                  backgroundColor: active ? 'rgba(252, 76, 2, 0.14)' : 'transparent',
+                  borderRadius: radii.full,
+                  gap: spacing.xs,
+                }}
+              >
+                <Icon size={14} color={active ? accent.lift : text.tertiary} />
+                <Text style={{
+                  color: active ? accent.lift : text.tertiary,
+                  fontFamily: fonts.family.black,
+                  fontSize: 11,
+                  letterSpacing: 1.4,
+                }}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
 
