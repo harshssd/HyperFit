@@ -9,8 +9,8 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { X, Search, Plus, Check } from 'lucide-react-native';
-import { palette, text, accent, spacing, radii } from '../styles/theme';
+import { X, Search, Plus, Check, ArrowRight } from 'lucide-react-native';
+import { palette, text, accent, spacing, radii, fonts } from '../styles/theme';
 
 type AddExerciseOverlayProps = {
   visible: boolean;
@@ -23,6 +23,15 @@ type AddExerciseOverlayProps = {
   onSubmit: () => void;
   onSelectSuggestion: (text: string) => void;
   onClose: () => void;
+  /**
+   * When true, the sticky bottom CTA (after >=1 added) reads "DONE" and only
+   * dismisses the overlay — assumed a workout session is already in progress.
+   * When false (default), the CTA reads "START WORKOUT (N EXERCISES)" and
+   * triggers `onStartWorkout` in addition to dismissing.
+   */
+  sessionActive?: boolean;
+  /** Required when `sessionActive` is false — fired by the START WORKOUT CTA. */
+  onStartWorkout?: () => void;
 };
 
 /**
@@ -30,6 +39,10 @@ type AddExerciseOverlayProps = {
  * keyboard automatically. Search input on top, scrollable suggestion list, and
  * a "+ Add 'X' as new exercise" footer row when the typed query has no exact
  * match in the suggestions (free-text fallback as a last resort).
+ *
+ * After at least one exercise has been added, a sticky bottom CTA appears so
+ * the user can leave the modal AND start the workout in one tap (or just
+ * dismiss when the session is already underway).
  */
 const AddExerciseOverlay = ({
   visible,
@@ -40,6 +53,8 @@ const AddExerciseOverlay = ({
   onSubmit,
   onSelectSuggestion,
   onClose,
+  sessionActive = false,
+  onStartWorkout,
 }: AddExerciseOverlayProps) => {
   const trimmed = newExerciseName.trim();
   const exactMatch = useMemo(
@@ -58,6 +73,21 @@ const AddExerciseOverlay = ({
   const showFreeTextFallback =
     trimmed.length > 0 && !exactMatch && !isFreeTextDuplicate;
 
+  const addedCount = alreadyAdded.length;
+  const showStickyCta = addedCount > 0;
+  const ctaLabel = sessionActive
+    ? 'DONE'
+    : `START WORKOUT (${addedCount} ${addedCount === 1 ? 'EXERCISE' : 'EXERCISES'})`;
+
+  const handleStickyPress = () => {
+    if (sessionActive) {
+      onClose();
+    } else {
+      onStartWorkout?.();
+      onClose();
+    }
+  };
+
   return (
     <Modal
       visible={visible}
@@ -69,7 +99,8 @@ const AddExerciseOverlay = ({
         style={{ flex: 1, backgroundColor: palette.bg }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header — title + close. X is the only way out, so keep it big. */}
+        {/* Header — 2px orange top accent rule (lift signal) + title + close. */}
+        <View style={{ height: 2, backgroundColor: accent.lift }} />
         <View
           style={{
             flexDirection: 'row',
@@ -79,23 +110,22 @@ const AddExerciseOverlay = ({
             paddingTop: spacing.lg,
             paddingBottom: spacing.md,
             borderBottomWidth: 1,
-            borderBottomColor: palette.borderSubtle,
+            borderBottomColor: palette.borderStrong,
           }}
         >
           <View style={{ width: 24 }} />
           <Text
             style={{
               color: text.primary,
-              fontFamily: 'monospace',
+              fontFamily: fonts.family.black,
               fontSize: 12,
-              fontWeight: '700',
               letterSpacing: 1.6,
             }}
           >
             ADD EXERCISE
           </Text>
           <TouchableOpacity onPress={onClose} accessibilityLabel="Close">
-            <X size={24} color={text.primary} />
+            <X size={22} color={text.secondary} />
           </TouchableOpacity>
         </View>
 
@@ -108,8 +138,8 @@ const AddExerciseOverlay = ({
               gap: spacing.sm,
               backgroundColor: palette.surface,
               borderWidth: 1,
-              borderColor: palette.borderSubtle,
-              borderRadius: radii.sm,
+              borderColor: palette.borderStrong,
+              borderRadius: radii.md,
               paddingHorizontal: spacing.md,
             }}
           >
@@ -127,6 +157,7 @@ const AddExerciseOverlay = ({
               style={{
                 flex: 1,
                 color: text.primary,
+                fontFamily: fonts.family.base,
                 fontSize: 15,
                 paddingVertical: spacing.md,
               }}
@@ -139,7 +170,11 @@ const AddExerciseOverlay = ({
             pattern; users don't have to commit via a separate ADD button). */}
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}
+          contentContainerStyle={{
+            padding: spacing.lg,
+            // Leave room for the sticky CTA so the last row isn't hidden.
+            paddingBottom: showStickyCta ? 96 : spacing.xxl,
+          }}
           keyboardShouldPersistTaps="handled"
         >
           {suggestions.map((s, idx) => {
@@ -157,23 +192,48 @@ const AddExerciseOverlay = ({
                   paddingVertical: spacing.md,
                   paddingHorizontal: spacing.md,
                   borderWidth: 1,
-                  borderColor: isAdded ? accent.lift : palette.borderSubtle,
-                  backgroundColor: isAdded ? 'rgba(252, 76, 2, 0.08)' : 'transparent',
-                  borderRadius: radii.sm,
+                  borderColor: isAdded ? accent.lift : palette.borderStrong,
+                  backgroundColor: isAdded ? 'rgba(252, 76, 2, 0.08)' : palette.surface,
+                  borderRadius: radii.md,
                   marginBottom: spacing.sm,
-                  opacity: isAdded ? 0.7 : 1,
                 }}
               >
-                <Text style={{ color: text.primary, fontSize: 15, flex: 1 }}>{s}</Text>
+                <Text
+                  style={{
+                    color: isAdded ? text.primary : text.secondary,
+                    fontFamily: fonts.family.medium,
+                    fontSize: 15,
+                    flex: 1,
+                  }}
+                >
+                  {s}
+                </Text>
                 {isAdded ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Check size={14} color={accent.lift} />
-                    <Text style={{ color: accent.lift, fontFamily: 'monospace', fontSize: 10, fontWeight: '700', letterSpacing: 1.2 }}>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: 4,
+                      borderRadius: radii.full,
+                      backgroundColor: 'rgba(252, 76, 2, 0.14)',
+                    }}
+                  >
+                    <Check size={12} color={accent.lift} />
+                    <Text
+                      style={{
+                        color: accent.lift,
+                        fontFamily: fonts.family.black,
+                        fontSize: 10,
+                        letterSpacing: 1.2,
+                      }}
+                    >
                       ADDED
                     </Text>
                   </View>
                 ) : (
-                  <Plus size={14} color={text.tertiary} />
+                  <Plus size={16} color={text.tertiary} />
                 )}
               </TouchableOpacity>
             );
@@ -194,13 +254,19 @@ const AddExerciseOverlay = ({
                 paddingHorizontal: spacing.md,
                 borderWidth: 1,
                 borderColor: accent.lift,
-                borderRadius: radii.sm,
+                borderRadius: radii.md,
                 backgroundColor: 'rgba(252, 76, 2, 0.08)',
                 marginTop: suggestions.length > 0 ? spacing.md : 0,
               }}
             >
               <Plus size={16} color={accent.lift} />
-              <Text style={{ color: accent.lift, fontSize: 14, fontWeight: '700' }}>
+              <Text
+                style={{
+                  color: accent.lift,
+                  fontFamily: fonts.family.bold,
+                  fontSize: 14,
+                }}
+              >
                 Add "{trimmed}" as new exercise
               </Text>
             </TouchableOpacity>
@@ -211,6 +277,7 @@ const AddExerciseOverlay = ({
             <Text
               style={{
                 color: text.quaternary,
+                fontFamily: fonts.family.base,
                 fontSize: 13,
                 textAlign: 'center',
                 marginTop: spacing.xl,
@@ -220,6 +287,52 @@ const AddExerciseOverlay = ({
             </Text>
           )}
         </ScrollView>
+
+        {/* Sticky bottom CTA. Shown once the user has added >=1 exercise so
+            they aren't forced to hunt for the X to leave + start the workout. */}
+        {showStickyCta && (
+          <View
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              paddingHorizontal: spacing.lg,
+              paddingTop: spacing.md,
+              paddingBottom: Platform.OS === 'ios' ? spacing.xl : spacing.lg,
+              backgroundColor: palette.bg,
+              borderTopWidth: 1,
+              borderTopColor: palette.borderStrong,
+            }}
+          >
+            <TouchableOpacity
+              testID="add-exercise-sticky-cta"
+              onPress={handleStickyPress}
+              activeOpacity={0.85}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: spacing.sm,
+                paddingVertical: spacing.md + 2,
+                borderRadius: radii.md,
+                backgroundColor: accent.lift,
+              }}
+            >
+              <Text
+                style={{
+                  color: palette.bg,
+                  fontFamily: fonts.family.black,
+                  fontSize: 13,
+                  letterSpacing: 1.4,
+                }}
+              >
+                {ctaLabel}
+              </Text>
+              <ArrowRight size={16} color={palette.bg} />
+            </TouchableOpacity>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </Modal>
   );

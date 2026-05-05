@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -12,7 +12,10 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChevronRight, LogOut, X } from 'lucide-react-native';
 import { useAuthContext } from '../contexts/AuthContext';
-import { setUnitsCoupled, type Units } from '../services/profile';
+import { setUnits as setUnitsRemote, type Units } from '../services/profile';
+import { getSettings, upsertSettings } from '../services/nutritionService';
+
+type WaterUnit = 'ml' | 'oz';
 import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
 import { deriveInitials } from '../utils/initials';
 import type { RootStackParamList } from '../navigation/types';
@@ -28,15 +31,41 @@ export const ProfileScreen = () => {
   const initialUnits: Units =
     (user?.user_metadata?.units as Units | undefined) ?? 'lb';
   const [units, setUnitsState] = useState<Units>(initialUnits);
+  const [waterUnit, setWaterUnitState] = useState<WaterUnit>('ml');
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user?.id) return;
+    getSettings(user.id)
+      .then(s => {
+        if (cancelled) return;
+        if (s?.water_unit) setWaterUnitState(s.water_unit as WaterUnit);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id]);
 
   const handleToggleUnits = async () => {
     const next: Units = units === 'lb' ? 'kg' : 'lb';
     setUnitsState(next);
     try {
-      if (!user?.id) throw new Error('not signed in');
-      await setUnitsCoupled(next, user.id);
+      await setUnitsRemote(next);
     } catch (e) {
       setUnitsState(units);
+      Alert.alert('Could not save', 'Try again in a moment.');
+    }
+  };
+
+  const handleToggleWaterUnit = async () => {
+    const next: WaterUnit = waterUnit === 'ml' ? 'oz' : 'ml';
+    setWaterUnitState(next);
+    try {
+      if (!user?.id) throw new Error('not signed in');
+      await upsertSettings(user.id, { water_unit: next });
+    } catch (e) {
+      setWaterUnitState(waterUnit);
       Alert.alert('Could not save', 'Try again in a moment.');
     }
   };
@@ -149,9 +178,15 @@ export const ProfileScreen = () => {
         <SmallLabel>PREFERENCES</SmallLabel>
         <Section>
           <Row
-            label="Units"
-            value={units === 'lb' ? 'LB · OZ' : 'KG · ML'}
+            label="Weight unit"
+            value={units === 'lb' ? 'LB' : 'KG'}
             onPress={handleToggleUnits}
+            hideChevron
+          />
+          <Row
+            label="Water unit"
+            value={waterUnit === 'ml' ? 'ML' : 'OZ'}
+            onPress={handleToggleWaterUnit}
             hideChevron
           />
         </Section>

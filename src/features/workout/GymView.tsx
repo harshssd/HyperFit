@@ -793,6 +793,8 @@ const GymView = ({
       onSubmit={() => addExercise()}
       onSelectSuggestion={selectSuggestion}
       onClose={() => setIsAddingExercise(false)}
+      sessionActive={isSessionActive}
+      onStartWorkout={startSession}
     />
   );
 

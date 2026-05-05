@@ -288,10 +288,10 @@ const HistoryAnalyticsView = () => {
         <MuscleHeatmap userId={user?.id} defaultDays={7} />
         <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.xl }}>
           <BarChart2 size={48} color={colors.muted} style={{ opacity: 0.5 }} />
-          <Text style={{ color: '#fff', fontSize: 16, fontWeight: 'bold', marginTop: spacing.md }}>
+          <Text style={{ color: text.primary, fontSize: 16, fontWeight: 'bold', marginTop: spacing.md }}>
             More analytics coming
           </Text>
-          <Text style={{ color: colors.muted, textAlign: 'center', marginTop: spacing.xs }}>
+          <Text style={{ color: text.tertiary, textAlign: 'center', marginTop: spacing.xs }}>
             Volume trends, PR timeline, and adherence by week.
           </Text>
         </View>
@@ -311,7 +311,7 @@ const HistoryAnalyticsView = () => {
       }}>
         <View style={{
           flexDirection: 'row',
-          backgroundColor: 'rgba(255,255,255,0.05)',
+          backgroundColor: palette.surfaceAlt,
           borderRadius: radii.md,
           padding: 4,
         }}>
