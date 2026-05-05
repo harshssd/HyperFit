@@ -451,8 +451,8 @@ const DayCell = ({
             gap: 2,
           }}
         >
-          {hasLogged && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: accent.sessionUp }} />}
-          {hasPlanned && <View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: accent.lift }} />}
+          {hasLogged && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: accent.sessionUp }} />}
+          {hasPlanned && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: accent.lift }} />}
         </View>
       )}
     </TouchableOpacity>

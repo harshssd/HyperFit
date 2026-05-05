@@ -139,9 +139,9 @@ export const BodySilhouette = ({ view, intensities, onPressRegion, size = 180 }:
 
   return (
     <Svg width={size} height={height} viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}>
-      {/* Body outline (head + torso + limbs) — slightly heavier stroke so the
-          silhouette frames the heatmap rather than disappearing behind it. */}
-      <Path d={outline} fill={SILHOUETTE_FILL} stroke={SILHOUETTE_STROKE} strokeWidth={2} />
+      {/* Body outline (head + torso + limbs) — fill only, no stroke so the
+          anatomy reads as muscle masses against the surface, not a wireframe. */}
+      <Path d={outline} fill={SILHOUETTE_FILL} />
       {/* Heatmap regions on top */}
       {regions.map(region => (
         <Region

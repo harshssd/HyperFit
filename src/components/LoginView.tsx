@@ -3,18 +3,16 @@ import {
   View,
   Text,
   ScrollView,
-  ImageBackground,
   TouchableOpacity,
   TextInput,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
 } from 'react-native';
-import { Zap, AlertTriangle, MailCheck } from 'lucide-react-native';
-import NeonButton from './NeonButton';
-import { loginStyles } from '../styles';
-import { palette, text, accent } from '../styles/theme';
-import { ASSETS } from '../constants/appConstants';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AlertTriangle, MailCheck } from 'lucide-react-native';
+import { HeroGradient } from './HeroGradient';
+import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
 
 type LoginViewProps = {
   onEmailLogin: (email: string, password: string) => Promise<any>;
@@ -76,9 +74,6 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp, onResetPassword }: L
     }
   };
 
-  // Send a reset link to whatever's in the email field. Trim/validate locally
-  // so we surface "enter your email" before hitting the network rather than
-  // returning a generic Supabase error after a round-trip.
   const handleResetPassword = async () => {
     const trimmed = email.trim();
     if (!trimmed) {
@@ -99,152 +94,305 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp, onResetPassword }: L
   };
 
   return (
-    <ImageBackground
+    <SafeAreaView
       testID="login-screen"
-      source={{ uri: ASSETS.background }}
-      style={loginStyles.loginContainer}
-      resizeMode="cover"
+      style={{ flex: 1, backgroundColor: palette.bg, overflow: 'hidden' }}
     >
+      <HeroGradient tint="orange" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-      <ScrollView
-        contentContainerStyle={loginStyles.loginScrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={loginStyles.loginCard}>
-          <View style={loginStyles.loginHeader}>
-            <View style={loginStyles.loginLogo}>
-              <Zap size={28} color={palette.bg} strokeWidth={3} />
-            </View>
-            <Text style={loginStyles.loginTitle}>
-              HYPER<Text style={loginStyles.loginTitleAccent}>FIT</Text>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            paddingHorizontal: spacing.xl,
+            paddingTop: spacing.xxl,
+            paddingBottom: spacing.xl,
+          }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Brand poster — wordmark dominates the top third */}
+          <View style={{ alignItems: 'flex-start', marginBottom: spacing.xxl + spacing.lg }}>
+            <Text
+              style={{
+                color: text.primary,
+                fontSize: 56,
+                fontWeight: fonts.weight.black as '900',
+                letterSpacing: -2,
+                lineHeight: 60,
+              }}
+            >
+              HYPER<Text style={{ color: accent.lift }}>FIT</Text>
             </Text>
-            <Text style={loginStyles.loginSubtitle}>Next Gen Training OS</Text>
+            <Text
+              style={{
+                color: text.tertiary,
+                fontSize: 11,
+                fontFamily: fonts.family.mono,
+                fontWeight: fonts.weight.bold as '700',
+                letterSpacing: 2,
+                textTransform: 'uppercase',
+                marginTop: spacing.sm,
+              }}
+            >
+              Next Gen Training OS
+            </Text>
           </View>
 
-          <View style={loginStyles.loginForm}>
-            {error ? (
-              <View style={loginStyles.loginError}>
-                <AlertTriangle size={16} color={accent.regression} />
-                <Text style={loginStyles.loginErrorText}>{error}</Text>
-              </View>
-            ) : null}
+          {/* Banners */}
+          {error ? (
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+                backgroundColor: 'rgba(239, 68, 68, 0.10)',
+                borderColor: accent.regression,
+                borderWidth: 1,
+                borderRadius: radii.md,
+                padding: spacing.md,
+                marginBottom: spacing.lg,
+              }}
+            >
+              <AlertTriangle size={16} color={accent.regression} />
+              <Text style={{ color: text.primary, fontSize: 13, flex: 1 }}>{error}</Text>
+            </View>
+          ) : null}
 
-            {info ? (
-              <View testID="login-info" style={loginStyles.loginInfo}>
-                <MailCheck size={16} color={accent.sessionUp} />
-                <Text style={loginStyles.loginInfoText}>{info}</Text>
-              </View>
-            ) : null}
+          {info ? (
+            <View
+              testID="login-info"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing.sm,
+                backgroundColor: 'rgba(0, 214, 143, 0.10)',
+                borderColor: accent.sessionUp,
+                borderWidth: 1,
+                borderRadius: radii.md,
+                padding: spacing.md,
+                marginBottom: spacing.lg,
+              }}
+            >
+              <MailCheck size={16} color={accent.sessionUp} />
+              <Text style={{ color: text.primary, fontSize: 13, flex: 1 }}>{info}</Text>
+            </View>
+          ) : null}
 
-            <Text style={loginStyles.loginLabel}>EMAIL</Text>
-            <TextInput
-              testID="login-email-input"
-              style={loginStyles.loginInput}
-              placeholder="your.email@example.com"
-              placeholderTextColor={text.disabled}
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType="emailAddress"
-            />
+          {/* Email */}
+          <Label>Email</Label>
+          <TextInput
+            testID="login-email-input"
+            style={inputStyle(email.length > 0)}
+            placeholder="your.email@example.com"
+            placeholderTextColor={text.disabled}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="emailAddress"
+          />
 
-            <Text style={loginStyles.loginLabel}>PASSWORD</Text>
-            <TextInput
-              testID="login-password-input"
-              style={loginStyles.loginInput}
-              placeholder="Enter password"
-              placeholderTextColor={text.disabled}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
-              autoCorrect={false}
-              textContentType={isSignUp ? "newPassword" : "password"}
-              onSubmitEditing={handleEmailAuth}
-            />
-
+          {/* Password */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Label>Password</Label>
             {!isSignUp ? (
               <TouchableOpacity
                 testID="login-forgot-password"
                 onPress={handleResetPassword}
                 disabled={isLoading}
-                style={loginStyles.loginForgot}
+                hitSlop={8}
                 accessibilityRole="button"
                 accessibilityLabel="Send password reset email"
               >
-                <Text style={loginStyles.loginForgotText}>Forgot password?</Text>
+                <Text
+                  style={{
+                    color: text.tertiary,
+                    fontSize: 11,
+                    fontFamily: fonts.family.mono,
+                    fontWeight: fonts.weight.bold as '700',
+                    letterSpacing: 1.4,
+                    textTransform: 'uppercase',
+                    marginBottom: spacing.sm,
+                  }}
+                >
+                  Forgot?
+                </Text>
               </TouchableOpacity>
             ) : null}
+          </View>
+          <TextInput
+            testID="login-password-input"
+            style={inputStyle(password.length > 0)}
+            placeholder="Enter password"
+            placeholderTextColor={text.disabled}
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType={isSignUp ? 'newPassword' : 'password'}
+            onSubmitEditing={handleEmailAuth}
+          />
 
-            <NeonButton
-              testID="login-submit-button"
-              onPress={handleEmailAuth}
-              disabled={isLoading}
-              style={loginStyles.loginButton}
-              accessibilityLabel={isSignUp ? 'Sign up' : 'Sign in'}
-              accessibilityState={{ disabled: isLoading, busy: isLoading }}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={palette.bg} />
-              ) : (
-                isSignUp ? 'SIGN UP' : 'SIGN IN'
-              )}
-            </NeonButton>
-
-            <TouchableOpacity
-              testID="login-mode-toggle"
-              onPress={() => setIsSignUp(!isSignUp)}
-              style={loginStyles.loginToggle}
-              accessibilityRole="button"
-              accessibilityLabel={isSignUp ? 'Switch to sign in' : 'Switch to sign up'}
-            >
-              <Text style={loginStyles.loginToggleText}>
-                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+          {/* Primary CTA */}
+          <TouchableOpacity
+            testID="login-submit-button"
+            onPress={handleEmailAuth}
+            disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel={isSignUp ? 'Sign up' : 'Sign in'}
+            accessibilityState={{ disabled: isLoading, busy: isLoading }}
+            style={{
+              backgroundColor: accent.lift,
+              paddingVertical: spacing.lg,
+              borderRadius: radii.md,
+              alignItems: 'center',
+              justifyContent: 'center',
+              opacity: isLoading ? 0.4 : 1,
+              marginTop: spacing.lg,
+            }}
+          >
+            {isLoading ? (
+              <ActivityIndicator color={text.primary} />
+            ) : (
+              <Text
+                style={{
+                  color: text.primary,
+                  fontSize: 13,
+                  fontFamily: fonts.family.mono,
+                  fontWeight: fonts.weight.black as '900',
+                  letterSpacing: 1.6,
+                }}
+              >
+                {isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN'}
               </Text>
-            </TouchableOpacity>
+            )}
+          </TouchableOpacity>
 
-            <View style={loginStyles.loginDivider}>
-              <View style={loginStyles.loginDividerLine} />
-              <Text style={loginStyles.loginDividerText}>OR</Text>
-              <View style={loginStyles.loginDividerLine} />
-            </View>
-
-            <TouchableOpacity
-              testID="login-google-button"
-              onPress={handleGoogleLogin}
-              disabled={isLoading}
-              style={[loginStyles.googleButton, isLoading && loginStyles.googleButtonDisabled]}
-              accessibilityRole="button"
-              accessibilityLabel="Continue with Google"
-              accessibilityState={{ disabled: isLoading, busy: isLoading }}
+          {/* OR divider */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing.md,
+              marginVertical: spacing.xl,
+            }}
+          >
+            <View style={{ flex: 1, height: 1, backgroundColor: palette.borderStrong }} />
+            <Text
+              style={{
+                color: text.quaternary,
+                fontSize: 11,
+                fontFamily: fonts.family.mono,
+                fontWeight: fonts.weight.bold as '700',
+                letterSpacing: 2,
+              }}
             >
-              <View style={loginStyles.googleButtonContent}>
-                {isLoading ? (
-                  <ActivityIndicator size="small" color={text.primary} />
-                ) : (
-                  <>
-                    <View style={loginStyles.googleIconChip}>
-                      <Text style={loginStyles.googleIconLetter}>G</Text>
-                    </View>
-                    <Text style={loginStyles.googleButtonText}>Continue with Google</Text>
-                  </>
-                )}
-              </View>
-            </TouchableOpacity>
+              OR
+            </Text>
+            <View style={{ flex: 1, height: 1, backgroundColor: palette.borderStrong }} />
           </View>
 
-          <Text style={loginStyles.loginFooter}>V 2.1.0 // SECURE CONNECTION</Text>
-        </View>
-      </ScrollView>
+          {/* Google secondary */}
+          <TouchableOpacity
+            testID="login-google-button"
+            onPress={handleGoogleLogin}
+            disabled={isLoading}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
+            accessibilityState={{ disabled: isLoading, busy: isLoading }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: spacing.sm,
+              backgroundColor: palette.surface,
+              borderWidth: 1,
+              borderColor: palette.borderStrong,
+              paddingVertical: spacing.md,
+              borderRadius: radii.md,
+              opacity: isLoading ? 0.4 : 1,
+            }}
+          >
+            <View
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: '#fff',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Text style={{ color: '#4285F4', fontSize: 13, fontWeight: '900' }}>G</Text>
+            </View>
+            <Text
+              style={{
+                color: text.primary,
+                fontSize: 14,
+                fontWeight: fonts.weight.semibold as '600',
+              }}
+            >
+              Continue with Google
+            </Text>
+          </TouchableOpacity>
+
+          {/* Sign-in / Sign-up toggle */}
+          <TouchableOpacity
+            testID="login-mode-toggle"
+            onPress={() => {
+              setIsSignUp(!isSignUp);
+              setError('');
+              setInfo('');
+            }}
+            style={{ alignItems: 'center', marginTop: spacing.xl, paddingVertical: spacing.sm }}
+            accessibilityRole="button"
+            accessibilityLabel={isSignUp ? 'Switch to sign in' : 'Switch to sign up'}
+          >
+            <Text style={{ color: text.tertiary, fontSize: 13 }}>
+              {isSignUp ? 'Already have an account? ' : "New here? "}
+              <Text style={{ color: accent.lift, fontWeight: fonts.weight.bold as '700' }}>
+                {isSignUp ? 'Sign in' : 'Create account'}
+              </Text>
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+    </SafeAreaView>
   );
 };
 
-export default LoginView;
+const Label = ({ children }: { children: React.ReactNode }) => (
+  <Text
+    style={{
+      color: text.quaternary,
+      fontSize: 11,
+      fontFamily: fonts.family.mono,
+      fontWeight: fonts.weight.bold as '700',
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+      marginBottom: spacing.sm,
+      marginTop: spacing.md,
+    }}
+  >
+    {children}
+  </Text>
+);
 
+const inputStyle = (filled: boolean) => ({
+  backgroundColor: palette.surface,
+  borderColor: filled ? accent.lift : palette.borderStrong,
+  borderWidth: 1,
+  borderRadius: radii.md,
+  paddingHorizontal: spacing.lg,
+  paddingVertical: spacing.md,
+  color: text.primary,
+  fontSize: 16,
+  fontWeight: fonts.weight.semibold as '600',
+});
+
+export default LoginView;

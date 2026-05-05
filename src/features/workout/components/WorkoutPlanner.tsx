@@ -185,10 +185,10 @@ const WorkoutPlanner = ({
                 borderBottomWidth: 1,
                 borderBottomColor: 'rgba(255, 255, 255, 0.08)'
               }}>
-                <Calendar size={16} color={colors.success} />
-                <Text style={{ 
-                  color: colors.success, 
-                  fontSize: 12, 
+                <Calendar size={16} color={colors.muted} />
+                <Text style={{
+                  color: colors.muted,
+                  fontSize: 12,
                   fontWeight: 'bold',
                   marginLeft: spacing.xs,
                   textTransform: 'uppercase',
