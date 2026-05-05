@@ -164,7 +164,7 @@ export const NutritionView = ({
             shadowRadius: 8,
           }}
         >
-          <HeroGradient />
+          <HeroGradient tint="green" />
           <View style={{ padding: spacing.xl }}>
             {/* Header: tap-to-edit goal */}
             <TouchableOpacity

@@ -223,7 +223,7 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
           overflow: 'hidden',
         }}
       >
-        <HeroGradient />
+        <HeroGradient tint="blue" />
         {/* Card header — icon-chip + eyebrow + month label. Mirrors the
             "ACTIVE PLAN" / "FUEL" / "THIS WEEK" header pattern from the
             other tabs so all dashboards read as one design system. */}

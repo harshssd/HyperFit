@@ -301,6 +301,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
           overflow: 'hidden',
         }}
       >
+        <HeroGradient tint="green" />
         <View style={{ padding: spacing.xl }}>
           <View
             style={{
