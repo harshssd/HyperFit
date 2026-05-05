@@ -282,6 +282,25 @@ export const getDaySummary = async (
   return data;
 };
 
+// Paginated history reader. Returns `{ rows, totalCount }`. Rows are
+// most-recent first. Used by the History modal's NUTRITION segment.
+export const getNutritionHistoryPage = async (
+  userId: string,
+  page: number,
+  pageSize: number,
+): Promise<{ rows: NutritionDaySummary[]; totalCount: number }> => {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const { data, error, count } = await supabase
+    .from('nutrition_day_summary_view')
+    .select('*', { count: 'exact' })
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .range(from, to);
+  if (error) throw error;
+  return { rows: data ?? [], totalCount: count ?? 0 };
+};
+
 // Last N days for streak math. Ordered most-recent first.
 export const getRecentSummaries = async (
   userId: string,

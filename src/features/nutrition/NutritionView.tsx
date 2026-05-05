@@ -7,6 +7,9 @@ import {
   View,
 } from 'react-native';
 import { ChevronRight, Flame, Plus, Salad } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/types';
 import { ErrorState, LoadingState } from '../../components/StateView';
 import { HeroGradient } from '../../components/HeroGradient';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
@@ -67,6 +70,7 @@ export const NutritionView = ({
   onAddMealConsumed,
 }: Props = {}) => {
   const day = useNutritionDayContext();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [goalOpen, setGoalOpen] = useState(false);
   const [addMealRequest, setAddMealRequest] = useState<AddMealRequest | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -321,7 +325,11 @@ export const NutritionView = ({
           onToggle={day.planCheatDay}
         />
 
-        <WeekRows today={day.date} summaries={day.recentSummaries} />
+        <WeekRows
+          today={day.date}
+          summaries={day.recentSummaries}
+          onSeeAll={() => navigation.navigate('History', { initialMode: 'nutrition' })}
+        />
       </ScrollView>
 
       <GoalSetupSheet
