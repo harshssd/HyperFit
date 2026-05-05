@@ -49,7 +49,7 @@ export const CheatDayToggle = ({
     if (disabled) {
       Alert.alert(
         'Cheat budget used',
-        `You've used ${cheatsUsedThisWeek} of ${cheatBudget} cheat days this week. Free a slot in the planner below or wait until Monday.`,
+        `You've used ${cheatsUsedThisWeek} of ${cheatBudget} cheat days this week. Wait until Monday or raise your weekly budget in goals.`,
       );
       return;
     }
