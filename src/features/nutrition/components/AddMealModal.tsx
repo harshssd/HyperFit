@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Check, X } from 'lucide-react-native';
+import { Check, Minus, Plus, X } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import {
   getRecents,
@@ -65,6 +65,7 @@ export const AddMealModal = ({
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
   const [fiber, setFiber] = useState('');
+  const [servings, setServings] = useState('1');
   const [recents, setRecents] = useState<NutritionEntry[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -79,6 +80,7 @@ export const AddMealModal = ({
     setCarb('');
     setFat('');
     setFiber('');
+    setServings('1');
   }, [visible, defaultSlot, defaultLabel]);
 
   useEffect(() => {
@@ -93,7 +95,28 @@ export const AddMealModal = ({
     setCarb(String(r.carb_g));
     setFat(String(r.fat_g));
     setFiber(String(r.fiber_g));
+    setServings('1');
   };
+
+  // Servings multiplier — entered values are "per serving", DB stores totals.
+  // Empty/invalid input falls back to 1 so the user can clear-and-retype
+  // without watching their kcal preview vanish.
+  const servingsNum = (() => {
+    const n = parseFloat(servings);
+    if (!Number.isFinite(n) || n <= 0) return 1;
+    return n;
+  })();
+  const adjustServings = (delta: number) => {
+    const next = Math.max(0.25, Math.round((servingsNum + delta) * 4) / 4);
+    setServings(next % 1 === 0 ? String(next) : next.toFixed(2).replace(/0+$/, ''));
+  };
+
+  const scale = (v: string) => Math.round((parseInt(v, 10) || 0) * servingsNum);
+  const totalKcal = scale(kcal);
+  const totalProtein = scale(protein);
+  const totalCarb = scale(carb);
+  const totalFat = scale(fat);
+  const totalFiber = scale(fiber);
 
   const canSave = !saving && parseInt(kcal, 10) > 0
     && (!isCustom || customLabel.trim().length > 0);
@@ -106,11 +129,11 @@ export const AddMealModal = ({
         mealSlot: slot,
         mealLabel: isCustom ? customLabel.trim() : null,
         name: name.trim() || undefined,
-        kcal: parseInt(kcal, 10) || 0,
-        protein_g: parseInt(protein, 10) || 0,
-        carb_g: parseInt(carb, 10) || 0,
-        fat_g: parseInt(fat, 10) || 0,
-        fiber_g: parseInt(fiber, 10) || 0,
+        kcal: totalKcal,
+        protein_g: totalProtein,
+        carb_g: totalCarb,
+        fat_g: totalFat,
+        fiber_g: totalFiber,
       });
       onClose();
     } finally {
@@ -305,8 +328,88 @@ export const AddMealModal = ({
                   textTransform: 'uppercase',
                 }}
               >
-                kcal
+                {servingsNum === 1 ? 'kcal' : 'kcal / serv'}
               </Text>
+            </View>
+            {servingsNum !== 1 && parseInt(kcal, 10) > 0 ? (
+              <Text
+                style={{
+                  color: accent.lift,
+                  fontFamily: fonts.family.mono,
+                  fontSize: 12,
+                  fontWeight: '800',
+                  letterSpacing: 0.8,
+                  fontVariant: fonts.tabularNums,
+                }}
+              >
+                = {totalKcal.toLocaleString()} kcal total · {totalProtein}P · {totalCarb}C · {totalFat}F
+              </Text>
+            ) : null}
+          </View>
+
+          {/* Servings stepper. Defaults to 1 (so the kcal/macros above
+              are interpreted as the absolute total). Bump to scale a
+              recent up or down without recomputing macros by hand. */}
+          <View style={{ gap: spacing.sm }}>
+            <SmallLabel>Servings</SmallLabel>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: palette.surface,
+                borderColor: servingsNum !== 1 ? accent.lift : palette.borderStrong,
+                borderWidth: 1,
+                borderRadius: radii.md,
+                paddingHorizontal: spacing.sm,
+              }}
+            >
+              <TouchableOpacity
+                onPress={() => adjustServings(-0.5)}
+                accessibilityRole="button"
+                accessibilityLabel="Decrease servings"
+                disabled={servingsNum <= 0.25}
+                hitSlop={6}
+                style={{
+                  width: 36,
+                  height: 36,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: servingsNum <= 0.25 ? 0.35 : 1,
+                }}
+              >
+                <Minus size={16} color={text.secondary} />
+              </TouchableOpacity>
+              <TextInput
+                value={servings}
+                onChangeText={setServings}
+                placeholder="1"
+                placeholderTextColor={text.disabled}
+                keyboardType="decimal-pad"
+                selectTextOnFocus
+                style={{
+                  flex: 1,
+                  textAlign: 'center',
+                  color: text.primary,
+                  fontSize: 20,
+                  fontWeight: '800',
+                  fontVariant: fonts.tabularNums,
+                  paddingVertical: spacing.md,
+                }}
+              />
+              <TouchableOpacity
+                onPress={() => adjustServings(0.5)}
+                accessibilityRole="button"
+                accessibilityLabel="Increase servings"
+                hitSlop={6}
+                style={{
+                  width: 36,
+                  height: 36,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Plus size={16} color={text.secondary} />
+              </TouchableOpacity>
             </View>
           </View>
 
