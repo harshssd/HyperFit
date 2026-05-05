@@ -207,7 +207,7 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
 
   return (
     <ScrollView
-      style={{ flex: 1, backgroundColor: palette.bg }}
+      style={{ flex: 1 }}
       contentContainerStyle={{ padding: spacing.lg, paddingBottom: spacing.xxl }}
     >
       <View
