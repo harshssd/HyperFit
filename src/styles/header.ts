@@ -23,14 +23,6 @@ const headerStyles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  headerLogo: {
-    width: 36,
-    height: 36,
-    borderRadius: radii.sm,
-    backgroundColor: accent.lift,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   headerTitle: {
     fontSize: 20,
     fontWeight: '900',
