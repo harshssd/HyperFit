@@ -6,7 +6,7 @@ import { Flame } from 'lucide-react-native';
 import { headerStyles } from '../styles';
 import ProgressRing from './ProgressRing';
 import { getRankProgress } from '../features/workout/helpers';
-import { accent, spacing, text, fonts } from '../styles/theme';
+import { accent, palette, spacing, text, fonts } from '../styles/theme';
 
 type HeaderProps = {
   streak?: number;
@@ -65,9 +65,9 @@ const Header = ({ streak = 0, xp = 0, onOpenProfile, avatarInitials, username }:
                 width: 32,
                 height: 32,
                 borderRadius: 16,
-                backgroundColor: 'rgba(252, 76, 2, 0.12)',
+                backgroundColor: palette.surfaceAlt,
                 borderWidth: 1,
-                borderColor: accent.lift,
+                borderColor: palette.borderStrong,
                 alignItems: 'center',
                 justifyContent: 'center',
                 marginLeft: spacing.sm,
