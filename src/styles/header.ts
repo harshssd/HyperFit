@@ -25,7 +25,7 @@ const headerStyles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: '900',
+    fontFamily: 'Inter_900Black',
     color: text.primary,
     letterSpacing: -0.4,
     // Italic was very 90s-fitness. Dropping it for tighter modern type.

@@ -222,7 +222,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
               style={{
                 color: text.primary,
                 fontSize: 30,
-                fontWeight: '900',
+                fontFamily: fonts.family.black,
                 letterSpacing: -0.6,
               }}
               numberOfLines={1}

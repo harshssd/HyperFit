@@ -119,7 +119,7 @@ const LoginView = ({ onEmailLogin, onGoogleLogin, onSignUp, onResetPassword }: L
               style={{
                 color: text.primary,
                 fontSize: 56,
-                fontWeight: fonts.weight.black as '900',
+                fontFamily: fonts.family.black,
                 letterSpacing: -2,
                 lineHeight: 60,
               }}
