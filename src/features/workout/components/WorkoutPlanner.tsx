@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { Dumbbell, Calendar, ChevronLeft, ChevronRight, Play, Settings, CheckCircle, Layout, PlusCircle } from 'lucide-react-native';
 import NeonButton from '../../../components/NeonButton';
 import GlassCard from '../../../components/GlassCard';
+import { HeroGradient } from '../../../components/HeroGradient';
 import SharePlanSheet from '../../../components/share/SharePlanSheet';
 import workoutStyles from '../../../styles/workout';
 import homeStyles from '../../../styles/home';
@@ -103,6 +104,7 @@ const WorkoutPlanner = ({
         borderTopWidth: 2,
         borderTopColor: palette.liftActive,
       }}>
+        <HeroGradient />
         {/* Header: Active Plan Status */}
         <View style={{ 
           padding: spacing.xl,

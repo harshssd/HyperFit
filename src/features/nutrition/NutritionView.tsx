@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { ChevronRight, Flame, Plus, Salad } from 'lucide-react-native';
 import { ErrorState, LoadingState } from '../../components/StateView';
+import { HeroGradient } from '../../components/HeroGradient';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import { useNutritionDayContext } from './hooks/useNutritionDay';
 import { GoalSetupSheet } from './components/GoalSetupSheet';
@@ -163,6 +164,7 @@ export const NutritionView = ({
             shadowRadius: 8,
           }}
         >
+          <HeroGradient />
           <View style={{ padding: spacing.xl }}>
             {/* Header: tap-to-edit goal */}
             <TouchableOpacity

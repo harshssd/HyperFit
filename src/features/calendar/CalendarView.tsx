@@ -4,6 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, ChevronRight as ChevronRightIcon } from 'lucide-react-native';
 import GlassCard from '../../components/GlassCard';
+import { HeroGradient } from '../../components/HeroGradient';
 import { palette, text, accent, spacing, radii, fonts } from '../../styles/theme';
 import { useUser } from '../../contexts/UserContext';
 import { useAppData } from '../../contexts/AppDataContext';
@@ -222,6 +223,7 @@ const CalendarView = ({ embedded = false }: CalendarViewProps) => {
           overflow: 'hidden',
         }}
       >
+        <HeroGradient />
         {/* Card header — icon-chip + eyebrow + month label. Mirrors the
             "ACTIVE PLAN" / "FUEL" / "THIS WEEK" header pattern from the
             other tabs so all dashboards read as one design system. */}
