@@ -125,31 +125,56 @@ export const NutritionRow = ({ iso, today, summary, showTopBorder = true }: Prop
                 {summary!.kcal_target.toLocaleString()}
               </Text>
             </Text>
-            <Text
-              style={{
-                marginTop: 2,
-                color: text.quaternary,
-                fontFamily: fonts.family.mono,
-                fontSize: 10,
-                letterSpacing: 0.4,
-                fontVariant: fonts.tabularNums,
-              }}
-            >
-              {summary!.protein_total_g}P · {summary!.carb_total_g}C ·{' '}
-              {summary!.fat_total_g}F ·{' '}
-              <Text style={{ color: FIBER_COLOR }}>
-                {summary!.fiber_total_g}fib
-              </Text>
-              {summary!.water_total_ml > 0 ? (
-                <Text style={{ color: accent.sessionUp }}>
-                  {' · '}
-                  {summary!.water_total_ml.toLocaleString()}ml
-                </Text>
-              ) : null}
-            </Text>
+            <MacroSuffix summary={summary!} />
           </>
         )}
       </View>
     </View>
+  );
+};
+
+/**
+ * Macro suffix line — protein always shows (required goal). Carbs/fat/fiber
+ * each appear only when the user has a target > 0 for that macro. Water
+ * is gated on whether any was logged (the view doesn't carry a water target).
+ */
+const MacroSuffix = ({ summary }: { summary: NutritionDaySummary }) => {
+  const parts: React.ReactNode[] = [];
+  parts.push(
+    <Text key="p">{summary.protein_total_g}P</Text>,
+  );
+  if (summary.carb_target_g > 0) {
+    parts.push(<Text key="c">{' · '}{summary.carb_total_g}C</Text>);
+  }
+  if (summary.fat_target_g > 0) {
+    parts.push(<Text key="f">{' · '}{summary.fat_total_g}F</Text>);
+  }
+  if (summary.fiber_target_g > 0) {
+    parts.push(
+      <Text key="fi" style={{ color: FIBER_COLOR }}>
+        {' · '}{summary.fiber_total_g}fib
+      </Text>,
+    );
+  }
+  if (summary.water_total_ml > 0) {
+    parts.push(
+      <Text key="w" style={{ color: accent.sessionUp }}>
+        {' · '}{summary.water_total_ml.toLocaleString()}ml
+      </Text>,
+    );
+  }
+  return (
+    <Text
+      style={{
+        marginTop: 2,
+        color: text.quaternary,
+        fontFamily: fonts.family.mono,
+        fontSize: 10,
+        letterSpacing: 0.4,
+        fontVariant: fonts.tabularNums,
+      }}
+    >
+      {parts}
+    </Text>
   );
 };
