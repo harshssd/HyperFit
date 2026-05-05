@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ChevronRight, Flame, Plus, Salad } from 'lucide-react-native';
+import { Flame, Plus, Salad, SlidersHorizontal } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
@@ -234,7 +234,7 @@ export const NutritionView = ({
                   </Text>
                 </Text>
               </View>
-              <View style={{ alignItems: 'flex-end', gap: 4 }}>
+              <View style={{ alignItems: 'flex-end', gap: 6 }}>
                 {day.streak > 0 ? (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                     <Flame size={12} color={accent.lift} />
@@ -251,7 +251,37 @@ export const NutritionView = ({
                     </Text>
                   </View>
                 ) : null}
-                <ChevronRight size={16} color={text.tertiary} />
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    paddingHorizontal: 8,
+                    paddingVertical: 4,
+                    borderRadius: radii.full,
+                    borderWidth: 1,
+                    borderColor: day.hasGoal ? palette.borderStrong : accent.lift,
+                    backgroundColor: day.hasGoal
+                      ? palette.surface
+                      : 'rgba(252, 76, 2, 0.10)',
+                  }}
+                >
+                  <SlidersHorizontal
+                    size={11}
+                    color={day.hasGoal ? text.tertiary : accent.lift}
+                  />
+                  <Text
+                    style={{
+                      color: day.hasGoal ? text.tertiary : accent.lift,
+                      fontFamily: fonts.family.mono,
+                      fontSize: 9,
+                      letterSpacing: 1.2,
+                      fontWeight: fonts.weight.heavy as '800',
+                    }}
+                  >
+                    {day.hasGoal ? 'EDIT GOALS' : 'SET GOALS'}
+                  </Text>
+                </View>
               </View>
             </TouchableOpacity>
 

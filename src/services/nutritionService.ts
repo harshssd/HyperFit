@@ -225,6 +225,24 @@ export const getRecents = async (
   return unique;
 };
 
+// Resolve the entries for an arbitrary date (read-only path used by the
+// History day-detail modal). Returns [] when no nutrition_days row exists
+// — the caller should treat that as "no log for this day."
+export const getEntriesByDate = async (
+  userId: string,
+  date: string,
+): Promise<NutritionEntry[]> => {
+  const { data: dayRow, error: dayErr } = await supabase
+    .from('nutrition_days')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('date', date)
+    .maybeSingle();
+  if (dayErr) throw dayErr;
+  if (!dayRow) return [];
+  return getEntries(userId, dayRow.id);
+};
+
 // -- Water ------------------------------------------------------------------
 
 export const getWaterLogs = async (

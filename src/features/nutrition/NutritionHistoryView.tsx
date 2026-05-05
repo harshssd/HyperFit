@@ -1,6 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/types';
 import { LoadingState, EmptyState, ErrorState } from '../../components/StateView';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import { useUser } from '../../contexts/UserContext';
@@ -21,6 +24,8 @@ const todayISO = () => new Date().toISOString().slice(0, 10);
  */
 export const NutritionHistoryView = () => {
   const { user } = useUser();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const [rows, setRows] = useState<NutritionDaySummary[]>([]);
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -95,6 +100,7 @@ export const NutritionHistoryView = () => {
             today={today}
             summary={r}
             showTopBorder={idx > 0}
+            onPress={() => navigation.navigate('NutritionDayDetail', { date: r.date })}
           />
         ))}
       </View>
