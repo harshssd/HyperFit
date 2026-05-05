@@ -15,6 +15,21 @@ type Timestamp = string;
 export type TemplateKind = 'plan_session' | 'quick';
 export type PlanReviewStatus = 'private' | 'pending_review' | 'approved' | 'rejected';
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+/** Per-entry ingredient breakdown. Macros are optional — for now users
+ *  type the structured list (quantity + name). A future estimator pipeline
+ *  fills in kcal/macros per ingredient. */
+export type NutritionIngredient = {
+  /** Free-text portion (e.g. "30 g", "1 tsp", "2"). Length-capped client-side. */
+  quantity_label: string;
+  /** Free-text ingredient name (e.g. "Paneer", "Butter"). */
+  name: string;
+  kcal?: number;
+  protein_g?: number;
+  carb_g?: number;
+  fat_g?: number;
+  fiber_g?: number;
+};
 export type NutritionStatus = 'empty' | 'hit' | 'over' | 'under';
 
 export interface Database {
@@ -415,6 +430,7 @@ export interface Database {
           meal_slot: MealSlot;
           meal_label: string | null;
           quantity_label: string | null;
+          ingredients: NutritionIngredient[] | null;
           name: string | null;
           kcal: number;
           protein_g: number;
@@ -433,6 +449,7 @@ export interface Database {
           meal_slot: MealSlot;
           meal_label?: string | null;
           quantity_label?: string | null;
+          ingredients?: NutritionIngredient[] | null;
           name?: string | null;
           kcal?: number;
           protein_g?: number;

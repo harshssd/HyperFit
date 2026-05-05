@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import type { Database, MealSlot } from '../types/supabase';
+import type { Database, MealSlot, NutritionIngredient } from '../types/supabase';
 
 /**
  * Nutrition service — all Supabase reads/writes for the Nutrition tab.
@@ -139,6 +139,9 @@ export type AddEntryInput = {
   /** Optional free-text portion (e.g. "3 eggs", "200 g"). Display-only;
    *  kcal/macros remain the source of truth for daily totals. */
   quantityLabel?: string | null;
+  /** Optional structured ingredient breakdown. Display-only for now;
+   *  per-ingredient macros are populated by the future estimator. */
+  ingredients?: NutritionIngredient[] | null;
   name?: string;
   kcal?: number;
   protein_g?: number;
@@ -152,6 +155,16 @@ export const addEntry = async (
 ): Promise<NutritionEntry> => {
   const trimmedLabel = input.mealLabel?.trim();
   const trimmedQty = input.quantityLabel?.trim();
+  // Drop ingredients with no name AND no quantity — partial half-rows are
+  // user noise. A row with name OR quantity gets through (the future
+  // estimator works fine on partial input).
+  const cleanedIngredients = (input.ingredients ?? [])
+    .map(i => ({
+      ...i,
+      quantity_label: i.quantity_label?.trim() ?? '',
+      name: i.name?.trim() ?? '',
+    }))
+    .filter(i => i.quantity_label || i.name);
   const { data, error } = await supabase
     .from('nutrition_entries')
     .insert({
@@ -160,6 +173,7 @@ export const addEntry = async (
       meal_slot: input.mealSlot,
       meal_label: trimmedLabel ? trimmedLabel : null,
       quantity_label: trimmedQty ? trimmedQty : null,
+      ingredients: cleanedIngredients.length > 0 ? cleanedIngredients : null,
       name: input.name ?? null,
       kcal: input.kcal ?? 0,
       protein_g: input.protein_g ?? 0,

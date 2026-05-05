@@ -247,6 +247,25 @@ const EntryRow = ({
             {entry.quantity_label}
           </Text>
         ) : null}
+        {entry.ingredients && entry.ingredients.length > 0 ? (
+          <Text
+            numberOfLines={1}
+            style={{
+              color: text.tertiary,
+              fontFamily: fonts.family.mono,
+              fontSize: 10,
+              letterSpacing: 0.4,
+              marginTop: 1,
+            }}
+          >
+            {entry.ingredients
+              .slice(0, 3)
+              .map(i => `${i.quantity_label || ''} ${i.name || ''}`.trim())
+              .filter(Boolean)
+              .join(' · ')}
+            {entry.ingredients.length > 3 ? ` · +${entry.ingredients.length - 3}` : ''}
+          </Text>
+        ) : null}
       </View>
       <Text
         style={{

@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Check, X } from 'lucide-react-native';
+import { Check, ChevronDown, ChevronRight, Plus, Trash2, X } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import {
   getRecents,
@@ -15,7 +15,7 @@ import {
   type NutritionEntry,
 } from '../../../services/nutritionService';
 import { useUser } from '../../../contexts/UserContext';
-import type { MealSlot } from '../../../types/supabase';
+import type { MealSlot, NutritionIngredient } from '../../../types/supabase';
 
 /**
  * AddMealModal — single entry surface for "log a meal".
@@ -66,6 +66,8 @@ export const AddMealModal = ({
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
   const [fiber, setFiber] = useState('');
+  const [ingredients, setIngredients] = useState<NutritionIngredient[]>([]);
+  const [ingredientsOpen, setIngredientsOpen] = useState(false);
   const [recents, setRecents] = useState<NutritionEntry[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -81,6 +83,8 @@ export const AddMealModal = ({
     setCarb('');
     setFat('');
     setFiber('');
+    setIngredients([]);
+    setIngredientsOpen(false);
   }, [visible, defaultSlot, defaultLabel]);
 
   useEffect(() => {
@@ -96,6 +100,20 @@ export const AddMealModal = ({
     setCarb(String(r.carb_g));
     setFat(String(r.fat_g));
     setFiber(String(r.fiber_g));
+    const recIngredients = (r.ingredients ?? []) as NutritionIngredient[];
+    setIngredients(recIngredients);
+    setIngredientsOpen(recIngredients.length > 0);
+  };
+
+  const updateIngredient = (idx: number, patch: Partial<NutritionIngredient>) => {
+    setIngredients(prev => prev.map((ing, i) => (i === idx ? { ...ing, ...patch } : ing)));
+  };
+  const addIngredientRow = () => {
+    setIngredients(prev => [...prev, { quantity_label: '', name: '' }]);
+    setIngredientsOpen(true);
+  };
+  const removeIngredient = (idx: number) => {
+    setIngredients(prev => prev.filter((_, i) => i !== idx));
   };
 
   const canSave = !saving && parseInt(kcal, 10) > 0
@@ -109,6 +127,7 @@ export const AddMealModal = ({
         mealSlot: slot,
         mealLabel: isCustom ? customLabel.trim() : null,
         quantityLabel: quantity.trim() || null,
+        ingredients: ingredients.length > 0 ? ingredients : null,
         name: name.trim() || undefined,
         kcal: parseInt(kcal, 10) || 0,
         protein_g: parseInt(protein, 10) || 0,
@@ -359,6 +378,155 @@ export const AddMealModal = ({
                 fontWeight: '600',
               }}
             />
+          </View>
+
+          {/* Ingredients — collapsible. Display-only structured breakdown
+              for now ("5 g · Fennel", "1 tsp · Butter"). The future macro
+              estimator will fill per-ingredient kcal/macros into each row;
+              for now the user types the breakdown and dish-level macros
+              above stay the source of truth for daily totals. */}
+          <View style={{ gap: spacing.sm }}>
+            <TouchableOpacity
+              onPress={() => setIngredientsOpen(o => !o)}
+              accessibilityRole="button"
+              accessibilityLabel={ingredientsOpen ? 'Hide ingredients' : 'Show ingredients'}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingVertical: 4,
+              }}
+            >
+              {ingredientsOpen ? (
+                <ChevronDown size={14} color={text.tertiary} />
+              ) : (
+                <ChevronRight size={14} color={text.tertiary} />
+              )}
+              <Text
+                style={{
+                  color: text.quaternary,
+                  fontFamily: fonts.family.mono,
+                  fontSize: 11,
+                  letterSpacing: 1.6,
+                  fontWeight: fonts.weight.heavy as '800',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Ingredients · optional
+              </Text>
+              {ingredients.length > 0 ? (
+                <Text
+                  style={{
+                    color: accent.lift,
+                    fontFamily: fonts.family.mono,
+                    fontSize: 10,
+                    letterSpacing: 1.2,
+                    fontWeight: fonts.weight.heavy as '800',
+                    fontVariant: fonts.tabularNums,
+                  }}
+                >
+                  · {ingredients.length}
+                </Text>
+              ) : null}
+            </TouchableOpacity>
+            {ingredientsOpen ? (
+              <View style={{ gap: 6 }}>
+                {ingredients.map((ing, idx) => (
+                  <View
+                    key={idx}
+                    style={{
+                      flexDirection: 'row',
+                      gap: 6,
+                      alignItems: 'center',
+                    }}
+                  >
+                    <TextInput
+                      value={ing.quantity_label}
+                      onChangeText={t => updateIngredient(idx, { quantity_label: t.slice(0, 16) })}
+                      placeholder="30 g"
+                      placeholderTextColor={text.disabled}
+                      maxLength={16}
+                      style={{
+                        width: 88,
+                        backgroundColor: palette.surface,
+                        borderColor: ing.quantity_label.trim() ? accent.lift : palette.borderStrong,
+                        borderWidth: 1,
+                        borderRadius: radii.sm,
+                        paddingHorizontal: spacing.sm,
+                        paddingVertical: spacing.sm,
+                        color: text.primary,
+                        fontSize: 14,
+                        fontFamily: fonts.family.mono,
+                        fontVariant: fonts.tabularNums,
+                        fontWeight: fonts.weight.bold as '700',
+                      }}
+                    />
+                    <TextInput
+                      value={ing.name}
+                      onChangeText={t => updateIngredient(idx, { name: t.slice(0, 48) })}
+                      placeholder="Paneer"
+                      placeholderTextColor={text.disabled}
+                      maxLength={48}
+                      style={{
+                        flex: 1,
+                        backgroundColor: palette.surface,
+                        borderColor: ing.name.trim() ? accent.lift : palette.borderStrong,
+                        borderWidth: 1,
+                        borderRadius: radii.sm,
+                        paddingHorizontal: spacing.md,
+                        paddingVertical: spacing.sm,
+                        color: text.primary,
+                        fontSize: 14,
+                        fontWeight: fonts.weight.semibold as '600',
+                      }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => removeIngredient(idx)}
+                      hitSlop={6}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Remove ingredient ${idx + 1}`}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Trash2 size={14} color={text.disabled} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity
+                  onPress={addIngredientRow}
+                  accessibilityRole="button"
+                  accessibilityLabel="Add ingredient row"
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    paddingVertical: spacing.sm,
+                    borderWidth: 1,
+                    borderColor: palette.borderStrong,
+                    borderStyle: 'dashed',
+                    borderRadius: radii.sm,
+                  }}
+                >
+                  <Plus size={14} color={text.tertiary} />
+                  <Text
+                    style={{
+                      color: text.tertiary,
+                      fontFamily: fonts.family.mono,
+                      fontSize: 11,
+                      letterSpacing: 1.4,
+                      fontWeight: fonts.weight.heavy as '800',
+                    }}
+                  >
+                    ADD INGREDIENT
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </View>
 
           {/* Macros — always visible, fully labeled */}

@@ -71,6 +71,8 @@ export type ShareMealPayload = {
   carb_g: number;
   fat_g: number;
   fiber_g: number;
+  /** Optional structured ingredient breakdown — rendered as a list under macros. */
+  ingredients?: { quantity_label: string; name: string }[] | null;
   /** Highlights this meal as part of a planned cheat day. */
   cheat?: boolean;
 };
@@ -364,6 +366,26 @@ const MealCardBody = ({ payload }: { payload: ShareMealPayload }) => {
           </View>
         ))}
       </View>
+
+      {payload.ingredients && payload.ingredients.length > 0 ? (
+        <>
+          <View style={styles.divider} />
+          <Text style={styles.sectionLabel}>INGREDIENTS</Text>
+          {payload.ingredients.slice(0, 8).map((ing, idx) => (
+            <View key={`${ing.name}-${idx}`} style={mealStyles.ingredientRow}>
+              <Text style={mealStyles.ingredientQty} allowFontScaling={false}>
+                {ing.quantity_label || '—'}
+              </Text>
+              <Text style={mealStyles.ingredientName} numberOfLines={1}>
+                {ing.name || 'Item'}
+              </Text>
+            </View>
+          ))}
+          {payload.ingredients.length > 8 ? (
+            <Text style={styles.moreLine}>+{payload.ingredients.length - 8} more</Text>
+          ) : null}
+        </>
+      ) : null}
 
       <Text
         style={styles.footer}
@@ -820,6 +842,25 @@ const mealStyles = StyleSheet.create({
     letterSpacing: 2.4,
     fontWeight: '700',
     marginTop: 6,
+  },
+  ingredientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    marginBottom: 10,
+  },
+  ingredientQty: {
+    color: accent.lift,
+    fontSize: 22,
+    fontWeight: '900',
+    fontVariant: fonts.tabularNums,
+    width: 140,
+  },
+  ingredientName: {
+    flex: 1,
+    color: text.primary,
+    fontSize: 24,
+    fontWeight: '700',
   },
 });
 
