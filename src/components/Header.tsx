@@ -2,11 +2,11 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
-import { Hexagon, Flame } from 'lucide-react-native';
+import { Flame } from 'lucide-react-native';
 import { headerStyles } from '../styles';
 import ProgressRing from './ProgressRing';
 import { getRankProgress } from '../features/workout/helpers';
-import { palette, accent, spacing, text, fonts } from '../styles/theme';
+import { accent, spacing, text, fonts } from '../styles/theme';
 
 type HeaderProps = {
   streak?: number;
@@ -39,9 +39,6 @@ const Header = ({ streak = 0, xp = 0, onOpenProfile, avatarInitials, username }:
     >
       <View style={headerStyles.headerTop}>
         <View style={headerStyles.headerLeft}>
-          <View style={headerStyles.headerLogo}>
-            <Hexagon size={22} color={palette.bg} strokeWidth={3} />
-          </View>
           <View>
             <Text style={headerStyles.headerTitle}>
               HYPER<Text style={headerStyles.headerTitleAccent}>FIT</Text>
