@@ -61,7 +61,7 @@ export const NutritionHistoryView = () => {
     return (
       <EmptyState
         title="No nutrition logged yet"
-        message="Log a meal or water on the Fuel tab to start your nutrition history."
+        message="Log a meal or water on the Nutrition tab to start your history."
       />
     );
   }
