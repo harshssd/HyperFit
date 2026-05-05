@@ -1,5 +1,6 @@
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
+import { ChevronRight } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import type { NutritionDaySummary } from '../../../services/nutritionService';
 
@@ -24,13 +25,15 @@ type Props = {
   summary: NutritionDaySummary | null;
   /** Whether to render the top hairline divider. First row in a list should pass false. */
   showTopBorder?: boolean;
+  /** Tap → open the day-detail modal. When omitted, row is non-interactive. */
+  onPress?: () => void;
 };
 
 /**
  * Single dense day row used by both the in-tab WeekRows preview and the
  * History modal's paginated NUTRITION list. Date · status pill · totals.
  */
-export const NutritionRow = ({ iso, today, summary, showTopBorder = true }: Props) => {
+export const NutritionRow = ({ iso, today, summary, showTopBorder = true, onPress }: Props) => {
   const isToday = iso === today;
   const cheat = summary?.is_cheat_day ?? false;
   const status = summary?.status ?? 'empty';
@@ -47,8 +50,19 @@ export const NutritionRow = ({ iso, today, summary, showTopBorder = true }: Prop
           : text.tertiary;
   const chipLabel = cheat ? 'CHEAT' : empty ? '—' : status.toUpperCase();
 
+  const Wrapper: any = onPress ? TouchableOpacity : View;
+  const wrapperProps = onPress
+    ? {
+        onPress,
+        activeOpacity: 0.7,
+        accessibilityRole: 'button' as const,
+        accessibilityLabel: `Open nutrition for ${iso}`,
+      }
+    : {};
+
   return (
-    <View
+    <Wrapper
+      {...wrapperProps}
       style={{
         flexDirection: 'row',
         alignItems: 'center',
@@ -129,7 +143,10 @@ export const NutritionRow = ({ iso, today, summary, showTopBorder = true }: Prop
           </>
         )}
       </View>
-    </View>
+      {onPress ? (
+        <ChevronRight size={14} color={text.quaternary} />
+      ) : null}
+    </Wrapper>
   );
 };
 

@@ -18,6 +18,7 @@ import { PlanBuilderScreen } from '../screens/PlanBuilderScreen';
 import { SharedPlanScreen } from '../screens/SharedPlanScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { SessionDetailScreen } from '../screens/SessionDetailScreen';
+import { NutritionDayDetailScreen } from '../screens/NutritionDayDetailScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { linking } from './linking';
 import type { RootStackParamList } from './types';
@@ -95,6 +96,7 @@ export const RootNavigator = () => {
                       <Stack.Group screenOptions={{ presentation: 'modal' }}>
                         <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />
                         <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
+                        <Stack.Screen name="NutritionDayDetail" component={NutritionDayDetailScreen} />
                         <Stack.Screen name="SharedPlan" component={SharedPlanScreen} />
                         <Stack.Screen name="History" component={HistoryScreen} />
                         <Stack.Screen name="Profile" component={ProfileScreen} />

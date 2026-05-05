@@ -58,6 +58,9 @@ export type RootStackParamList = {
   /** History + analytics modal. Opened by tapping any insight tile on Home.
    *  `initialMode` deep-links to a specific segment (e.g. Nutrition tab → modal). */
   History: { initialMode?: 'history' | 'nutrition' | 'analytics' } | undefined;
+  /** Read-only meals + macros for a single past date. Opened from a row in
+   *  the History modal's NUTRITION segment. */
+  NutritionDayDetail: { date: string };
   /** Profile / account modal. Opened from the avatar in Home's top bar. */
   Profile: undefined;
 };
