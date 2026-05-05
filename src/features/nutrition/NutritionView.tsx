@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { ChevronRight, Flame, Plus, Zap } from 'lucide-react-native';
+import { ChevronRight, Flame, Plus, Salad } from 'lucide-react-native';
 import { ErrorState, LoadingState } from '../../components/StateView';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import { useNutritionDay } from './hooks/useNutritionDay';
@@ -193,7 +193,7 @@ export const NutritionView = ({
                   borderColor: accent.lift,
                 }}
               >
-                <Zap size={16} color={accent.lift} strokeWidth={2} />
+                <Salad size={16} color={accent.lift} strokeWidth={2} />
               </View>
               <View style={{ flex: 1 }}>
                 <Eyebrow color={eyebrowColor}>{eyebrow}</Eyebrow>
