@@ -35,7 +35,10 @@ export type MainTabParamList = {
    *  - 'add-meal' → land on Nutrition + open AddMealModal
    *  Cleared after consumed so a tab revisit doesn't re-trigger. */
   Nutrition: { intent?: 'add-meal' } | undefined;
-  History: undefined;
+  /** Full month schedule — promoted from modal to a top-level tab so the
+   *  forward-looking surface lives next to Plans. History moved to a modal
+   *  launched from Home insight tiles. */
+  Calendar: undefined;
 };
 
 export type RootStackParamList = {
@@ -52,8 +55,8 @@ export type RootStackParamList = {
   SessionDetail: { sessionId: string };
   /** Preview + import a plan someone shared with you via a share code. */
   SharedPlan: { code: string };
-  /** Full month schedule — formerly the Calendar tab; now a modal from Home. */
-  Calendar: undefined;
+  /** History + analytics modal. Opened by tapping any insight tile on Home. */
+  History: undefined;
   /** Profile / account modal. Opened from the avatar in Home's top bar. */
   Profile: undefined;
 };

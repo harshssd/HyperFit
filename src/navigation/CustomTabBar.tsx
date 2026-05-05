@@ -4,12 +4,13 @@ import NavBar from '../components/NavBar';
 import { NAV_ITEMS } from '../constants/nav';
 
 // nav id <-> route name map. NAV_ITEMS uses "gym" (route "Plans") and
-// "nutrition" (route "Nutrition"). Calendar has graduated to a stack modal.
+// "nutrition" (route "Nutrition"). History has demoted to a stack modal,
+// launched from Home insight tiles; Calendar is now a top-level tab.
 const ID_TO_ROUTE: Record<string, string> = {
   home: 'Home',
   gym: 'Plans',
   nutrition: 'Nutrition',
-  history: 'History',
+  calendar: 'Calendar',
 };
 const ROUTE_TO_ID: Record<string, string> = Object.fromEntries(
   Object.entries(ID_TO_ROUTE).map(([id, route]) => [route, id])

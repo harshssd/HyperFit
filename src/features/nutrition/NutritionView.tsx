@@ -9,7 +9,7 @@ import {
 import { ChevronRight, Flame, Plus, Salad } from 'lucide-react-native';
 import { ErrorState, LoadingState } from '../../components/StateView';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
-import { useNutritionDay } from './hooks/useNutritionDay';
+import { useNutritionDayContext } from './hooks/useNutritionDay';
 import { GoalSetupSheet } from './components/GoalSetupSheet';
 import { EntriesList } from './components/EntriesList';
 import { WaterControls } from './components/WaterControls';
@@ -65,7 +65,7 @@ export const NutritionView = ({
   openAddMealOnMount,
   onAddMealConsumed,
 }: Props = {}) => {
-  const day = useNutritionDay();
+  const day = useNutritionDayContext();
   const [goalOpen, setGoalOpen] = useState(false);
   const [addMealRequest, setAddMealRequest] = useState<AddMealRequest | null>(null);
   const [refreshing, setRefreshing] = useState(false);

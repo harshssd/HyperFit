@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { HomeScreen } from '../screens/HomeScreen';
 import { PlansScreen } from '../screens/PlansScreen';
 import { NutritionScreen } from '../screens/NutritionScreen';
-import { HistoryScreen } from '../screens/HistoryScreen';
+import { CalendarScreen } from '../screens/CalendarScreen';
 import { CustomTabBar } from './CustomTabBar';
 import type { MainTabParamList } from './types';
 
@@ -17,6 +17,6 @@ export const MainTabs = () => (
     <Tabs.Screen name="Home" component={HomeScreen} />
     <Tabs.Screen name="Plans" component={PlansScreen} />
     <Tabs.Screen name="Nutrition" component={NutritionScreen} />
-    <Tabs.Screen name="History" component={HistoryScreen} />
+    <Tabs.Screen name="Calendar" component={CalendarScreen} />
   </Tabs.Navigator>
 );

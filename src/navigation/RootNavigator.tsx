@@ -9,13 +9,14 @@ import { useUserData } from '../hooks/useUserData';
 import { UserProvider } from '../contexts/UserContext';
 import { AppDataProvider } from '../contexts/AppDataContext';
 import { WorkoutSessionProvider } from '../contexts/WorkoutSessionContext';
+import { NutritionDayProvider } from '../features/nutrition/hooks/useNutritionDay';
 import { AuthStack } from './AuthStack';
 import { MainTabs } from './MainTabs';
 import { OnboardingStack } from '../screens/onboarding/OnboardingStack';
 import { ActiveWorkoutScreen } from '../screens/ActiveWorkoutScreen';
 import { PlanBuilderScreen } from '../screens/PlanBuilderScreen';
 import { SharedPlanScreen } from '../screens/SharedPlanScreen';
-import { CalendarScreen } from '../screens/CalendarScreen';
+import { HistoryScreen } from '../screens/HistoryScreen';
 import { SessionDetailScreen } from '../screens/SessionDetailScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { linking } from './linking';
@@ -55,8 +56,12 @@ export const RootNavigator = () => {
             }}
           >
             {/* Key on user id so signing out and back in as a different user
-                discards any in-memory session, preventing cross-user log bleed. */}
+                discards any in-memory session, preventing cross-user log bleed.
+                NutritionDayProvider sits inside so it gets fresh state per
+                signed-in user too — and so Home and Nutrition tabs share one
+                cache (logging on one reflects on the other immediately). */}
             <WorkoutSessionProvider key={auth.user?.id ?? 'anon'}>
+              <NutritionDayProvider>
               <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {auth.user ? (
                   !auth.user.user_metadata?.onboarded_at ? (
@@ -91,7 +96,7 @@ export const RootNavigator = () => {
                         <Stack.Screen name="ExercisePicker" component={PlaceholderModal} />
                         <Stack.Screen name="SessionDetail" component={SessionDetailScreen} />
                         <Stack.Screen name="SharedPlan" component={SharedPlanScreen} />
-                        <Stack.Screen name="Calendar" component={CalendarScreen} />
+                        <Stack.Screen name="History" component={HistoryScreen} />
                         <Stack.Screen name="Profile" component={ProfileScreen} />
                       </Stack.Group>
                     </Stack.Group>
@@ -100,6 +105,7 @@ export const RootNavigator = () => {
                   <Stack.Screen name="Auth" component={AuthStack} />
                 )}
               </Stack.Navigator>
+              </NutritionDayProvider>
             </WorkoutSessionProvider>
           </AppDataProvider>
         </UserProvider>

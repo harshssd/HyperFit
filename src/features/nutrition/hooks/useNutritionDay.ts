@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useUser } from '../../../contexts/UserContext';
 import {
   addEntry as svcAddEntry,
@@ -22,7 +22,7 @@ import {
 import { cheatsInWeek, computeStreak } from '../helpers';
 
 /**
- * useNutritionDay — owns today's full nutrition state for the Nutrition tab.
+ * useNutritionDay — owns today's full nutrition state.
  *
  * Returns settings + today's parent row + today's entries + folded summary
  * + streak math, plus the action functions the view components call. All
@@ -36,6 +36,12 @@ import { cheatsInWeek, computeStreak } from '../helpers';
  *
  * If logging UX feels laggy after dogfooding, optimistic-update the local
  * `entries` array first and reconcile from the view on next refresh.
+ *
+ * The hook is exported for callers that need an isolated copy. Most call
+ * sites should use `useNutritionDayContext()` (provided by
+ * `NutritionDayProvider`) so Home and Nutrition tabs share one source of
+ * truth — otherwise logging on one surface leaves the other stale until
+ * its own refresh fires.
  */
 
 export type UseNutritionDayReturn = {
@@ -238,4 +244,27 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
     toggleCheatDay,
     planCheatDay,
   };
+};
+
+// -- Provider / context ------------------------------------------------------
+// Home and Nutrition both render water/meal controls. Without a shared
+// source, each tab keeps its own cache and a log on one tab leaves the
+// other stale. The provider mounts the hook once at app level; consumers
+// read via context.
+
+const NutritionDayContext = createContext<UseNutritionDayReturn | null>(null);
+
+export const NutritionDayProvider = ({ children }: { children: React.ReactNode }) => {
+  const value = useNutritionDay();
+  return React.createElement(NutritionDayContext.Provider, { value }, children);
+};
+
+export const useNutritionDayContext = (): UseNutritionDayReturn => {
+  const ctx = useContext(NutritionDayContext);
+  if (!ctx) {
+    throw new Error(
+      'useNutritionDayContext: missing <NutritionDayProvider>. Wrap MainTabs (or higher) in the provider.',
+    );
+  }
+  return ctx;
 };
