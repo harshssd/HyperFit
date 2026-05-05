@@ -26,15 +26,27 @@ appId: ${APP_ID}
 - takeScreenshot: 03-nutrition
 
 - tapOn:
-    id: "tab-history"
+    id: "tab-calendar"
     optional: true
 - waitForAnimationToEnd:
     timeout: 1500
-- takeScreenshot: 04-history
+- takeScreenshot: 04-calendar
 
 - tapOn:
     id: "tab-home"
     optional: true
 - waitForAnimationToEnd:
+    timeout: 1000
+- tapOn:
+    id: "home-insights"
+    optional: true
+- waitForAnimationToEnd:
     timeout: 1500
-- takeScreenshot: 05-home-return
+- takeScreenshot: 05-history-modal
+
+- tapOn:
+    id: "history-close"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1000
+- takeScreenshot: 06-home-return
