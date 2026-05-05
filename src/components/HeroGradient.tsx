@@ -6,7 +6,8 @@ type Tint = 'orange' | 'green' | 'blue';
 
 const TINTS: Record<Tint, { from: string; to: string }> = {
   // Strava-orange — workout/lift surfaces (Home, Plans).
-  orange: { from: 'rgba(252, 76, 2, 0.20)', to: 'rgba(252, 76, 2, 0)' },
+  // Reduced from 0.20 → 0.14 so body copy on orange surfaces stays legible.
+  orange: { from: 'rgba(252, 76, 2, 0.14)', to: 'rgba(252, 76, 2, 0)' },
   // Robinhood-green — nutrition/water surfaces.
   green:  { from: 'rgba(0, 214, 143, 0.18)', to: 'rgba(0, 214, 143, 0)' },
   // Cool steel-blue — schedule/time surfaces (Calendar).
