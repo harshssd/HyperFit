@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import { Hexagon, Flame } from 'lucide-react-native';
 import { headerStyles } from '../styles';
 import ProgressRing from './ProgressRing';
@@ -24,15 +25,16 @@ const Header = ({ streak = 0, xp = 0, onOpenProfile, avatarInitials, username }:
   const insets = useSafeAreaInsets();
 
   // Pad past the OS status bar so the time/signal icons don't overlap the
-  // brand row. Done here (not via SafeAreaView) so transparentModal screens —
-  // where the safe-area context's top edge can be lost — still render correctly.
+  // brand row. Done here (not via SafeAreaView) so transparentModal screens
+  // still render correctly — react-native-screens returns insets.top=0 inside
+  // a transparentModal on iOS, so we floor against Constants.statusBarHeight
+  // (the measured status bar height, independent of safe-area context).
+  const topPad = Math.max(insets.top, Constants.statusBarHeight) + spacing.sm;
   return (
     <View
       style={[
         headerStyles.header,
-        // Preserve the spacing.lg baseline when there's no inset (Android
-        // landscape, web). On devices with a notch, the inset wins.
-        { paddingTop: Math.max(insets.top + spacing.sm, spacing.lg) },
+        { paddingTop: topPad },
       ]}
     >
       <View style={headerStyles.headerTop}>
