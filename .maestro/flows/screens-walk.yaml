@@ -1,0 +1,40 @@
+appId: ${APP_ID}
+---
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: 00-initial
+
+- tapOn:
+    id: "tab-home"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: 01-home
+
+- tapOn:
+    id: "tab-gym"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: 02-plans
+
+- tapOn:
+    id: "tab-nutrition"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: 03-nutrition
+
+- tapOn:
+    id: "tab-history"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: 04-history
+
+- tapOn:
+    id: "tab-home"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: 05-home-return

@@ -390,9 +390,19 @@ describe('getWorkoutForDate', () => {
     const res = getWorkoutForDate(date, [{ dateStr: '2026-04-15', name: 'Foo' }], activePlan);
     expect(res?.type).toBe('completed');
   });
+  // Compute a future date for the given UTC weekday (0=Sun..6=Sat). Always
+  // strictly after "today" so getWorkoutForDate's `dateStr >= todayStr` gate
+  // is satisfied. Hardcoded calendar dates rot — relative dates don't.
+  const nextFutureWeekday = (targetDow: number): Date => {
+    const d = new Date();
+    d.setUTCHours(12, 0, 0, 0);
+    do {
+      d.setUTCDate(d.getUTCDate() + 1);
+    } while (d.getUTCDay() !== targetDow);
+    return d;
+  };
   it('returns planned for a future Monday with active plan', () => {
-    // Pick a known future Monday: 2026-05-04
-    const date = new Date('2026-05-04T12:00:00Z');
+    const date = nextFutureWeekday(1); // Monday
     const res = getWorkoutForDate(date, [], activePlan);
     expect(res?.type).toBe('planned');
     expect(res?.name).toBe('Push');
@@ -403,7 +413,7 @@ describe('getWorkoutForDate', () => {
     expect(getWorkoutForDate(date, [], activePlan)).toBeNull();
   });
   it('returns null when active plan day has nothing scheduled', () => {
-    const date = new Date('2026-05-05T12:00:00Z'); // Tuesday
+    const date = nextFutureWeekday(2); // Tuesday — plan has no Tue session
     expect(getWorkoutForDate(date, [], activePlan)).toBeNull();
   });
 });
