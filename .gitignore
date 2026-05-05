@@ -76,3 +76,8 @@ android/
 
 # Maestro/expo-app-review captures
 screenshots/
+
+# Fastlane local artifacts
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/screenshots.html

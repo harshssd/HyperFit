@@ -1,0 +1,25 @@
+v2.2.0 — adds in-place edit for logged meals and past workout sets, plus a nutrition signal on the Home dashboard.
+
+=== HOW TO TEST ACCOUNT DELETION ===
+
+The Profile screen (top-right gear → Profile → DELETE ACCOUNT) runs the in-app deletion. Two-step confirmation, then the user is signed out and all rows are removed.
+
+What gets deleted on the server:
+- workout_sessions (and cascading workout_sets via FK)
+- user_workout_plans
+- user_exercises
+- nutrition_days (and cascading nutrition_entries / water_logs via FK)
+- user_nutrition_settings
+- The auth.users row itself (via Edge Function `delete-account` which calls supabase.auth.admin.deleteUser)
+
+Deletion is fully in-app. No email or phone support required.
+
+=== APP OVERVIEW ===
+
+HyperFit is a workout + nutrition tracker. Lift sessions log weight/reps/RPE per set; meals log kcal + macros + optional ingredients; water logs accumulate by tap. The home dashboard surfaces a verdict + this-week summary. Optional cloud sync via Supabase.
+
+Account creation: Google OAuth (Apple Sign-In is on the pre-launch backlog).
+
+Health-data usage strings live in app.json — workout logs are stored in the app's own DB, no HealthKit integration in this version.
+
+Contact: harsh.ssd@gmail.com

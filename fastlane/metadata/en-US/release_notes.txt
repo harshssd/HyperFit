@@ -1,0 +1,18 @@
+v2.2.0
+
+EDIT IN PLACE
+• Tap the pencil on any logged meal to fix kcal, macros, slot, or ingredients without deleting and re-logging
+• Edit past workouts the same way — fix a set's weight or reps, rename the session, and the totals refresh
+
+HOME · NEW NUTRITION SIGNAL
+• "This Week" card now shows a green tick on each day you logged meals or water, alongside the orange workout tick
+• New "Fueled X of 7 days" mini-section sits beneath the body verdict so meals get equal billing with lifts
+
+NUTRITION CLEANUP
+• Day-detail modal: tap any past day in History to see meals, macros, and a SHARE THIS DAY button
+• History list now caps at today (no more empty future-cheat-day rows above today)
+• Plan Ahead card removed — the cheat-day toggle handles budget warnings on its own
+
+POLISH
+• Muscle coverage section header re-laid out for clarity
+• Set-row inputs in past workouts now mono-aligned with the rest of the app

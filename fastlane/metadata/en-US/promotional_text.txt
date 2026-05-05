@@ -1,0 +1,1 @@
+v2.2 — edit logged sets and meals in place. Home dashboard now tracks fueled days alongside lift days.
