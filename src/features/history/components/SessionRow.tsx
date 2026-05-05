@@ -114,13 +114,27 @@ const Sparkline = ({
   );
 };
 
+// Trend indicator: glyph + color (was color-only). Glyph carries the signal
+// for users with red/green deficiency; color reinforces it for everyone else.
 const TrendDot = ({ trend }: { trend: Trajectory['trend'] }) => {
-  if (trend === 'none') return <View style={[styles.dot, styles.dotNone]} />;
-  const bg =
+  if (trend === 'none') {
+    return (
+      <Text style={[styles.trendGlyph, { color: text.quaternary }]} accessibilityLabel="no prior session">
+        ·
+      </Text>
+    );
+  }
+  const color =
     trend === 'up' ? accent.sessionUp
     : trend === 'down' ? accent.regression
     : text.quaternary;
-  return <View style={[styles.dot, { backgroundColor: bg }]} />;
+  const glyph = trend === 'up' ? '▲' : trend === 'down' ? '▼' : '·';
+  const label = trend === 'up' ? 'session up' : trend === 'down' ? 'session down' : 'session unchanged';
+  return (
+    <Text style={[styles.trendGlyph, { color }]} accessibilityLabel={label}>
+      {glyph}
+    </Text>
+  );
 };
 
 /**
@@ -239,14 +253,12 @@ const styles = StyleSheet.create({
     height: 14,
     justifyContent: 'center',
   },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-  },
-  dotNone: {
-    backgroundColor: palette.borderStrong,
-    opacity: 0.7,
+  trendGlyph: {
+    fontSize: 10,
+    fontWeight: '900',
+    lineHeight: 12,
+    minWidth: 10,
+    textAlign: 'center',
   },
   chevron: {
     marginLeft: 2,
