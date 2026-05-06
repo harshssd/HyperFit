@@ -1,0 +1,13 @@
+# Supabase project config. Edge Functions auth gating + project metadata.
+#
+# Generated when delete-account was added (no other functions yet).
+# When new functions are added, append a [functions.<name>] block.
+
+project_id = "dkegyvnarnycyaqjpnxd"
+
+[functions.delete-account]
+# verify_jwt = true forces the gateway to require a valid Authorization
+# header before invoking the function. We re-verify inside the function
+# too (to extract user_id), but the gateway gate keeps unauthed callers
+# off the runtime entirely.
+verify_jwt = true
