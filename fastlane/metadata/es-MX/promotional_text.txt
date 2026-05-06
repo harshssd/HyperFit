@@ -1,0 +1,1 @@
+v2.2 — edita tus series y comidas registradas. El panel principal ahora muestra los días con comida junto a los días de entrenamiento.

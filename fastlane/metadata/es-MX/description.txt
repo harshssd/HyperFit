@@ -1,0 +1,34 @@
+HyperFit es un registro de entrenamiento y nutrición para gente que quiere datos honestos, no ruido gamificado.
+
+Registra cada serie. Anota cada comida. Mira exactamente qué músculos has trabajado esta semana, dónde te estás estancando, y dónde tu objetivo de calorías se está desviando. La app entera está construida alrededor de una idea: mostrar la señal real, esconder todo lo demás.
+
+ENTRENAMIENTO
+• Registro de series con un toque: peso, repeticiones, RPE y temporizador de descanso
+• Valores fantasma de tu última sesión aparecen junto a cada serie mientras la registras
+• Detección de PR en cada entrenamiento terminado — ve exactamente qué series rompieron un récord
+• Mapa de calor muscular ponderado por reclutamiento (no la división plana 50/50 habitual) muestra lo que realmente entrenaste
+• Planes personalizados más cuatro plantillas para empezar (PPL, Tren superior/inferior, Cuerpo completo, etc.)
+• Explora y comparte planes con un solo código
+
+NUTRICIÓN
+• Registra comidas por macros (kcal, proteína, carbos, grasa, fibra) o por ingredientes detallados
+• Etiquetas de cantidad y desglose de ingredientes para las comidas que repites a menudo
+• Registro diario de agua con tazas, botellas o cantidad personalizada
+• El día trampa preserva tu racha cuando la vida pasa
+• Carrusel de "recientes" — registra un plátano o tu desayuno habitual con dos toques
+• Establece objetivos diarios de kcal/macros; la app muestra EN OBJETIVO / EXCESO / DEFICIT
+
+PANEL PRINCIPAL
+• Veredicto de una línea cada mañana: LISTO PARA LEVANTAR, DÍA DE DESCANSO, HECHO HOY
+• Silueta corporal coloreada por el reclutamiento muscular real de la semana
+• Señales paralelas para entrenamientos y comidas para ver la semana completa de un vistazo
+• Línea de volumen de 14 días con cambio semana a semana
+
+COMPARTIR
+• Tarjetas para compartir de 1080x1350 para entrenamientos terminados, planes y días completos de nutrición
+• Incluye la silueta muscular + ejercicios principales + macros — vale la pena postearlo
+
+POR QUÉ HYPERFIT
+El mercado de apps de fitness está lleno de patrones oscuros: rachas que castigan saltarse un día, círculos de calorías que mienten sobre cumplir tu objetivo, "coaches con IA" que recomiendan los mismos cinco ejercicios. HyperFit no hace nada de eso. Registra lo que hiciste, te muestra qué significa, y se quita del medio.
+
+Gratis, sin anuncios, sin suscripción. Inicia sesión con Google. Tus datos siguen siendo tuyos.
