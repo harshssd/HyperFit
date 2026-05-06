@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { useUser } from '../../../contexts/UserContext';
+import { useLocalToday } from './useLocalToday';
 import {
   addEntry as svcAddEntry,
   addWater as svcAddWater,
@@ -10,7 +11,6 @@ import {
   getRecentSummaries,
   getSettings,
   toggleCheatDay as svcToggleCheatDay,
-  todayLocalISO,
   undoLastWater as svcUndoLastWater,
   updateEntry as svcUpdateEntry,
   upsertSettings,
@@ -92,7 +92,10 @@ export type UseNutritionDayReturn = {
 export const useNutritionDay = (): UseNutritionDayReturn => {
   const { user } = useUser();
   const userId = user?.id;
-  const [date] = useState<string>(() => todayLocalISO());
+  // `date` is the local ISO bucket every action writes to. The hook
+  // refreshes it on app foreground + once per minute so an app left
+  // open across midnight rolls to the new day on its own.
+  const date = useLocalToday();
 
   const [settings, setSettings] = useState<NutritionSettings | null>(null);
   const [day, setDay] = useState<NutritionDay | null>(null);

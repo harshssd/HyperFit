@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { X, Salad } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import type { NutritionSettings } from '../../../services/nutritionService';
@@ -145,7 +154,15 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
       presentationStyle="pageSheet"
       transparent={false}
     >
-      <View style={{ flex: 1, backgroundColor: palette.bg }}>
+      <KeyboardAvoidingView
+        style={{ flex: 1, backgroundColor: palette.bg }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        // ~50pt accounts for the page-sheet's translucent header chrome.
+        // Without it the bottom-most field (Save Goal) sits under the
+        // keyboard on iPhone 13/14/15-class devices in pageSheet mode,
+        // even though the sim renders fine.
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
+      >
         {/* Header */}
         <View
           style={{
@@ -182,6 +199,8 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
             paddingBottom: spacing.xxl,
             gap: spacing.lg,
           }}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           <SectionLabel>Macros</SectionLabel>
           <Field label="Calories" unit="kcal" value={kcal} onChange={setKcal} />
@@ -260,7 +279,7 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
             </Text>
           </TouchableOpacity>
         </ScrollView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 };
@@ -337,6 +356,7 @@ const Field = ({
         keyboardType="number-pad"
         placeholder={optional ? 'Off' : ''}
         placeholderTextColor={text.quaternary}
+        returnKeyType="done"
         style={{
           minWidth: 70,
           textAlign: 'right',
@@ -345,7 +365,10 @@ const Field = ({
           fontWeight: '800',
           fontVariant: fonts.tabularNums,
         }}
-        selectTextOnFocus
+        // Intentionally NOT selectTextOnFocus — re-selecting on every focus
+        // gain caused subsequent keystrokes to replace instead of append
+        // ("locks after one digit"). User can long-press to select if they
+        // want to retype, which is the iOS-native pattern anyway.
       />
       {unit ? (
         <Text
