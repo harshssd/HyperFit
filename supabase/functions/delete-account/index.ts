@@ -63,17 +63,15 @@ serve(async (req: Request) => {
     });
   }
 
-  // Two clients: one as the caller (to verify the JWT and get their
-  // user_id), one with the service role (to actually delete).
-  const callerClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
-    global: { headers: { Authorization: `Bearer ${jwt}` } },
-    auth: { persistSession: false },
-  });
+  // Single service-role client. auth.getUser(jwt) takes the JWT as a
+  // parameter, validates the signature server-side, and returns the
+  // user. No need for a second client with Authorization headers —
+  // the JWT-as-param path doesn't depend on the client's session.
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false },
   });
 
-  const { data: userData, error: userErr } = await callerClient.auth.getUser(jwt);
+  const { data: userData, error: userErr } = await adminClient.auth.getUser(jwt);
   if (userErr || !userData?.user) {
     return new Response(JSON.stringify({ error: 'invalid_jwt' }), {
       status: 401,

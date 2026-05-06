@@ -65,13 +65,27 @@ export const DeleteAccountModal = ({ visible, onClose, onDeleted }: Props) => {
     setError(null);
     try {
       await deleteAccount();
-      // Hand off to parent — DON'T reset state here. If the parent
-      // takes a moment to swap navigators, leaving the modal in its
-      // committed state prevents a flash of the step-1 UI.
-      await onDeleted();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not delete account');
       setBusy(false);
+      return;
+    }
+    // Server has wiped the user. Hand off to parent for sign-out.
+    // Don't reset modal state — if signOut takes a moment, leaving
+    // the modal in its committed (busy) state prevents a flash of
+    // step-1 UI before the navigator swaps. If signOut throws (rare
+    // network failure), AsyncStorage still gets cleared locally and
+    // the auth listener fires anyway, but defensively reset busy so
+    // the user isn't stuck with an infinite spinner.
+    try {
+      await onDeleted();
+    } catch (e) {
+      setBusy(false);
+      setError(
+        e instanceof Error
+          ? `Account deleted but sign-out failed: ${e.message}. Force-quit and reopen the app.`
+          : 'Account deleted but sign-out failed. Force-quit and reopen the app.',
+      );
     }
   };
 
