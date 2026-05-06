@@ -1,0 +1,18 @@
+v2.2.0
+
+EDITAR EN EL SITIO
+• Toca el lápiz en cualquier comida registrada para corregir kcal, macros, momento o ingredientes sin borrar y volver a registrar
+• Edita entrenamientos pasados igual — corrige peso o reps de una serie, renombra la sesión, y los totales se actualizan
+
+INICIO · NUEVA SEÑAL DE NUTRICIÓN
+• La tarjeta "Esta semana" ahora muestra un check verde por cada día que registraste comida o agua, junto al check naranja de entrenamiento
+• Nueva sección "Comiste X de 7 días" debajo del veredicto corporal — las comidas tienen el mismo peso que las pesas
+
+LIMPIEZA DE NUTRICIÓN
+• Modal de detalle del día: toca cualquier día pasado en el Historial para ver comidas, macros, y un botón COMPARTIR ESTE DÍA
+• La lista del historial ahora termina en hoy (no más filas vacías de futuros días trampa arriba de hoy)
+• Eliminada la tarjeta "Plan Ahead" — el toggle de día trampa maneja las advertencias de presupuesto solo
+
+PULIDO
+• Encabezado de cobertura muscular reorganizado para mejor claridad
+• Inputs de series en entrenamientos pasados ahora alineados monoespaciados con el resto de la app

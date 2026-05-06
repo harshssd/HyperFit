@@ -1,0 +1,1 @@
+v2.2 — edite séries e refeições registradas. O painel principal agora mostra dias com refeições ao lado dos dias de treino.
