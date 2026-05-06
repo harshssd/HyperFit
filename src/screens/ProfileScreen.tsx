@@ -10,10 +10,11 @@ import {
 import Constants from 'expo-constants';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ChevronRight, LogOut, X } from 'lucide-react-native';
+import { ChevronRight, LogOut, Trash2, X } from 'lucide-react-native';
 import { useAuthContext } from '../contexts/AuthContext';
 import { setUnits as setUnitsRemote, type Units } from '../services/profile';
 import { getSettings, upsertSettings } from '../services/nutritionService';
+import { DeleteAccountModal } from './DeleteAccountModal';
 
 type WaterUnit = 'ml' | 'oz';
 import { palette, accent, text, spacing, radii, fonts } from '../styles/theme';
@@ -32,6 +33,7 @@ export const ProfileScreen = () => {
     (user?.user_metadata?.units as Units | undefined) ?? 'lb';
   const [units, setUnitsState] = useState<Units>(initialUnits);
   const [waterUnit, setWaterUnitState] = useState<WaterUnit>('ml');
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -202,11 +204,36 @@ export const ProfileScreen = () => {
           />
         </Section>
 
+        {/* Danger zone is its own section so the visual separation
+            tells the user "this is different from sign-out." Required
+            entry point for App Store guideline 5.1.1(v). */}
+        <SmallLabel>DANGER ZONE</SmallLabel>
+        <Section>
+          <Row
+            label="Delete account"
+            destructive
+            icon={<Trash2 size={16} color={accent.regression} />}
+            onPress={() => setDeleteOpen(true)}
+          />
+        </Section>
+
         <SmallLabel>ABOUT</SmallLabel>
         <Section>
           <Row label="Version" value={version} hideChevron />
         </Section>
       </ScrollView>
+
+      <DeleteAccountModal
+        visible={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onDeleted={async () => {
+          // Server has wiped the user; clear local session so the auth
+          // listener flips to unauthenticated and RootNavigator swaps
+          // back to the login stack. signOut also closes the modal as
+          // the whole tree unmounts.
+          await signOut();
+        }}
+      />
     </View>
   );
 };

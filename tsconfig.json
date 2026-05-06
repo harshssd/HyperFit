@@ -2,5 +2,9 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true
-  }
+  },
+  // Edge Functions live under supabase/functions/ and run on Deno (URL
+  // imports, Deno globals). They have their own type config inside the
+  // functions folder; excluding here keeps the app's tsc clean.
+  "exclude": ["supabase/functions/**", "node_modules"]
 }
