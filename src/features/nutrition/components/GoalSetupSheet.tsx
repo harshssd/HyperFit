@@ -157,6 +157,11 @@ export const GoalSetupSheet = ({ visible, initial, onClose, onSave }: Props) => 
       <KeyboardAvoidingView
         style={{ flex: 1, backgroundColor: palette.bg }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        // ~50pt accounts for the page-sheet's translucent header chrome.
+        // Without it the bottom-most field (Save Goal) sits under the
+        // keyboard on iPhone 13/14/15-class devices in pageSheet mode,
+        // even though the sim renders fine.
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 50 : 0}
       >
         {/* Header */}
         <View

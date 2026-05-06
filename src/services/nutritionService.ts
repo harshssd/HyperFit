@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type { Database, MealSlot, NutritionIngredient } from '../types/supabase';
+import { todayLocalISO } from '../utils/localDate';
 
 /**
  * Nutrition service — all Supabase reads/writes for the Nutrition tab.
@@ -27,17 +28,10 @@ export type WaterLog =
 export type NutritionDaySummary =
   Database['public']['Views']['nutrition_day_summary_view']['Row'];
 
-// Local-date string in YYYY-MM-DD. Used for the date column on
-// nutrition_days and water_logs so timezone shifts don't split a meal
-// across two calendar days. Caller is responsible for passing the
-// device-local date — UTC would land "today" on a 2am meal log incorrectly.
-export const todayLocalISO = (): string => {
-  const d = new Date();
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, '0');
-  const dd = String(d.getDate()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd}`;
-};
+// Re-export so existing call sites keep working. Implementation lives
+// in src/utils/localDate.ts so tests can import it without pulling
+// supabase + AsyncStorage into the jest sandbox.
+export { todayLocalISO };
 
 // -- Settings ----------------------------------------------------------------
 

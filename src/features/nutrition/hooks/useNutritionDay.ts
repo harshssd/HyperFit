@@ -1,6 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
 import { useUser } from '../../../contexts/UserContext';
+import { useLocalToday } from './useLocalToday';
 import {
   addEntry as svcAddEntry,
   addWater as svcAddWater,
@@ -11,7 +11,6 @@ import {
   getRecentSummaries,
   getSettings,
   toggleCheatDay as svcToggleCheatDay,
-  todayLocalISO,
   undoLastWater as svcUndoLastWater,
   updateEntry as svcUpdateEntry,
   upsertSettings,
@@ -93,31 +92,10 @@ export type UseNutritionDayReturn = {
 export const useNutritionDay = (): UseNutritionDayReturn => {
   const { user } = useUser();
   const userId = user?.id;
-  // `date` is the local ISO bucket every action writes to. Recomputed
-  // on app foreground and on a midnight check, so an app left open
-  // across midnight or backgrounded overnight rolls to the new day on
-  // its own. Without this, `useState(() => todayLocalISO())` froze the
-  // bucket at first mount and every subsequent tap wrote to yesterday.
-  const [date, setDate] = useState<string>(() => todayLocalISO());
-
-  useEffect(() => {
-    const sync = () => {
-      const today = todayLocalISO();
-      setDate(prev => (prev === today ? prev : today));
-    };
-    const sub = AppState.addEventListener('change', (next: AppStateStatus) => {
-      if (next === 'active') sync();
-    });
-    // Cheap once-a-minute check for the midnight rollover while the app
-    // stays in the foreground (uncommon but possible: phone on charger,
-    // app open). 60 s is small enough that the worst-case stale window
-    // is one minute past midnight before the bucket flips.
-    const interval = setInterval(sync, 60_000);
-    return () => {
-      sub.remove();
-      clearInterval(interval);
-    };
-  }, []);
+  // `date` is the local ISO bucket every action writes to. The hook
+  // refreshes it on app foreground + once per minute so an app left
+  // open across midnight rolls to the new day on its own.
+  const date = useLocalToday();
 
   const [settings, setSettings] = useState<NutritionSettings | null>(null);
   const [day, setDay] = useState<NutritionDay | null>(null);
