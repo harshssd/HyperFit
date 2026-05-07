@@ -202,10 +202,19 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
   const addWater = useCallback(
     async (ml: number) => {
       if (!userId) return;
+      // CRITICAL: ensure the nutrition_days parent row exists before
+      // writing to water_logs. nutrition_day_summary_view joins on
+      // nutrition_days, so a water row without a parent is invisible
+      // to every read path (the UI sees zero water, even though raw
+      // rows accumulate). Mirrors the pattern in addEntry above.
+      const parent = day ?? (await getOrCreateDay(userId, date));
       await svcAddWater(userId, date, ml);
+      // Update local `day` immediately so subsequent rapid taps don't
+      // each refire getOrCreateDay (it's idempotent but adds latency).
+      if (!day) setDay(parent);
       await refresh();
     },
-    [userId, date, refresh],
+    [userId, date, day, refresh],
   );
 
   const undoLastWater = useCallback(async () => {
