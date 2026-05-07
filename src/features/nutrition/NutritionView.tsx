@@ -308,6 +308,8 @@ export const NutritionView = ({
                   unit={waterUnit}
                   onAddMl={day.addWater}
                   onUndo={day.undoLastWater}
+                  entries={day.waterLogs}
+                  onDeleteEntry={day.deleteWaterEntry}
                 />
               ) : null}
 

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { Check, Droplet, Undo2, X } from 'lucide-react-native';
+import { Check, Droplet, Trash2, Undo2, X } from 'lucide-react-native';
 import { palette, accent, text, spacing, radii, fonts } from '../../../styles/theme';
 import { formatVolume } from '../helpers';
+import type { WaterLog } from '../../../services/nutritionService';
 
 /**
  * WaterControls — header + always-visible add buttons + segment strip.
@@ -27,6 +28,8 @@ type Props = {
   unit: 'ml' | 'oz';
   onAddMl: (ml: number) => Promise<void>;
   onUndo: () => Promise<void>;
+  entries: WaterLog[];
+  onDeleteEntry: (id: string) => Promise<void>;
 };
 
 const SEGMENTS = 8;
@@ -39,6 +42,8 @@ export const WaterControls = ({
   unit,
   onAddMl,
   onUndo,
+  entries,
+  onDeleteEntry,
 }: Props) => {
   const [busy, setBusy] = useState(false);
   const [customMode, setCustomMode] = useState(false);
@@ -277,8 +282,72 @@ export const WaterControls = ({
           />
         </View>
       )}
+
+      {entries.length > 0 ? (
+        <View style={{ marginTop: spacing.sm, gap: 1 }}>
+          {[...entries].reverse().map((entry, idx, arr) => (
+            <View
+              key={entry.id}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingVertical: spacing.sm,
+                borderTopWidth: idx === 0 ? 1 : 0,
+                borderBottomWidth: idx === arr.length - 1 ? 0 : 1,
+                borderColor: palette.borderSubtle,
+              }}
+            >
+              <Droplet size={12} color={accent.sessionUp} />
+              <Text
+                style={{
+                  flex: 1,
+                  marginLeft: spacing.sm,
+                  color: text.primary,
+                  fontSize: 14,
+                  fontWeight: '700',
+                  fontVariant: fonts.tabularNums,
+                }}
+              >
+                {formatVolume(entry.ml, unit)}
+              </Text>
+              <Text
+                style={{
+                  color: text.quaternary,
+                  fontFamily: fonts.family.mono,
+                  fontSize: 11,
+                  letterSpacing: 1,
+                  fontVariant: fonts.tabularNums,
+                  marginRight: spacing.md,
+                }}
+              >
+                {formatTime(entry.logged_at)}
+              </Text>
+              <TouchableOpacity
+                testID={`water-delete-${entry.id}`}
+                onPress={() => wrap(() => onDeleteEntry(entry.id))}
+                disabled={busy}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Delete water entry"
+                style={{ padding: spacing.xs, opacity: busy ? 0.35 : 1 }}
+              >
+                <Trash2 size={14} color={text.tertiary} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
+};
+
+const formatTime = (iso: string): string => {
+  const d = new Date(iso);
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m.toString().padStart(2, '0')} ${ampm}`;
 };
 
 const ActionButton = ({
