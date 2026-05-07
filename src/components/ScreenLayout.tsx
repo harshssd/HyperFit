@@ -11,6 +11,7 @@ import { calculateXP } from '../features/workout/helpers';
 import { deriveInitials } from '../utils/initials';
 import { layoutStyles } from '../styles';
 import { ASSETS } from '../constants/appConstants';
+import { useContentMaxWidth } from '../hooks/useResponsive';
 import type { RootStackParamList } from '../navigation/types';
 
 type Props = {
@@ -42,6 +43,7 @@ export const ScreenLayout = ({
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const username = user?.email?.split('@')[0] || user?.user_metadata?.full_name || 'User';
   const avatarInitials = deriveInitials(user?.email);
+  const maxWidth = useContentMaxWidth();
 
   return (
     <ImageBackground
@@ -53,7 +55,7 @@ export const ScreenLayout = ({
       {/* Header pads its own top inset, so when it's shown SafeAreaView skips
           the top edge to avoid double-padding. Hidden-header screens (modals
           without the brand bar) still need SafeAreaView's top inset. */}
-      <SafeAreaView style={layoutStyles.appContent} edges={hideHeader ? ['top'] : []}>
+      <SafeAreaView style={[layoutStyles.appContent, { maxWidth }]} edges={hideHeader ? ['top'] : []}>
         {!hideHeader && (
           <Header
             streak={data.gymLogs.length}
