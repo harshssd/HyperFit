@@ -310,6 +310,14 @@ export const addWater = async (
   return data;
 };
 
+// Delete a single water log by id. RLS scopes deletes to the calling
+// user, so a stray id from a different account just silently affects
+// nothing. Used by the water entries list per-row trash button.
+export const deleteWaterLog = async (id: string): Promise<void> => {
+  const { error } = await supabase.from('water_logs').delete().eq('id', id);
+  if (error) throw error;
+};
+
 // Undo = delete the last (most recent) tap for the day. View recomputes
 // total_ml on next read. Returns null when there's nothing to undo so
 // the caller can show a "no taps yet" affordance instead of erroring.

@@ -5,11 +5,13 @@ import {
   addEntry as svcAddEntry,
   addWater as svcAddWater,
   deleteEntry as svcDeleteEntry,
+  deleteWaterLog as svcDeleteWaterLog,
   getDaySummary,
   getEntries,
   getOrCreateDay,
   getRecentSummaries,
   getSettings,
+  getWaterLogs,
   toggleCheatDay as svcToggleCheatDay,
   undoLastWater as svcUndoLastWater,
   updateEntry as svcUpdateEntry,
@@ -20,6 +22,7 @@ import {
   type NutritionEntry,
   type NutritionSettings,
   type UpdateEntryPatch,
+  type WaterLog,
 } from '../../../services/nutritionService';
 import { cheatsInWeek, computeStreak } from '../helpers';
 
@@ -61,6 +64,8 @@ export type UseNutritionDayReturn = {
   summary: NutritionDaySummary | null;
   /** Today's entries, ordered by meal_slot then order_index. */
   entries: NutritionEntry[];
+  /** Today's water taps, ordered by logged_at ASC (chronological). */
+  waterLogs: WaterLog[];
   /** Active streak (counting back from today). */
   streak: number;
   /** True iff the user has saved settings at least once. */
@@ -81,6 +86,10 @@ export type UseNutritionDayReturn = {
   updateEntry: (entryId: string, patch: UpdateEntryPatch) => Promise<void>;
   deleteEntry: (entryId: string) => Promise<void>;
   addWater: (ml: number) => Promise<void>;
+  /** Delete a single water tap by id. Used by the per-row trash icon
+   *  on the entries list. Distinct from undoLastWater (which always
+   *  acts on the most recent tap). */
+  deleteWaterEntry: (id: string) => Promise<void>;
   undoLastWater: () => Promise<void>;
   toggleCheatDay: (next: boolean) => Promise<void>;
   /** Plan a cheat for an arbitrary date (today or future). Future-only
@@ -101,6 +110,7 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
   const [day, setDay] = useState<NutritionDay | null>(null);
   const [summary, setSummary] = useState<NutritionDaySummary | null>(null);
   const [entries, setEntries] = useState<NutritionEntry[]>([]);
+  const [waterLogs, setWaterLogs] = useState<WaterLog[]>([]);
   const [streak, setStreak] = useState(0);
   const [recentSummaries, setRecentSummaries] = useState<NutritionDaySummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,8 +135,12 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
 
       // entries depend on having a day_id — pull only after summary lands.
       if (summ?.day_id) {
-        const e = await getEntries(userId, summ.day_id);
+        const [e, wl] = await Promise.all([
+          getEntries(userId, summ.day_id),
+          getWaterLogs(userId, date),
+        ]);
         setEntries(e);
+        setWaterLogs(wl);
         // Populate `day` shape (subset) from summary for the cheat toggle to
         // act on without a second round-trip. Full row only fetched on demand.
         setDay({
@@ -145,6 +159,7 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
         });
       } else {
         setEntries([]);
+        setWaterLogs([]);
         setDay(null);
       }
     } catch (e) {
@@ -217,6 +232,14 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
     [userId, date, day, refresh],
   );
 
+  const deleteWaterEntry = useCallback(
+    async (id: string) => {
+      await svcDeleteWaterLog(id);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const undoLastWater = useCallback(async () => {
     if (!userId) return;
     await svcUndoLastWater(userId, date);
@@ -253,6 +276,7 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
     day,
     summary,
     entries,
+    waterLogs,
     streak,
     hasGoal: settings !== null,
     recentSummaries,
@@ -264,6 +288,7 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
     updateEntry,
     deleteEntry,
     addWater,
+    deleteWaterEntry,
     undoLastWater,
     toggleCheatDay,
     planCheatDay,
