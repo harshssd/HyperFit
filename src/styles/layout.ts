@@ -9,9 +9,10 @@ const layoutStyles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(15, 23, 42, 0.9)',
   },
+  // maxWidth lives at the call site (ScreenLayout) so it can read from
+  // useContentMaxWidth() and respond to window resize / rotation.
   appContent: {
     flex: 1,
-    maxWidth: 500,
     width: '100%',
     alignSelf: 'center',
   },

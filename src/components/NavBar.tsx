@@ -3,6 +3,7 @@ import { View, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { navbarStyles } from '../styles';
 import { accent, text } from '../styles/theme';
+import { useContentMaxWidth } from '../hooks/useResponsive';
 
 type IconType = React.ComponentType<{ size?: number; color?: string; strokeWidth?: number }>;
 
@@ -58,9 +59,16 @@ const NavBar = ({ activeTab, items, onChange }: NavBarProps) => {
   // Floor at 8pt so Android (where insets.bottom is often 0) keeps a cushion.
   const insets = useSafeAreaInsets();
   const pad = insets.bottom > 0 ? insets.bottom : 8;
+  // Match the centered content column so 4 icons don't smear across 13".
+  // Background hairline still spans full width (rendered by parent),
+  // only the icon row clamps.
+  const maxWidth = useContentMaxWidth();
   return (
     <View
-      style={[navbarStyles.navBar, { paddingBottom: pad }]}
+      style={[
+        navbarStyles.navBar,
+        { paddingBottom: pad, maxWidth, width: '100%', alignSelf: 'center' },
+      ]}
       accessibilityRole="tablist"
     >
       {items.map(item => (
