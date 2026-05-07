@@ -1,20 +1,6 @@
 import { useWindowDimensions } from 'react-native';
 
 /**
- * Tablet detection from current window width. 768 is the iPad mini portrait
- * floor — anything above is treated as tablet (any iPad in any orientation,
- * any large foldable). Below stays phone.
- *
- * `useWindowDimensions` re-renders the consumer on rotation, so split-view
- * resizes flow through automatically without a listener.
- */
-export const useIsTablet = (): boolean => {
-  const { width } = useWindowDimensions();
-  return width >= 768;
-};
-
-
-/**
  * Content max-width for the centered tab column.
  *
  *   <768pt   phone           500   (iPhone family)
@@ -23,7 +9,8 @@ export const useIsTablet = (): boolean => {
  *
  * The two tablet tiers are tuned so cards take ~85% of screen width on
  * either size — a flat 720 leaves the 13" feeling like a stretched 11"
- * with dead gutter rails.
+ * with dead gutter rails. `useWindowDimensions` re-renders the consumer
+ * on rotation, so split-view resizes flow through automatically.
  */
 export const useContentMaxWidth = (): number => {
   const { width } = useWindowDimensions();
