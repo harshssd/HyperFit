@@ -3,6 +3,7 @@ import { Alert, View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { setGoal, type Goal } from '../../services/profile';
+import { trackEvent, AnalyticsEvents } from '../../utils/posthog';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import type { OnboardingStackParamList } from '../../navigation/types';
 import { OnboardingChrome, OnboardingTitle, OnboardingSubtitle } from './OnboardingChrome';
@@ -26,6 +27,7 @@ export const GoalScreen = () => {
     try {
       if (persist && selected) {
         await setGoal(selected);
+        trackEvent(AnalyticsEvents.GOAL_SET, { scope: 'onboarding', goal: selected });
       }
       navigation.navigate('StarterPlan');
     } catch (e) {

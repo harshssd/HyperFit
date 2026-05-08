@@ -25,6 +25,7 @@ import {
   type WaterLog,
 } from '../../../services/nutritionService';
 import { cheatsInWeek, computeStreak } from '../helpers';
+import { trackEvent, AnalyticsEvents } from '../../../utils/posthog';
 
 /**
  * useNutritionDay — owns today's full nutrition state.
@@ -184,6 +185,10 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
       // Targets may have changed → summary's hit/over/under might flip.
       const summ = await getDaySummary(userId, date);
       setSummary(summ);
+      trackEvent(AnalyticsEvents.GOAL_SET, {
+        scope: 'nutrition',
+        fields: Object.keys(patch).join(','),
+      });
     },
     [userId, date],
   );
@@ -194,6 +199,10 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
       const parent = day ?? (await getOrCreateDay(userId, date));
       await svcAddEntry({ ...input, userId, dayId: parent.id });
       await refresh();
+      trackEvent(AnalyticsEvents.MEAL_LOGGED, {
+        meal_slot: input.mealSlot ?? 'unknown',
+        has_label: Boolean(input.mealLabel),
+      });
     },
     [userId, date, day, refresh],
   );
@@ -228,6 +237,7 @@ export const useNutritionDay = (): UseNutritionDayReturn => {
       // each refire getOrCreateDay (it's idempotent but adds latency).
       if (!day) setDay(parent);
       await refresh();
+      trackEvent(AnalyticsEvents.WATER_LOGGED, { ml });
     },
     [userId, date, day, refresh],
   );

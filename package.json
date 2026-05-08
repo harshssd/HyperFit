@@ -32,6 +32,7 @@
     "expo-status-bar": "~3.0.8",
     "expo-web-browser": "~15.0.9",
     "lucide-react-native": "^0.555.0",
+    "posthog-react-native": "^4.44.4",
     "react": "19.1.0",
     "react-native": "0.81.5",
     "react-native-chart-kit": "^6.12.0",
