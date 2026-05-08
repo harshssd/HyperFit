@@ -248,6 +248,57 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
     );
   };
 
+  // First-action CTA — only renders for brand-new users (zero workouts
+  // logged AND no active plan). The hero verdict already says "LET'S
+  // START / Pick a starter plan in the Workout tab", but pure prose with
+  // no tappable affordance reads like a broken empty state. This adds the
+  // missing button so launch-traffic users have a single obvious next
+  // tap. Auto-disappears once the user logs anything (since the verdict
+  // flips out of the welcome branch).
+  const renderFirstActionCTA = () => {
+    const noLogs = (data.gymLogs?.length ?? 0) === 0;
+    const noPlan = !activePlan;
+    if (!noLogs || !noPlan) return null;
+    return (
+      <TouchableOpacity
+        testID="home-first-action-cta"
+        onPress={() => onChangeView('gym')}
+        accessibilityRole="button"
+        accessibilityLabel="Pick a starter plan"
+        activeOpacity={0.85}
+        style={{
+          marginBottom: spacing.xl,
+          paddingVertical: spacing.lg + 2,
+          borderRadius: radii.lg,
+          backgroundColor: accent.lift,
+          alignItems: 'center',
+        }}
+      >
+        <Text
+          style={{
+            color: palette.bg,
+            fontFamily: fonts.family.mono,
+            fontWeight: fonts.weight.black as '900',
+            fontSize: 13,
+            letterSpacing: 1.6,
+          }}
+        >
+          PICK YOUR FIRST PLAN →
+        </Text>
+        <Text
+          style={{
+            color: 'rgba(10, 10, 10, 0.7)',
+            fontSize: 12,
+            fontWeight: '600',
+            marginTop: 4,
+          }}
+        >
+          Or hit the Workout tab to log a one-off session
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   // Nutrition glance — read-only. Tap opens the Nutrition tab where the
   // logging controls live. Border tints orange only when status is over
   // (or purple on cheat day) — neutral otherwise so orange stays signal.
@@ -646,6 +697,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
   return (
     <ScrollView style={homeStyles.homeView} contentContainerStyle={homeStyles.homeViewContent}>
       {renderHero()}
+      {renderFirstActionCTA()}
       {renderNutritionGlance()}
       {renderBodyWeek()}
     </ScrollView>

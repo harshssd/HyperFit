@@ -112,4 +112,11 @@ export const AnalyticsEvents = {
   MEAL_LOGGED: 'meal_logged',
   WATER_LOGGED: 'water_logged',
   GOAL_SET: 'goal_set',
+  // Onboarding funnel — drives launch-traffic activation analysis.
+  // Each step fires `viewed` on mount and `completed`/`skipped` on exit so
+  // PostHog dashboards can chart the drop-off between every step.
+  ONBOARDING_STEP_VIEWED: 'onboarding_step_viewed',
+  ONBOARDING_STEP_COMPLETED: 'onboarding_step_completed',
+  ONBOARDING_STEP_SKIPPED: 'onboarding_step_skipped',
+  ONBOARDING_FINISHED: 'onboarding_finished',
 } as const;
