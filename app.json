@@ -32,10 +32,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "ACTIVITY_RECOGNITION",
-        "ACCESS_FINE_LOCATION"
-      ],
+      "permissions": [],
       "intentFilters": [
         {
           "action": "VIEW",
