@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, ScrollView, View, Text, TouchableOpacity } from 'react-native';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { supabase } from '../../services/supabase';
@@ -8,9 +8,10 @@ import {
   findUserWorkoutPlan,
   updateUserWorkoutPlan,
 } from '../../services/workoutService/userPlans';
-import { markOnboarded } from '../../services/profile';
+import { markOnboarded, type Goal } from '../../services/profile';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import { OnboardingChrome, OnboardingTitle, OnboardingSubtitle } from './OnboardingChrome';
+import { trackEvent, AnalyticsEvents } from '../../utils/posthog';
 
 type PublicPlan = {
   id: string;
@@ -20,12 +21,48 @@ type PublicPlan = {
   duration: number | null;
 };
 
+// Per-goal preference order for the seeded plans. Ranks plans by frequency
+// since that's the cleanest signal we have for goal fit:
+//   build    → 4-6× hypertrophy splits (PPL, Upper/Lower) at the top
+//   cut      → 5-6× higher frequency for the kcal burn
+//   maintain → 3× full-body, sustainable
+//   track    → no preference, default order
+// Plans we don't recognize fall to the end so the recommended block stays
+// curated even if seed data grows.
+const goalPlanFrequencyOrder: Record<Goal, number[]> = {
+  build:    [4, 5, 6, 3],
+  cut:      [5, 6, 4, 3],
+  maintain: [3, 4, 2, 5, 6],
+  track:    [],
+};
+
+const rankPlansByGoal = (plans: PublicPlan[], goal: Goal | null): PublicPlan[] => {
+  if (!goal || goal === 'track') return plans;
+  const order = goalPlanFrequencyOrder[goal] ?? [];
+  const rank = (p: PublicPlan) => {
+    const idx = p.frequency != null ? order.indexOf(p.frequency) : -1;
+    return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+  };
+  return [...plans].sort((a, b) => rank(a) - rank(b));
+};
+
 export const StarterPlanScreen = () => {
   const { user } = useAuthContext();
+  const goal = (user?.user_metadata?.goal as Goal | undefined) ?? null;
   const [plans, setPlans] = useState<PublicPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const rankedPlans = useMemo(() => rankPlansByGoal(plans, goal), [plans, goal]);
+  const recommendedPlanId = goal && goal !== 'track' ? rankedPlans[0]?.id ?? null : null;
+
+  useEffect(() => {
+    trackEvent(AnalyticsEvents.ONBOARDING_STEP_VIEWED, {
+      step: 'starter_plan',
+      goal: goal ?? 'unset',
+    });
+  }, [goal]);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,8 +102,23 @@ export const StarterPlanScreen = () => {
             is_active: true,
           });
         }
+        trackEvent(AnalyticsEvents.ONBOARDING_STEP_COMPLETED, {
+          step: 'starter_plan',
+          plan_id: activatePlanId,
+          accepted_recommendation: activatePlanId === recommendedPlanId,
+          goal: goal ?? 'unset',
+        });
+      } else {
+        trackEvent(AnalyticsEvents.ONBOARDING_STEP_SKIPPED, {
+          step: 'starter_plan',
+          goal: goal ?? 'unset',
+        });
       }
       await markOnboarded();
+      trackEvent(AnalyticsEvents.ONBOARDING_FINISHED, {
+        with_plan: Boolean(activatePlanId),
+        goal: goal ?? 'unset',
+      });
       // RootNavigator listens for user_metadata.onboarded_at via the auth
       // listener; once it flips, the Onboarding stack unmounts and the
       // user lands on Main automatically.
@@ -99,7 +151,7 @@ export const StarterPlanScreen = () => {
           <Text style={{ color: text.tertiary, textAlign: 'center', marginTop: spacing.xl }}>
             Loading plans…
           </Text>
-        ) : plans.length === 0 ? (
+        ) : rankedPlans.length === 0 ? (
           <View
             style={{
               paddingVertical: spacing.xl,
@@ -118,8 +170,9 @@ export const StarterPlanScreen = () => {
             </Text>
           </View>
         ) : (
-          plans.map(p => {
+          rankedPlans.map(p => {
             const active = selected === p.id;
+            const isRecommended = p.id === recommendedPlanId;
             return (
               <TouchableOpacity
                 key={p.id}
@@ -135,6 +188,20 @@ export const StarterPlanScreen = () => {
                   backgroundColor: active ? 'rgba(252, 76, 2, 0.12)' : palette.surface,
                 }}
               >
+                {isRecommended ? (
+                  <Text
+                    style={{
+                      color: accent.lift,
+                      fontFamily: fonts.family.mono,
+                      fontSize: 10,
+                      fontWeight: fonts.weight.black as '900',
+                      letterSpacing: 1.6,
+                      marginBottom: 6,
+                    }}
+                  >
+                    RECOMMENDED FOR YOUR GOAL
+                  </Text>
+                ) : null}
                 <View
                   style={{
                     flexDirection: 'row',

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, View, Text, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -22,6 +22,10 @@ export const GoalScreen = () => {
   const [selected, setSelected] = useState<Goal | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    trackEvent(AnalyticsEvents.ONBOARDING_STEP_VIEWED, { step: 'goal' });
+  }, []);
+
   const advance = async (persist: boolean) => {
     setSubmitting(true);
     try {
@@ -40,8 +44,17 @@ export const GoalScreen = () => {
   return (
     <OnboardingChrome
       step={2}
-      onContinue={() => advance(true)}
-      onSkip={() => advance(false)}
+      onContinue={() => {
+        trackEvent(AnalyticsEvents.ONBOARDING_STEP_COMPLETED, {
+          step: 'goal',
+          goal: selected ?? 'none',
+        });
+        advance(true);
+      }}
+      onSkip={() => {
+        trackEvent(AnalyticsEvents.ONBOARDING_STEP_SKIPPED, { step: 'goal' });
+        advance(false);
+      }}
       isContinueDisabled={!selected}
       isSubmitting={submitting}
     >

@@ -8,6 +8,7 @@ import { getSettings, upsertSettings } from '../../services/nutritionService';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import type { OnboardingStackParamList } from '../../navigation/types';
 import { OnboardingChrome, OnboardingTitle, OnboardingSubtitle } from './OnboardingChrome';
+import { trackEvent, AnalyticsEvents } from '../../utils/posthog';
 
 type Nav = NativeStackNavigationProp<OnboardingStackParamList, 'Identity'>;
 type WaterUnit = 'ml' | 'oz';
@@ -26,6 +27,10 @@ export const IdentityScreen = () => {
   const [waterUnit, setWaterU] = useState<WaterUnit>('ml');
   const [defaultWaterUnit, setDefaultWaterUnit] = useState<WaterUnit>('ml');
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    trackEvent(AnalyticsEvents.ONBOARDING_STEP_VIEWED, { step: 'identity' });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,8 +71,18 @@ export const IdentityScreen = () => {
   return (
     <OnboardingChrome
       step={1}
-      onContinue={() => persistAndAdvance(true)}
-      onSkip={() => persistAndAdvance(false)}
+      onContinue={() => {
+        trackEvent(AnalyticsEvents.ONBOARDING_STEP_COMPLETED, {
+          step: 'identity',
+          custom_name: name.trim() !== defaultName,
+          units,
+        });
+        persistAndAdvance(true);
+      }}
+      onSkip={() => {
+        trackEvent(AnalyticsEvents.ONBOARDING_STEP_SKIPPED, { step: 'identity' });
+        persistAndAdvance(false);
+      }}
       isSubmitting={submitting}
     >
       <OnboardingTitle>Welcome.</OnboardingTitle>
