@@ -385,12 +385,20 @@ const Field = ({
           {unit}
         </Text>
       ) : null}
-      {optional && !isOff ? (
+      {optional ? (
+        // Always rendered (with opacity 0 + pointerEvents:none when off) so
+        // the layout doesn't shift the moment the user types their first
+        // digit. The shift was unmounting/remounting siblings just enough
+        // to drop the iOS TextInput focus mid-keystroke — the "cursor goes
+        // off after one digit" bug on water and other optional goals.
         <TouchableOpacity
           onPress={() => onChange('')}
           accessibilityRole="button"
           accessibilityLabel={`Stop tracking ${label}`}
+          accessibilityElementsHidden={isOff}
+          disabled={isOff}
           hitSlop={6}
+          style={{ opacity: isOff ? 0 : 1 }}
         >
           <Text
             style={{
