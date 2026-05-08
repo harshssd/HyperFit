@@ -18,6 +18,12 @@ import {
   signOut as svcSignOut,
 } from '../services/supabaseClient';
 import { friendlyAuthError } from '../utils/authErrors';
+import {
+  identifyUser,
+  resetAnalytics,
+  trackEvent,
+  AnalyticsEvents,
+} from '../utils/posthog';
 
 export type AuthStatus = 'loading' | 'unauthenticated' | 'authenticated';
 
@@ -41,17 +47,35 @@ export const useAuth = (): UseAuthReturn => {
 
   useEffect(() => {
     let active = true;
+    // Track previous user id so we can distinguish a fresh sign-in (fire
+    // identify + sign_in event once) from auth state ticks where the same
+    // session refreshes its access token.
+    let prevUserId: string | null = null;
 
     getInitialSession().then(({ data: { session } }) => {
       if (!active) return;
       setUser(session?.user ?? null);
       setStatus(session?.user ? 'authenticated' : 'unauthenticated');
+      if (session?.user) {
+        identifyUser(session.user.id);
+        prevUserId = session.user.id;
+      }
     });
 
     const unsubscribe = onAuthStateChange(session => {
       if (!active) return;
+      const nextUserId = session?.user?.id ?? null;
       setUser(session?.user ?? null);
       setStatus(session?.user ? 'authenticated' : 'unauthenticated');
+
+      if (nextUserId && nextUserId !== prevUserId) {
+        identifyUser(nextUserId);
+        trackEvent(AnalyticsEvents.SIGN_IN);
+      } else if (!nextUserId && prevUserId) {
+        trackEvent(AnalyticsEvents.SIGN_OUT);
+        resetAnalytics();
+      }
+      prevUserId = nextUserId;
     });
 
     return () => {

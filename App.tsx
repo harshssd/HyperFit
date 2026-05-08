@@ -16,8 +16,16 @@ import {
 import { AuthProvider } from './src/contexts/AuthContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { palette } from './src/styles/theme';
+import { initAnalytics, trackEvent, AnalyticsEvents } from './src/utils/posthog';
 
 WebBrowser.maybeCompleteAuthSession();
+
+// Boot PostHog once at module load. Anonymous distinct id by default — we only
+// call identify() after a successful sign-in (see useAuth). Init is fire-and-
+// forget; analytics must never block app start.
+initAnalytics().then(() => {
+  trackEvent(AnalyticsEvents.APP_OPENED);
+});
 
 // Apply Inter as the default font for every Text in the app. RN's fontWeight
 // prop maps to the matching Inter weight via iOS font synthesis; for explicit

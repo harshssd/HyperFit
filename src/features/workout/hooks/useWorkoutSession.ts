@@ -10,6 +10,7 @@ import {
   updateSetValue,
 } from '../helpers';
 import { showError, showSuccess } from '../../../utils/alerts';
+import { trackEvent, AnalyticsEvents } from '../../../utils/posthog';
 import { PlanSession, SessionExercise, UserWorkoutPlan, WorkoutExercise, WorkoutPlan } from '../../../types/workout';
 import type { UseRestTimerReturn } from './useRestTimer';
 
@@ -369,6 +370,11 @@ export const useWorkoutSession = ({
       setLastSavedSessionId(result.id);
       setIsSessionFinished(true);
       showSuccess('Workout saved!');
+      trackEvent(AnalyticsEvents.WORKOUT_FINISHED, {
+        source: sessionContext.type,
+        exercise_count: exercisesPayload.length,
+        set_count: exercisesPayload.reduce((acc, ex) => acc + ex.sets.length, 0),
+      });
     } catch (e) {
       console.error(e);
       showError('Failed to save workout');
@@ -420,6 +426,10 @@ export const useWorkoutSession = ({
       });
       namePromptedRef.current = true; // not a manual session
       showSuccess(`Started ${session.name}!`);
+      trackEvent(AnalyticsEvents.WORKOUT_STARTED, {
+        source: contextType,
+        exercise_count: newExercises.length,
+      });
     },
     [updateSessionExercises]
   );
@@ -446,6 +456,7 @@ export const useWorkoutSession = ({
       });
       namePromptedRef.current = true; // we set the name; don't reprompt
       showSuccess(`${type.toUpperCase()} workout loaded!`);
+      trackEvent(AnalyticsEvents.WORKOUT_STARTED, { source: 'quick', quick_type: type });
     },
     [buildExercises, updateSessionExercises]
   );
@@ -455,6 +466,7 @@ export const useWorkoutSession = ({
     setSessionContext({ type: 'manual', customName: 'AI Suggested Workout' });
     namePromptedRef.current = true;
     showSuccess('AI workout generated based on your progress!');
+    trackEvent(AnalyticsEvents.WORKOUT_STARTED, { source: 'ai_suggestion' });
   }, [buildExercises, updateSessionExercises]);
 
   const hydrateFromSnapshot = useCallback(

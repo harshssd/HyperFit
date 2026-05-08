@@ -22,6 +22,7 @@ import { NutritionDayDetailScreen } from '../screens/NutritionDayDetailScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { linking } from './linking';
 import type { RootStackParamList } from './types';
+import { trackEvent, AnalyticsEvents } from '../utils/posthog';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -45,7 +46,25 @@ export const RootNavigator = () => {
   }
 
   return (
-    <NavigationContainer linking={linking} fallback={<LoadingScreen message="LOADING..." />}>
+    <NavigationContainer
+      linking={linking}
+      fallback={<LoadingScreen message="LOADING..." />}
+      onStateChange={(state) => {
+        // Walk down the active route in nested navigators to find the leaf
+        // screen the user is actually looking at — that's what should land
+        // in the analytics screen_view event.
+        let route = state?.routes[state.index ?? 0];
+        while (route?.state) {
+          const nested = route.state as { index?: number; routes?: { name: string; state?: unknown }[] };
+          const child = nested.routes?.[nested.index ?? 0];
+          if (!child) break;
+          route = child as typeof route;
+        }
+        if (route?.name) {
+          trackEvent(AnalyticsEvents.SCREEN_VIEW, { screen: route.name });
+        }
+      }}
+    >
       <ErrorBoundary fallbackLabel="The app hit an error">
         <UserProvider user={auth.user}>
           <AppDataProvider
