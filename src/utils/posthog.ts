@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import PostHog from 'posthog-react-native';
 
 const POSTHOG_API_KEY = process.env.EXPO_PUBLIC_POSTHOG_KEY ?? '';
@@ -11,6 +12,9 @@ const APP_NAME = 'hyperfit';
 
 export async function initAnalytics(): Promise<void> {
   if (!POSTHOG_API_KEY) return;
+  // Idempotent: dev hot-reloads call this every fast-refresh, no need to
+  // recreate the SDK or rebind the global error handler.
+  if (posthog) return;
   try {
     posthog = new PostHog(POSTHOG_API_KEY, {
       host: POSTHOG_HOST,
@@ -18,8 +22,12 @@ export async function initAnalytics(): Promise<void> {
       flushInterval: 30000,
       flushAt: 20,
     });
-    // Register super property — automatically attached to every event
-    posthog.register({ app_name: APP_NAME });
+    // Super properties — automatically attached to every event so dashboards
+    // can slice by app and by version without each capture call respecifying.
+    posthog.register({
+      app_name: APP_NAME,
+      app_version: Constants.expoConfig?.version ?? 'unknown',
+    });
     installGlobalErrorHandler();
   } catch {
     // Analytics init failure must never crash the app
@@ -35,17 +43,6 @@ export function trackEvent(
     posthog?.capture(event, properties);
   } catch {
     // Silent failure — analytics must never block the user
-  }
-}
-
-/** Register super properties — automatically attached to every subsequent event. */
-export function registerSuperProperties(
-  properties: Record<string, string | number | boolean>,
-): void {
-  try {
-    posthog?.register(properties);
-  } catch {
-    // never throw from analytics
   }
 }
 
