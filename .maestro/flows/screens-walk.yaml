@@ -38,7 +38,7 @@ appId: ${APP_ID}
 - waitForAnimationToEnd:
     timeout: 1000
 - tapOn:
-    id: "home-insights"
+    id: "home-body-week"
     optional: true
 - waitForAnimationToEnd:
     timeout: 1500

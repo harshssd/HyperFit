@@ -21,8 +21,6 @@ appId: com.hyperfocused.hyperfit
       id: "tab-home"
     timeout: 15000
 - assertVisible:
-    id: "home-stats"
+    id: "home-body-week"
 - assertVisible:
     id: "home-streak-value"
-- assertVisible:
-    id: "home-xp-value"
