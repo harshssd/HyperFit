@@ -667,6 +667,7 @@ const HomeView = ({ data, onChangeView, onOpenHistory }: HomeViewProps) => {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <Flame size={14} color={accent.lift} />
                 <Text
+                  testID="home-streak-value"
                   style={{
                     color: text.primary,
                     fontSize: 16,
