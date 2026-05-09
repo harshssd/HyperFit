@@ -10,7 +10,8 @@ import { Flame, Plus, Salad, SlidersHorizontal } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { ErrorState, LoadingState } from '../../components/StateView';
+import { ErrorState } from '../../components/StateView';
+import { NutritionDaySkeleton } from '../../components/skeletons/NutritionDaySkeleton';
 import { SharePreviewSheet } from '../../components/share/SharePreviewSheet';
 import type { SharePayload } from '../../components/share/ShareableSummaryCard';
 import { buildDayPayload, buildMealPayload } from './shareHelpers';
@@ -88,7 +89,7 @@ export const NutritionView = ({
   }, [openAddMealOnMount, onAddMealConsumed]);
 
   if (day.loading) {
-    return <LoadingState label="Loading today" />;
+    return <NutritionDaySkeleton />;
   }
 
   if (day.error) {

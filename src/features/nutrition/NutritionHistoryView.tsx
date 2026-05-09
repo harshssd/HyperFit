@@ -4,7 +4,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/types';
-import { LoadingState, EmptyState, ErrorState } from '../../components/StateView';
+import { EmptyState, ErrorState } from '../../components/StateView';
+import { NutritionHistorySkeleton } from '../../components/skeletons/NutritionHistorySkeleton';
 import { palette, accent, text, spacing, radii, fonts } from '../../styles/theme';
 import { useUser } from '../../contexts/UserContext';
 import {
@@ -60,7 +61,7 @@ export const NutritionHistoryView = () => {
     load();
   }, [load]);
 
-  if (loading && !refreshing) return <LoadingState label="Loading nutrition history" />;
+  if (loading && !refreshing) return <NutritionHistorySkeleton />;
   if (err) return <ErrorState message={err} onRetry={() => load()} />;
   if (totalCount === 0) {
     return (

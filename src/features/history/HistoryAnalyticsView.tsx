@@ -7,7 +7,8 @@ import {
 import NutritionHistoryView from '../nutrition/NutritionHistoryView';
 import GlassCard from '../../components/GlassCard';
 import NeonButton from '../../components/NeonButton';
-import { LoadingState, EmptyState, ErrorState } from '../../components/StateView';
+import { EmptyState, ErrorState } from '../../components/StateView';
+import { HistoryFeedSkeleton } from '../../components/skeletons/HistoryFeedSkeleton';
 import SimpleBarChart from '../../components/SimpleBarChart';
 import { MuscleHeatmap } from '../analytics/heatmap/MuscleHeatmap';
 import { colors, spacing, radii, palette, text, accent, fonts } from '../../styles/theme';
@@ -106,7 +107,7 @@ const HistoryAnalyticsView = ({ initialMode = 'history' }: Props) => {
 
   const renderHistoryView = () => {
     if (loading && !refreshing) {
-      return <LoadingState label="Loading your sessions…" />;
+      return <HistoryFeedSkeleton />;
     }
 
     if (loadError) {
