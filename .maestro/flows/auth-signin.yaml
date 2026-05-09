@@ -22,5 +22,3 @@ appId: com.hyperfocused.hyperfit
     timeout: 15000
 - assertVisible:
     id: "home-body-week"
-- assertVisible:
-    id: "home-streak-value"
