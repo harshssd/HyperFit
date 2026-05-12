@@ -1,0 +1,10 @@
+Welcome to HyperFit on Android. First release.
+
+• Workout + nutrition tracking with honest signal, no gamified streaks
+• Recruitment-weighted muscle heatmap
+• PR detection, ghost values, rest timer
+• Macro tracking with cheat day flag
+• Share cards for finished workouts and nutrition days
+• Sign in with Google
+
+Free, no ads, no subscription.

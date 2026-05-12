@@ -13,6 +13,27 @@ For _fastlane_ installation instructions, see [Installing _fastlane_](https://do
 
 # Available Actions
 
+## Android
+
+### android metadata
+
+```sh
+[bundle exec] fastlane android metadata
+```
+
+Upload Play Store metadata + screenshots (no AAB upload)
+
+### android metadata_validate
+
+```sh
+[bundle exec] fastlane android metadata_validate
+```
+
+Dry-run metadata validation (no Play Console writes)
+
+----
+
+
 ## iOS
 
 ### ios metadata
