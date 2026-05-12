@@ -31,6 +31,39 @@ def asc_api_key
   )
 end
 
+ANDROID_SA_JSON = File.expand_path("~/.claude/credentials/google-play/hyperfit-service-account.json")
+ANDROID_PACKAGE = "com.hyperfocused.hyperfit"
+
+platform :android do
+  desc "Upload Play Store metadata + screenshots (no AAB upload)"
+  lane :metadata do
+    supply(
+      package_name: ANDROID_PACKAGE,
+      json_key: ANDROID_SA_JSON,
+      track: "internal",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      skip_upload_changelogs: false,
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false,
+      validate_only: false,
+    )
+  end
+
+  desc "Dry-run metadata validation (no Play Console writes)"
+  lane :metadata_validate do
+    supply(
+      package_name: ANDROID_PACKAGE,
+      json_key: ANDROID_SA_JSON,
+      track: "internal",
+      skip_upload_apk: true,
+      skip_upload_aab: true,
+      validate_only: true,
+    )
+  end
+end
+
 platform :ios do
   desc "Upload metadata + screenshots (no submit)"
   lane :metadata do

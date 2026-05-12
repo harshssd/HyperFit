@@ -1,0 +1,34 @@
+HyperFit is a workout + nutrition tracker for people who want honest data, not gamified noise.
+
+Track every set. Log every meal. See exactly which muscles you've worked this week, where you're plateauing, and where your kcal target is drifting. The whole app is built around one idea: surface real signal, hide everything else.
+
+LIFT TRACKING
+• One-tap set logging with weight, reps, RPE, and rest timer
+• Ghost values from your last session show up next to every set as you log
+• PR detection on every finished workout, see exactly which sets broke a record
+• Recruitment-weighted muscle heatmap (not the usual flat 50/50 split) shows what you've actually trained
+• Custom workout plans plus four starter templates (PPL, Upper/Lower, Full Body, etc.)
+• Browse and share plans with a single code
+
+NUTRITION
+• Log meals by macros (kcal, protein, carbs, fat, fiber) or by structured ingredients
+• Quantity labels and ingredient breakdown for the meals you eat repeatedly
+• Daily water tracker with cup, bottle, or custom volume presets
+• Cheat day flag preserves your streak when life happens
+• "Recents" scroller, re-log a banana or your usual breakfast in two taps
+• Set kcal/macro targets per day; the app shows ON TRACK / OVER / UNDER
+
+HOME DASHBOARD
+• One-line verdict every morning: READY TO LIFT, REST DAY, DONE TODAY
+• Body silhouette colored by this week's actual muscle recruitment
+• Parallel signals for both workouts and meals so you can see the full week at a glance
+• 14-day volume sparkline with week-over-week delta
+
+SHARE
+• 1080x1350 share cards for finished workouts, plans, and full nutrition days
+• Includes the muscle silhouette + top exercises + macros, actually worth posting
+
+WHY HYPERFIT
+The fitness app market is full of dark patterns: streaks that punish missing a day, calorie circles that lie about hitting your target, "AI coaches" that recommend the same five exercises. HyperFit doesn't do any of that. It logs what you did, shows you what it means, and gets out of the way.
+
+Free, no ads, no subscription. Sign in with Google. Your data stays yours.
