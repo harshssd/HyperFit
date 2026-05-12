@@ -21,7 +21,6 @@
         "ascAppId": "6765838078"
       },
       "android": {
-        "serviceAccountKeyPath": "/Users/apple/.claude/credentials/google-play/hyperfit-service-account.json",
         "track": "internal",
         "releaseStatus": "draft"
       }
